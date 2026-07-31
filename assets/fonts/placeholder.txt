@@ -1,0 +1,3 @@
+Font files (Inter-Regular.ttf, Inter-Medium.ttf, Inter-SemiBold.ttf, Inter-Bold.ttf) should be placed here.
+
+Download from: https://fonts.google.com/specimen/Inter

@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native Builds
+android/
+ios/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.apk
+*.aab
+
+# Metro
+.metro-health-check*
+
+# Debug Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# Environment Files
+.env
+.env*.local
+.env.production
+.env.development
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.pem
+
+# TypeScript
+*.tsbuildinfo
+expo-env.d.ts
+
+# IDEs and Editors
+.vscode/
+.idea/
+
+# AI Tooling and Agent Artifacts
+.gemini/
+.antigravity/
+.cursor/
+.windsurf/
+.claude/
+.copilot/
+.system_generated/
+*.agent.md
+AGENT.md
+AGENTS.md
+*.prompt.md
+prompts/
+scratch/
+temp/
+tmp/
+
+# Temporary Maintenance Scripts
+fix*.js
+refactor*.js
+updateUI.js

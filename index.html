@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>SubDebt Manager — Privacy-First Finance & Ledger</title>
+  <meta name="description" content="100% Offline mobile application for tracking subscriptions, daily spending, and personal debt/credit ledgers." />
+  <link rel="icon" type="image/png" href="assets/icon.png" />
+  <link rel="apple-touch-icon" href="assets/icon.png" />
+  <meta name="theme-color" content="#060810" />
+
+  <style>
+    :root {
+      --bg: #060810;
+      --surface: rgba(255, 255, 255, 0.03);
+      --surface-hover: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --text-main: #F3F4F6;
+      --text-sub: #9CA3AF;
+      --text-muted: #6B7280;
+      --primary: #2563EB;
+      --primary-hover: #3B82F6;
+      --accent-green: #10B981;
+      --accent-purple: #8B5CF6;
+      --accent-amber: #F59E0B;
+      --radius-hero: 28px;
+      --radius-card: 20px;
+      --radius-btn: 14px;
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Background Effects */
+    .bg-glow-top {
+      position: absolute;
+      top: -150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(ellipse at center, rgba(37, 99, 235, 0.25) 0%, rgba(16, 185, 129, 0.12) 45%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      padding: 24px 20px 80px 20px;
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 40px;
+    }
+
+    /* Navigation Bar */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-logo {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border);
+    }
+
+    .nav-name {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+    }
+
+    .nav-badge {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent-green);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      background: rgba(16, 185, 129, 0.12);
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+
+    .github-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .github-link:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+
+    .github-link svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding-top: 10px;
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 30px;
+      background: rgba(37, 99, 235, 0.1);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      color: #60A5FA;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .hero-title {
+      font-size: clamp(32px, 5.5vw, 52px);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -1.2px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #D1D5DB 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      max-width: 720px;
+    }
+
+    .hero-desc {
+      font-size: clamp(15px, 2vw, 17px);
+      color: var(--text-sub);
+      line-height: 1.55;
+      max-width: 580px;
+    }
+
+    /* PRIMARY CTA BUTTON (ARM64 v8a for Modern Devices) */
+    .primary-cta-container {
+      width: 100%;
+      max-width: 440px;
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-main-download {
+      position: relative;
+      width: 100%;
+      padding: 18px 24px;
+      border-radius: var(--radius-btn);
+      background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.4);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    .btn-main-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 36px rgba(37, 99, 235, 0.5);
+      background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    }
+
+    .btn-main-download:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+    }
+
+    .btn-main-download svg {
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .btn-main-badge {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font-size: 9px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    .cta-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cta-hint-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+    }
+
+    /* Downloads Grid (Secondary Architectures) */
+    .download-section {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding-left: 4px;
+    }
+
+    .arch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    .arch-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .arch-item:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+
+    .arch-item:active {
+      transform: translateY(0);
+    }
+
+    .arch-info h4 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 2px;
+    }
+
+    .arch-info p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .arch-dl-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary-hover);
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .arch-item:hover .arch-dl-icon {
+      background: var(--primary);
+      color: #FFFFFF;
+      border-color: var(--primary);
+    }
+
+    .arch-dl-icon svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Features Matrix */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-box:hover {
+      background: var(--surface-hover);
+      border-color: var(--border-hover);
+    }
+
+    .feature-icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .icon-green { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.25); }
+    .icon-blue { background: rgba(37, 99, 235, 0.12); color: #60A5FA; border: 1px solid rgba(37, 99, 235, 0.25); }
+    .icon-amber { background: rgba(245, 158, 11, 0.12); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.25); }
+    .icon-purple { background: rgba(139, 92, 246, 0.12); color: var(--accent-purple); border: 1px solid rgba(139, 92, 246, 0.25); }
+
+    .feature-icon-wrap svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .feature-box h3 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .feature-box p {
+      font-size: 13px;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .footer a {
+      color: var(--text-main);
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    /* Download Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #10B981;
+      color: #FFFFFF;
+      padding: 12px 20px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 10px 24px rgba(16, 185, 129, 0.35);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-glow-top"></div>
+
+  <div class="container">
+    <!-- Nav Header -->
+    <nav class="nav">
+      <div class="nav-brand">
+        <img src="assets/icon.png" alt="SubDebt Icon" class="nav-logo" />
+        <div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="nav-name">SubDebt</span>
+            <span class="nav-badge">Offline</span>
+          </div>
+        </div>
+      </div>
+      <a href="https://github.com/zer0k7/SubDebt-Manager" class="github-link" target="_self">
+        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Star on GitHub
+      </a>
+    </nav>
+
+    <!-- Hero Header -->
+    <header class="hero">
+      <div class="hero-tag">Privacy-First Ledger</div>
+      <h1 class="hero-title">Track Subscriptions, Debts & Outflow</h1>
+      <p class="hero-desc">An offline personal finance manager built to log recurring subscriptions, daily expenses, and debt balances with zero cloud telemetry.</p>
+
+      <!-- TOP PRIMARY DOWNLOAD CTA (ARM64 v8a for Modern Phones) -->
+      <div class="primary-cta-container">
+        <button 
+          class="btn-main-download" 
+          onclick="triggerDownload('https://github.com/zer0k7/SubDebt-Manager/releases/latest/download/SubDebt-arm64-v8a.apk', 'SubDebt-arm64-v8a.apk', this)"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span>Download ARM64 APK</span>
+          <span class="btn-main-badge">v2.1.1</span>
+        </button>
+        <div class="cta-hint">
+          <span class="cta-hint-dot"></span>
+          Recommended for modern Android phones (Direct Download)
+        </div>
+      </div>
+    </header>
+
+    <!-- Secondary Architectures Download Section -->
+    <section class="download-section">
+      <div class="section-label">All Build Files</div>
+      <div class="arch-grid">
+        
+        <div 
+          class="arch-item" 
+          onclick="triggerDownload('https://github.com/zer0k7/SubDebt-Manager/releases/latest/download/SubDebt-universal.apk', 'SubDebt-universal.apk', this)"
+        >
+          <div class="arch-info">
+            <h4>Universal APK</h4>
+            <p>All Android devices</p>
+          </div>
+          <div class="arch-dl-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+        </div>
+
+        <div 
+          class="arch-item" 
+          onclick="triggerDownload('https://github.com/zer0k7/SubDebt-Manager/releases/latest/download/SubDebt-armeabi-v7a.apk', 'SubDebt-armeabi-v7a.apk', this)"
+        >
+          <div class="arch-info">
+            <h4>ARM v7a APK</h4>
+            <p>Legacy 32-bit devices</p>
+          </div>
+          <div class="arch-dl-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+        </div>
+
+        <div 
+          class="arch-item" 
+          onclick="triggerDownload('https://github.com/zer0k7/SubDebt-Manager/releases/latest/download/SubDebt-x86_64.apk', 'SubDebt-x86_64.apk', this)"
+        >
+          <div class="arch-info">
+            <h4>x86_64 APK</h4>
+            <p>Emulators & Tablets</p>
+          </div>
+          <div class="arch-dl-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+        </div>
+
+        <div 
+          class="arch-item" 
+          onclick="triggerDownload('https://github.com/zer0k7/SubDebt-Manager/releases/latest/download/SubDebt-app-release.aab', 'SubDebt-app-release.aab', this)"
+        >
+          <div class="arch-info">
+            <h4>App Bundle (AAB)</h4>
+            <p>Play Store submission</p>
+          </div>
+          <div class="arch-dl-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Core Features Grid -->
+    <section class="download-section">
+      <div class="section-label">Core Capabilities</div>
+      <div class="features-grid">
+
+        <div class="feature-box">
+          <div class="feature-icon-wrap icon-green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3>100% Offline & Local</h3>
+          <p>Financial records, budgets, and debts remain strictly on device via high-speed MMKV storage. No external servers.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrap icon-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+          </div>
+          <h3>Debt Settlement Receipts</h3>
+          <p>Track money borrowed or lent. Generate digital settlement certificates and share them as crisp image receipts.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrap icon-amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <h3>Subscription Renewal Alerts</h3>
+          <p>Monitor recurring renewal dates with local system notifications before payments expire.</p>
+        </div>
+
+        <div class="feature-box">
+          <div class="feature-icon-wrap icon-purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Biometric Security</h3>
+          <p>Lock your ledger using system hardware Face ID, Fingerprint, or PIN authentication.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>SubDebt Manager is open-source under the MIT License.<br />
+      Star or contribute on <a href="https://github.com/zer0k7/SubDebt-Manager" target="_self">GitHub</a>.</p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification element -->
+  <div id="toast" class="toast">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <span>Download started...</span>
+  </div>
+
+  <!-- In-Place Direct Download JS Handler (No Redirects / No New Tabs) -->
+  <script>
+    function triggerDownload(url, filename, el) {
+      showToast('Downloading ' + filename + '...');
+
+      // Silent hidden iframe download trigger to prevent any tab opening or redirects
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+
+      setTimeout(function() {
+        if (iframe && iframe.parentNode) {
+          iframe.parentNode.removeChild(iframe);
+        }
+      }, 60000);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.querySelector('span').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(function() {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+  </script>
+
+</body>
+</html>

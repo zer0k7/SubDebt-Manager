@@ -1,0 +1,406 @@
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import * as Device from 'expo-device';
+import { storage } from '../storage/mmkv';
+import { STORAGE_KEYS } from '../storage/keys';
+import { formatCurrency } from './dateHelpers';
+
+// Configure how notifications are handled when the app is foregrounded
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
+
+export async function registerForPushNotificationsAsync() {
+  let token;
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  // Request permissions on both physical devices and simulators for local notifications
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    return null;
+  }
+
+  // Only request Push Token on physical devices with EAS setup
+  if (Device.isDevice) {
+    try {
+      token = (await Notifications.getExpoPushTokenAsync()).data;
+    } catch (e) {
+      // Ignore EAS token fetching failures gracefully to allow local notifications to function
+    }
+  }
+
+  return token;
+}
+
+export async function scheduleSubscriptionReminder(id: string, name: string, expiryDate: string) {
+  const triggerDate = new Date(expiryDate);
+  // Remind 1 day before
+  triggerDate.setDate(triggerDate.getDate() - 1);
+  triggerDate.setHours(10, 0, 0, 0); // 10 AM
+
+  if (triggerDate.getTime() <= Date.now()) {
+    // If 1 day before is already in the past, don't schedule or schedule for now if appropriate
+    // For now, just skip if it's too late
+    return null;
+  }
+
+  const notificationId = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Subscription Renewal',
+      body: `Your ${name} subscription expires tomorrow!`,
+      data: { type: 'subscription', id },
+    },
+    trigger: { type: 'date', date: triggerDate } as any,
+  });
+
+  return notificationId;
+}
+
+export async function scheduleDebtReminder(id: string, personName: string, dueDate: string) {
+  const triggerDate = new Date(dueDate);
+  // Remind on the due date morning
+  triggerDate.setHours(9, 0, 0, 0); // 9 AM
+
+  if (triggerDate.getTime() <= Date.now()) {
+    return null;
+  }
+
+  const notificationId = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: 'Debt Due Today',
+      body: `You have a debt to pay back to ${personName} today.`,
+      data: { type: 'debt', id },
+    },
+    trigger: { type: 'date', date: triggerDate } as any,
+  });
+
+  return notificationId;
+}
+
+export async function cancelNotification(notificationId: string) {
+  if (notificationId) {
+    await Notifications.cancelScheduledNotificationAsync(notificationId);
+  }
+}
+
+export async function cancelAllNotifications() {
+  await Notifications.cancelAllScheduledNotificationsAsync();
+}
+
+export async function rescheduleDailyReminder() {
+  let isEnabled = false;
+  try {
+    const val = await storage.getString('daily_reminder_enabled');
+    isEnabled = val !== 'false';
+  } catch (err) {}
+
+  // Cancel existing scheduled daily notifications
+  const reminderKeys = [
+    'daily_reminder_notification_id',
+    'morning_reminder_notification_id',
+    'afternoon_reminder_notification_id',
+    'evening_reminder_notification_id',
+  ];
+
+  for (const key of reminderKeys) {
+    try {
+      const existingId = await storage.getString(key);
+      if (existingId) {
+        await Notifications.cancelScheduledNotificationAsync(existingId);
+        await storage.delete(key);
+      }
+    } catch (err) {}
+  }
+
+  if (!isEnabled) {
+    return null;
+  }
+
+  // Compute live financial data for meaningful notification content
+  let currencyCode = 'USD';
+  try {
+    const savedCurrency = await storage.getString(STORAGE_KEYS.CURRENCY);
+    if (savedCurrency) currencyCode = savedCurrency;
+  } catch (err) {}
+
+  let budgetAmount = 0;
+  try {
+    const rawBudget = await storage.getString(STORAGE_KEYS.MONTHLY_BUDGET);
+    if (rawBudget) {
+      const parsed = JSON.parse(rawBudget);
+      budgetAmount = parsed.amount || 0;
+    }
+  } catch (err) {}
+
+  let monthlySpending = 0;
+  let todaySpent = 0;
+  let todayCount = 0;
+
+  try {
+    const rawSpending = await storage.getString(STORAGE_KEYS.DAILY_SPENDING);
+    if (rawSpending) {
+      const entries = JSON.parse(rawSpending) as any[];
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+
+      let rates: Record<string, number> = {};
+      try {
+        const storedRates = await storage.getString('exchange_rates_v1');
+        if (storedRates) rates = JSON.parse(storedRates);
+      } catch (err) {}
+
+      const convertAmount = (amount: number, fromCode: string) => {
+        if (fromCode === currencyCode) return amount;
+        if (!rates || Object.keys(rates).length === 0) return amount;
+        const fromRate = rates[fromCode] || 1;
+        const toRate = rates[currencyCode] || 1;
+        return (amount / fromRate) * toRate;
+      };
+
+      entries.forEach((e) => {
+        const spent = new Date(e.spentAt);
+        const converted = convertAmount(e.amount, e.currency);
+
+        if (spent.getMonth() === now.getMonth() && spent.getFullYear() === now.getFullYear()) {
+          monthlySpending += converted;
+        }
+
+        const entryDayStr = `${spent.getFullYear()}-${spent.getMonth() + 1}-${spent.getDate()}`;
+        if (entryDayStr === todayStr) {
+          todaySpent += converted;
+          todayCount += 1;
+        }
+      });
+    }
+  } catch (err) {}
+
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysRemaining = Math.max(1, daysInMonth - now.getDate() + 1);
+
+  // 1. Morning Kickoff Notification (9:00 AM)
+  let morningTitle = 'Good Morning! ☀️ Daily Allowance';
+  let morningBody = 'Keep your financial goals on track today! Tap to check your balance.';
+
+  if (budgetAmount > 0) {
+    const remaining = budgetAmount - monthlySpending;
+    if (remaining > 0) {
+      const dailyAllowance = Math.round(remaining / daysRemaining);
+      morningBody = `Monthly Budget: ${formatCurrency(remaining, currencyCode)} remaining (~${formatCurrency(dailyAllowance, currencyCode)}/day for ${daysRemaining} days).`;
+    } else {
+      morningTitle = 'Morning Budget Warning ⚠️';
+      morningBody = `You are ${formatCurrency(Math.abs(remaining), currencyCode)} over your monthly budget. Stay mindful of expenses today!`;
+    }
+  }
+
+  const morningId = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: morningTitle,
+      body: morningBody,
+      data: { type: 'morning_kickoff' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 9,
+      minute: 0,
+    } as any,
+  });
+
+  // 2. Midday Pulse Notification (2:00 PM / 14:00)
+  let afternoonTitle = 'Midday Pulse 📊 Financial Snapshot';
+  let afternoonBody = 'Take a quick look at your recurring bills and pending debt settlements.';
+
+  try {
+    const rawSubs = await storage.getString(STORAGE_KEYS.SUBSCRIPTIONS);
+    let activeSubsCount = 0;
+    if (rawSubs) {
+      const subs = JSON.parse(rawSubs) as any[];
+      activeSubsCount = subs.filter((s) => s.isActive).length;
+    }
+
+    const rawCredits = await storage.getString(STORAGE_KEYS.CREDITS);
+    let pendingCreditsCount = 0;
+    if (rawCredits) {
+      const credits = JSON.parse(rawCredits) as any[];
+      pendingCreditsCount = credits.filter((c) => !c.isReturned).length;
+    }
+
+    if (pendingCreditsCount > 0) {
+      afternoonTitle = 'Midday Credit Reminder 🤝';
+      afternoonBody = `You have ${pendingCreditsCount} unreturned credit items. Tap to generate 1-tap reminders.`;
+    } else if (activeSubsCount > 0) {
+      afternoonBody = `You have ${activeSubsCount} active subscriptions running. Check them in the Subscriptions tab.`;
+    }
+  } catch (err) {}
+
+  const afternoonId = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: afternoonTitle,
+      body: afternoonBody,
+      data: { type: 'afternoon_pulse' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: 14,
+      minute: 0,
+    } as any,
+  });
+
+  // Read custom reminder time set by user in Settings (e.g. "20:00")
+  let customHour = 20;
+  let customMinute = 0;
+  try {
+    const timeStr = await storage.getString('daily_reminder_time');
+    if (timeStr && timeStr.includes(':')) {
+      const parts = timeStr.split(':');
+      customHour = parseInt(parts[0], 10);
+      customMinute = parseInt(parts[1], 10);
+    }
+  } catch (err) {}
+
+  // 1. User Scheduled Daily Check-in Notification
+  let eveningTitle = 'Daily Ledger Check-in 📝';
+  let eveningBody = todayCount > 0
+    ? `Great job! You logged ${formatCurrency(todaySpent, currencyCode)} across ${todayCount} entries today.`
+    : "Did you spend anything today? Take 10 seconds to log today's transactions!";
+
+  const eveningId = await Notifications.scheduleNotificationAsync({
+    content: {
+      title: eveningTitle,
+      body: eveningBody,
+      data: { type: 'evening_wrapup' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: customHour,
+      minute: customMinute,
+    } as any,
+  });
+
+  try {
+    await storage.set('morning_reminder_notification_id', morningId);
+    await storage.set('afternoon_reminder_notification_id', afternoonId);
+    await storage.set('evening_reminder_notification_id', eveningId);
+  } catch (err) {}
+
+  return morningId;
+}
+
+export async function checkAndTriggerBudgetAlerts() {
+  try {
+    let currencyCode = 'USD';
+    const savedCurrency = await storage.getString(STORAGE_KEYS.CURRENCY);
+    if (savedCurrency) {
+      currencyCode = savedCurrency;
+    }
+
+    let budgetAmount = 0;
+    const rawBudget = await storage.getString(STORAGE_KEYS.MONTHLY_BUDGET);
+    if (rawBudget) {
+      const parsed = JSON.parse(rawBudget);
+      budgetAmount = parsed.amount || 0;
+    }
+
+    if (budgetAmount <= 0) {
+      await storage.delete('last_budget_alert_threshold');
+      return;
+    }
+
+    const rawSpending = await storage.getString(STORAGE_KEYS.DAILY_SPENDING);
+    if (!rawSpending) {
+      await storage.delete('last_budget_alert_threshold');
+      return;
+    }
+
+    const entries = JSON.parse(rawSpending) as any[];
+    const now = new Date();
+
+    let rates: Record<string, number> = {};
+    try {
+      const storedRates = await storage.getString('exchange_rates_v1');
+      if (storedRates) {
+        rates = JSON.parse(storedRates);
+      }
+    } catch (err) {}
+
+    const convertAmount = (amount: number, fromCode: string) => {
+      if (fromCode === currencyCode) return amount;
+      if (!rates || Object.keys(rates).length === 0) return amount;
+      const fromRate = rates[fromCode] || 1;
+      const toRate = rates[currencyCode] || 1;
+      return (amount / fromRate) * toRate;
+    };
+
+    const thisMonthEntries = entries.filter((e) => {
+      const spent = new Date(e.spentAt);
+      return spent.getMonth() === now.getMonth() && spent.getFullYear() === now.getFullYear();
+    });
+
+    const thisMonthSpent = thisMonthEntries.reduce((sum, e) => {
+      return sum + convertAmount(e.amount, e.currency);
+    }, 0);
+
+    const percentage = budgetAmount > 0 ? (thisMonthSpent / budgetAmount) * 100 : 0;
+    let currentThreshold = 0;
+    if (percentage >= 100) {
+      currentThreshold = 100;
+    } else if (percentage >= 90) {
+      currentThreshold = 90;
+    } else if (percentage >= 70) {
+      currentThreshold = 70;
+    }
+
+    const lastAlertedStr = await storage.getString('last_budget_alert_threshold');
+    const lastAlerted = lastAlertedStr ? parseInt(lastAlertedStr, 10) : 0;
+
+    if (currentThreshold > lastAlerted) {
+      let title = '';
+      let body = '';
+      const formattedSpent = formatCurrency(thisMonthSpent, currencyCode);
+      const formattedBudget = formatCurrency(budgetAmount, currencyCode);
+
+      if (currentThreshold === 100) {
+        title = 'Budget Exceeded! ⚠️';
+        body = `You have spent ${formattedSpent} of your ${formattedBudget} monthly limit.`;
+      } else if (currentThreshold === 90) {
+        title = 'Critical Budget Limit! 🚨';
+        body = `You've used ${percentage.toFixed(0)}% of your ${formattedBudget} budget (${formattedSpent} spent).`;
+      } else if (currentThreshold === 70) {
+        title = 'Budget Warning! 🔔';
+        body = `You've used ${percentage.toFixed(0)}% of your ${formattedBudget} budget (${formattedSpent} spent).`;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: 'budget_alert', percentage: currentThreshold },
+        },
+        trigger: null,
+      });
+
+      await storage.set('last_budget_alert_threshold', currentThreshold.toString());
+    } else if (currentThreshold < lastAlerted) {
+      await storage.set('last_budget_alert_threshold', currentThreshold.toString());
+    }
+  } catch (err) {}
+}

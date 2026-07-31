@@ -1,0 +1,124 @@
+name: Production Release Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android APKs & Publish Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Prebuild Expo Android
+        run: npx expo prebuild --platform android --clean
+
+      - name: Configure Proguard Rules & ABI Splits
+        run: |
+          GRADLE_FILE="android/app/build.gradle"
+          PROGUARD_FILE="android/app/proguard-rules.pro"
+
+          cat >> "$PROGUARD_FILE" << 'PROGUARD_RULES'
+          -keep class com.swmansion.reanimated.** { *; }
+          -keep class com.facebook.react.turbomodule.** { *; }
+          -keep class com.facebook.jni.** { *; }
+          -dontwarn com.swmansion.reanimated.**
+          -keep class expo.modules.notifications.** { *; }
+          -dontwarn expo.modules.notifications.**
+          -keep class expo.modules.localauthentication.** { *; }
+          -dontwarn expo.modules.localauthentication.**
+          -keep class expo.modules.intentlauncher.** { *; }
+          -dontwarn expo.modules.intentlauncher.**
+          PROGUARD_RULES
+
+          cat >> "$GRADLE_FILE" << 'GRADLE_PATCH'
+          android {
+              splits {
+                  abi {
+                      enable true
+                      reset()
+                      include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
+                      universalApk true
+                  }
+              }
+          }
+          GRADLE_PATCH
+
+      - name: Build Release APKs & AAB
+        run: |
+          cd android
+          ./gradlew assembleRelease bundleRelease --no-daemon \
+            -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
+            -Dorg.gradle.workers.max=2 \
+            -Dorg.gradle.parallel=false
+
+      - name: Collect Build Artifacts
+        run: |
+          mkdir -p release-artifacts
+
+          for apk in android/app/build/outputs/apk/release/*.apk; do
+            if [ -f "$apk" ]; then
+              filename=$(basename "$apk")
+              new_name=$(echo "$filename" | sed -e 's/app-/SubDebt-/g' -e 's/-release//g' -e 's/-unsigned//g')
+              cp "$apk" "release-artifacts/$new_name"
+              echo "Collected: release-artifacts/$new_name"
+            fi
+          done
+
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab release-artifacts/SubDebt-app-release.aab
+            echo "Collected: release-artifacts/SubDebt-app-release.aab"
+          fi
+
+      - name: Verify Build Artifacts
+        run: |
+          echo "--- Output Artifacts Listing ---"
+          ls -lh release-artifacts/
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-artifacts/*
+          body_path: RELEASE_NOTES.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
