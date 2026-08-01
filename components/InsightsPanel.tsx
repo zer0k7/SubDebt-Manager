@@ -50,7 +50,7 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({
 
       {budgetAmount > 0 && daysLeftInMonth > 0 && (
         <View style={styles.insightRow}>
-          <View style={[styles.insightIcon, { backgroundColor: isDark ? 'rgba(79,195,247,0.12)' : 'rgba(2,132,199,0.08)' }]}>
+          <View style={[styles.insightIcon, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.12 : 0.08) : (isDark ? 'rgba(79,195,247,0.12)' : 'rgba(2,132,199,0.08)') }]}>
             <Ionicons name="wallet-outline" size={16} color={colors.accent.blue} />
           </View>
           <View style={styles.insightInfo}>

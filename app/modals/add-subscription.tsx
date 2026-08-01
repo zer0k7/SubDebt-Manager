@@ -6,9 +6,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppDatePicker } from '../../components/AppDatePicker';
 
 import { GlassInput } from '../../components/GlassInput';
 import { GlassButton } from '../../components/GlassButton';
@@ -140,12 +140,11 @@ export default function AddSubscriptionModal() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <DateTimePickerModal
-        isVisible={showStartPicker} mode="date"
-        themeVariant="dark"
+      <AppDatePicker
+        visible={showStartPicker}
+        date={startDate}
         onConfirm={(d) => { setShowStartPicker(false); setStartDate(d); }}
         onCancel={() => setShowStartPicker(false)}
-        date={startDate}
       />
       <CurrencyPicker
         visible={showCurrencyPicker}
@@ -153,12 +152,12 @@ export default function AddSubscriptionModal() {
         onSelect={setCurrency}
         onClose={() => setShowCurrencyPicker(false)}
       />
-      <DateTimePickerModal
-        isVisible={showExpiryPicker} mode="date"
-        themeVariant="dark"
+      <AppDatePicker
+        visible={showExpiryPicker}
+        date={expiryDate}
+        minimumDate={startDate}
         onConfirm={(d) => { setShowExpiryPicker(false); setExpiryDate(d); }}
         onCancel={() => setShowExpiryPicker(false)}
-        date={expiryDate} minimumDate={startDate}
       />
     </SafeAreaView>
   );
@@ -200,7 +199,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.glass.buttonSecondary,
   },
   chipSmall: { paddingHorizontal: 10, paddingVertical: 6 },
-  chipActive: { backgroundColor: 'rgba(79,195,247,0.15)', borderColor: 'rgba(79,195,247,0.4)' },
+  chipActive: { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79,195,247,0.15)', borderColor: colors.accent.alpha ? colors.accent.alpha(0.4) : 'rgba(79,195,247,0.4)' },
   chipCatActive: { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.4)' },
   chipText: { color: colors.text.muted, fontSize: 13, fontWeight: '500' },
   chipTextSmall: { fontSize: 12 },

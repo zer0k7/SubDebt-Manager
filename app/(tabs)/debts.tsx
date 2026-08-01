@@ -1,7 +1,7 @@
 import { useTheme } from '../../hooks/useTheme';
 import React, { useState, useMemo, useCallback } from 'react';
 import { 
-  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView
+  View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -257,7 +257,6 @@ export default function DebtsScreen() {
             <Text style={styles.title}>Debts</Text>
           </View>
           <View style={styles.headerRight}>
-            <View style={styles.addButton}><Ionicons name="add" size={22} color={colors.accent.amber} /></View>
             <View style={styles.iconButton}><Ionicons name="settings-outline" size={20} color={colors.text.tertiary} /></View>
           </View>
         </View>
@@ -278,9 +277,6 @@ export default function DebtsScreen() {
           <Text style={styles.title}>Debts</Text>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddPress} activeOpacity={0.8}>
-            <Ionicons name="add" size={22} color={colors.accent.amber} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')} activeOpacity={0.8}>
             <Ionicons name="settings-outline" size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
@@ -304,6 +300,10 @@ export default function DebtsScreen() {
           data={filteredDebts}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}

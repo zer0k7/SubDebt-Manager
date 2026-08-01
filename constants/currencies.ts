@@ -41,6 +41,49 @@ export const CURRENCIES: Currency[] = [
 
 export const DEFAULT_CURRENCY_CODE = 'INR';
 
+export const EXCHANGE_RATES: Record<string, number> = {
+  USD: 1.0,
+  INR: 86.5,
+  EUR: 0.92,
+  GBP: 0.79,
+  JPY: 154.0,
+  AUD: 1.55,
+  CAD: 1.38,
+  CNY: 7.25,
+  KRW: 1390.0,
+  SGD: 1.35,
+  AED: 3.67,
+  SAR: 3.75,
+  BRL: 5.60,
+  MXN: 19.8,
+  THB: 35.5,
+  IDR: 15800.0,
+  TRY: 34.2,
+  ZAR: 18.2,
+  CHF: 0.89,
+  SEK: 10.6,
+  NZD: 1.68,
+  PKR: 278.0,
+  BDT: 119.5,
+  LKR: 295.0,
+  NGN: 1650.0,
+  EGP: 48.5,
+  PHP: 58.2,
+  MYR: 4.45,
+  VND: 25400.0,
+  RUB: 96.5,
+};
+
+export function convertCurrency(amount: number, fromCode: string = 'USD', toCode: string = 'USD'): number {
+  if (!amount || isNaN(amount)) return 0;
+  if (fromCode === toCode) return amount;
+  
+  const rateFrom = EXCHANGE_RATES[fromCode] || 1.0;
+  const rateTo = EXCHANGE_RATES[toCode] || 1.0;
+  
+  return (amount / rateFrom) * rateTo;
+}
+
 export const getCurrencyByCode = (code: string): Currency => {
   return CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
 };

@@ -178,7 +178,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 16,
-    backgroundColor: isDark ? 'rgba(79, 195, 247, 0.16)' : 'rgba(2, 132, 199, 0.1)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.16 : 0.1) : (isDark ? 'rgba(79, 195, 247, 0.16)' : 'rgba(2, 132, 199, 0.1)'),
   },
   label: {
     color: colors.text.tertiary,

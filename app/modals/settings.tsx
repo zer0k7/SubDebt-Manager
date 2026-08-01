@@ -14,7 +14,7 @@ import { AppPopup } from '../../components/AppPopup';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { GlassInput } from '../../components/GlassInput';
 import { UpdatePrompt } from '../../components/UpdatePrompt';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { AppDatePicker } from '../../components/AppDatePicker';
 import { exportAllData } from '../../utils/exportData';
 import { checkForUpdate, UpdateInfo } from '../../utils/updateChecker';
 import { pickAndImportData, clearAllData, importDataObj } from '../../utils/importData';
@@ -30,29 +30,22 @@ import { STORAGE_KEYS } from '../../storage/keys';
 import { hasBiometrics, toggleBiometricAuth } from '../../utils/authHelpers';
 import Constants from 'expo-constants';
 import { CURRENCIES, getCurrencyByCode } from '../../constants/currencies';
+import { SPENDING_CATEGORIES, getCategoryIcon } from '../../constants/categories';
 
-const categoriesList = ['Food', 'Groceries', 'Travel', 'Shopping', 'Bills', 'Recharge', 'Study', 'Health', 'Personal Care', 'Home', 'Entertainment', 'Gifts', 'Other'];
+import { useSettings } from '../../context/SettingsContext';
 
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case 'Food': return 'restaurant-outline';
-    case 'Groceries': return 'cart-outline';
-    case 'Travel': return 'car-outline';
-    case 'Shopping': return 'bag-handle-outline';
-    case 'Bills': return 'document-text-outline';
-    case 'Recharge': return 'flash-outline';
-    case 'Study': return 'book-outline';
-    case 'Health': return 'heart-outline';
-    case 'Personal Care': return 'sparkles-outline';
-    case 'Home': return 'home-outline';
-    case 'Entertainment': return 'film-outline';
-    case 'Gifts': return 'gift-outline';
-    default: return 'ellipse-outline';
-  }
-};
+const categoriesList = SPENDING_CATEGORIES.map(c => c.name);
 
 export default function SettingsModal() {
   const { colors, mode, setMode, accentColor, setAccentColor, isDark } = useTheme();
+  const {
+    numberFormat, setNumberFormat,
+    dateFormat, setDateFormat,
+    weekStartDay, setWeekStartDay,
+    defaultPaymentMethod, setDefaultPaymentMethod,
+    autoArchiveSettled, setAutoArchiveSettled,
+    cardDensityMode, setCardDensityMode,
+  } = useSettings();
   const styles = getStyles(colors, isDark);
   const router = useRouter();
   
@@ -303,6 +296,36 @@ export default function SettingsModal() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const handleSelectWeekStartDay = (day: any) => {
+    setWeekStartDay(day);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleSelectNumberFormat = (fmt: any) => {
+    setNumberFormat(fmt);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleSelectDateFormat = (fmt: any) => {
+    setDateFormat(fmt);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleSelectDefaultPaymentMethod = (method: any) => {
+    setDefaultPaymentMethod(method);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleSelectAutoArchive = (val: any) => {
+    setAutoArchiveSettled(val);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleSelectCardDensity = (modeStr: any) => {
+    setCardDensityMode(modeStr);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   const showPopup = (config: any) => {
     setPopupConfig(config);
     setPopupVisible(true);
@@ -522,7 +545,7 @@ export default function SettingsModal() {
         <Text style={styles.sectionTitle}>MONTHLY BUDGET</Text>
         <View style={styles.card}>
           <View style={styles.cardHeaderWithIcon}>
-            <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(79, 195, 247, 0.12)' : 'rgba(2, 132, 199, 0.08)' }]}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.12 : 0.08) : (isDark ? 'rgba(79, 195, 247, 0.12)' : 'rgba(2, 132, 199, 0.08)') }]}>
               <Ionicons name="wallet-outline" size={20} color={colors.accent.blue} />
             </View>
             <View style={styles.cardHeaderTextWrap}>
@@ -631,7 +654,7 @@ export default function SettingsModal() {
                         <View style={styles.categoryTileHeader}>
                           <View style={[
                             styles.categoryTileIconWrap,
-                            { backgroundColor: hasLimit ? (isDark ? 'rgba(79, 195, 247, 0.15)' : 'rgba(2, 132, 199, 0.1)') : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)') }
+                            { backgroundColor: hasLimit ? (colors.accent.alpha ? colors.accent.alpha(isDark ? 0.15 : 0.1) : (isDark ? 'rgba(79, 195, 247, 0.15)' : 'rgba(2, 132, 199, 0.1)')) : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)') }
                           ]}>
                             <Ionicons 
                               name={icon as any} 
@@ -828,7 +851,7 @@ export default function SettingsModal() {
             activeOpacity={0.7}
           >
             <View style={styles.securityLeftPremium}>
-              <View style={[styles.securityIconBox, { backgroundColor: privacyMode ? 'rgba(79,195,247,0.12)' : 'rgba(255,255,255,0.05)' }]}>
+              <View style={[styles.securityIconBox, { backgroundColor: privacyMode ? (colors.accent.alpha ? colors.accent.alpha(0.12) : 'rgba(79,195,247,0.12)') : 'rgba(255,255,255,0.05)' }]}>
                 <Ionicons 
                   name={privacyMode ? "eye-off-outline" : "eye-outline"} 
                   size={20} 
@@ -877,6 +900,154 @@ export default function SettingsModal() {
               );
             })}
           </View>
+
+          <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', marginVertical: 14 }} />
+
+          {/* First Day of the Week */}
+          <Text style={styles.cardTitle}>First Day of the Week</Text>
+          <Text style={styles.cardDesc}>Select which day your calendars and weekly charts start on.</Text>
+          <View style={styles.optionPillGrid}>
+            {[
+              { id: 'monday', label: 'Monday', icon: 'calendar-outline' },
+              { id: 'sunday', label: 'Sunday', icon: 'calendar-outline' },
+              { id: 'saturday', label: 'Saturday', icon: 'calendar-outline' },
+            ].map((w) => {
+              const isSelected = weekStartDay === w.id;
+              return (
+                <TouchableOpacity
+                  key={w.id}
+                  style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                  onPress={() => handleSelectWeekStartDay(w.id)}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name={w.icon as any} size={14} color={isSelected ? colors.accent.blue : colors.text.secondary} />
+                  <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{w.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', marginVertical: 14 }} />
+
+          {/* Number & Date Format */}
+          <Text style={styles.cardTitle}>Number & Date Format</Text>
+          <Text style={styles.cardDesc}>Choose your preferred number and date display styles.</Text>
+          <View style={styles.optionPillGrid}>
+            {[
+              { id: 'standard', label: '1,234.56' },
+              { id: 'european', label: '1.234,56' },
+              { id: 'space', label: '1 234.56' },
+            ].map((n) => {
+              const isSelected = numberFormat === n.id;
+              return (
+                <TouchableOpacity
+                  key={n.id}
+                  style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                  onPress={() => handleSelectNumberFormat(n.id)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{n.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={[styles.optionPillGrid, { marginTop: 8 }]}>
+            {[
+              { id: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+              { id: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+              { id: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+            ].map((d) => {
+              const isSelected = dateFormat === d.id;
+              return (
+                <TouchableOpacity
+                  key={d.id}
+                  style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                  onPress={() => handleSelectDateFormat(d.id)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{d.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', marginVertical: 14 }} />
+
+          {/* Default Payment Method */}
+          <Text style={styles.cardTitle}>Default Payment Method</Text>
+          <Text style={styles.cardDesc}>Pre-select default payment method when creating spending entries.</Text>
+          <View style={styles.optionPillGrid}>
+            {[
+              { id: 'card', label: 'Card', icon: 'card-outline' },
+              { id: 'cash', label: 'Cash', icon: 'cash-outline' },
+              { id: 'upi', label: 'UPI / Digital', icon: 'qr-code-outline' },
+              { id: 'transfer', label: 'Transfer', icon: 'swap-horizontal-outline' },
+            ].map((p) => {
+              const isSelected = defaultPaymentMethod === p.id;
+              return (
+                <TouchableOpacity
+                  key={p.id}
+                  style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                  onPress={() => handleSelectDefaultPaymentMethod(p.id)}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name={p.icon as any} size={14} color={isSelected ? colors.accent.blue : colors.text.secondary} />
+                  <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{p.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', marginVertical: 14 }} />
+
+          {/* Auto Archive & Density */}
+          <Text style={styles.cardTitle}>Auto-Archive Settled Records</Text>
+          <Text style={styles.cardDesc}>Automatically hide settled debts and credits older than threshold.</Text>
+          <View style={styles.optionPillGrid}>
+            {[
+              { id: 'never', label: 'Never' },
+              { id: '30_days', label: '30 Days' },
+              { id: '90_days', label: '90 Days' },
+              { id: '1_year', label: '1 Year' },
+            ].map((a) => {
+              const isSelected = autoArchiveSettled === a.id;
+              return (
+                <TouchableOpacity
+                  key={a.id}
+                  style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                  onPress={() => handleSelectAutoArchive(a.id)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{a.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={{ height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', marginVertical: 14 }} />
+
+          {/* Card Density */}
+          <Text style={styles.cardTitle}>Card Layout Density</Text>
+          <Text style={styles.cardDesc}>Choose layout density for list item cards.</Text>
+          <View style={styles.optionPillGrid}>
+            {[
+              { id: 'comfortable', label: 'Comfortable', icon: 'square-outline' },
+              { id: 'compact', label: 'Compact', icon: 'reorder-two-outline' },
+            ].map((cd) => {
+              const isSelected = cardDensityMode === cd.id;
+              return (
+                <TouchableOpacity
+                  key={cd.id}
+                  style={[styles.optionPill, isSelected && styles.optionPillActive]}
+                  onPress={() => handleSelectCardDensity(cd.id)}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name={cd.icon as any} size={14} color={isSelected ? colors.accent.blue : colors.text.secondary} />
+                  <Text style={[styles.optionPillText, isSelected && styles.optionPillTextActive]}>{cd.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* Security Section */}
@@ -915,7 +1086,7 @@ export default function SettingsModal() {
                 activeOpacity={0.7}
               >
                 <View style={styles.securityLeftPremium}>
-                  <View style={[styles.securityIconBox, { backgroundColor: biometricEnabled ? 'rgba(79,195,247,0.12)' : 'rgba(255,255,255,0.05)' }]}>
+                  <View style={[styles.securityIconBox, { backgroundColor: biometricEnabled ? (colors.accent.alpha ? colors.accent.alpha(0.12) : 'rgba(79,195,247,0.12)') : 'rgba(255,255,255,0.05)' }]}>
                     <Ionicons 
                       name="finger-print-outline" 
                       size={20} 
@@ -960,7 +1131,7 @@ export default function SettingsModal() {
             activeOpacity={0.7}
           >
             <View style={styles.securityLeftPremium}>
-              <View style={[styles.securityIconBox, { backgroundColor: dailyReminderEnabled ? 'rgba(79,195,247,0.12)' : 'rgba(255,255,255,0.05)' }]}>
+              <View style={[styles.securityIconBox, { backgroundColor: dailyReminderEnabled ? (colors.accent.alpha ? colors.accent.alpha(0.12) : 'rgba(79,195,247,0.12)') : 'rgba(255,255,255,0.05)' }]}>
                 <Ionicons 
                   name="calendar-outline" 
                   size={20} 
@@ -992,7 +1163,7 @@ export default function SettingsModal() {
                 activeOpacity={0.7}
               >
                 <View style={styles.securityLeftPremium}>
-                  <View style={[styles.securityIconBox, { backgroundColor: 'rgba(79,195,247,0.12)' }]}>
+                  <View style={[styles.securityIconBox, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.12) : 'rgba(79,195,247,0.12)' }]}>
                     <Ionicons 
                       name="time-outline" 
                       size={20} 
@@ -1019,7 +1190,7 @@ export default function SettingsModal() {
         <Text style={styles.sectionTitle}>BACKUP & RESTORE</Text>
         <View style={styles.card}>
           <View style={styles.cardHeaderWithIcon}>
-            <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(79, 195, 247, 0.12)' : 'rgba(2, 132, 199, 0.08)' }]}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.12 : 0.08) : (isDark ? 'rgba(79, 195, 247, 0.12)' : 'rgba(2, 132, 199, 0.08)') }]}>
               <Ionicons name="cloud-upload-outline" size={20} color={colors.accent.blue} />
             </View>
             <View style={styles.cardHeaderTextWrap}>
@@ -1039,7 +1210,7 @@ export default function SettingsModal() {
                 <ActivityIndicator color={colors.accent.blue} />
               ) : (
                 <>
-                  <View style={[styles.importChoiceIconWrap, { backgroundColor: 'rgba(79,195,247,0.1)' }]}>
+                  <View style={[styles.importChoiceIconWrap, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.1) : 'rgba(79,195,247,0.1)' }]}>
                     <Ionicons name="document-text-outline" size={18} color={colors.accent.blue} />
                   </View>
                   <Text style={styles.importChoiceLabel}>JSON Backup</Text>
@@ -1098,7 +1269,7 @@ export default function SettingsModal() {
                 <ActivityIndicator color={colors.accent.blue} />
               ) : (
                 <>
-                  <View style={[styles.importChoiceIconWrap, { backgroundColor: 'rgba(79,195,247,0.1)' }]}>
+                  <View style={[styles.importChoiceIconWrap, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.1) : 'rgba(79,195,247,0.1)' }]}>
                     <Ionicons name="git-merge-outline" size={18} color={colors.accent.blue} />
                   </View>
                   <Text style={styles.importChoiceLabel}>Merge Data</Text>
@@ -1203,7 +1374,7 @@ export default function SettingsModal() {
 
           <View style={styles.aboutRowPremium}>
             <View style={styles.aboutRowLeft}>
-              <View style={[styles.aboutIconBox, { backgroundColor: isDark ? 'rgba(79,195,247,0.12)' : 'rgba(2,132,199,0.06)' }]}>
+              <View style={[styles.aboutIconBox, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.12 : 0.06) : (isDark ? 'rgba(79,195,247,0.12)' : 'rgba(2,132,199,0.06)') }]}>
                 <Ionicons name="information-circle-outline" size={18} color={colors.accent.blue} />
               </View>
               <Text style={styles.aboutLabelPremium}>Version</Text>
@@ -1264,10 +1435,10 @@ export default function SettingsModal() {
         />
       )}
 
-      <DateTimePickerModal
-        isVisible={showTimePicker}
+      <AppDatePicker
+        visible={showTimePicker}
         mode="time"
-        themeVariant={isDark ? 'dark' : 'light'}
+        title="Select Daily Reminder Time"
         onConfirm={handleTimeConfirm}
         onCancel={() => setShowTimePicker(false)}
         date={(() => {
@@ -1970,7 +2141,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   categoryLimitTileActive: {
     borderColor: colors.accent.blue,
-    backgroundColor: isDark ? 'rgba(79, 195, 247, 0.04)' : 'rgba(2, 132, 199, 0.05)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.04 : 0.05) : (isDark ? 'rgba(79, 195, 247, 0.04)' : 'rgba(2, 132, 199, 0.05)'),
     shadowColor: isDark ? 'transparent' : colors.accent.blue,
     shadowOpacity: isDark ? 0 : 0.08,
     shadowRadius: 3,
@@ -2048,7 +2219,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   currencyCardActive: {
     borderColor: colors.accent.blue,
-    backgroundColor: isDark ? 'rgba(79, 195, 247, 0.04)' : 'rgba(2, 132, 199, 0.03)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.04 : 0.03) : (isDark ? 'rgba(79, 195, 247, 0.04)' : 'rgba(2, 132, 199, 0.03)'),
   },
   currencyCardFlagContainer: {
     width: 38,
@@ -2455,7 +2626,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
   },
   optionPillActive: {
-    backgroundColor: isDark ? 'rgba(79, 195, 247, 0.16)' : 'rgba(2, 132, 199, 0.1)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.16 : 0.1) : (isDark ? 'rgba(79, 195, 247, 0.16)' : 'rgba(2, 132, 199, 0.1)'),
     borderColor: colors.accent.blue,
   },
   optionPillText: {

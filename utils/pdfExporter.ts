@@ -4,6 +4,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { SpendingEntry } from '../hooks/useDailySpending';
 import { formatCurrency } from './dateHelpers';
 
+import { getCategoryColor } from '../constants/categories';
+
 interface PDFExportData {
   entries: SpendingEntry[];
   timeRangeLabel: string;
@@ -37,23 +39,13 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
 
   // Calculate percentages and styling colors for categories
   const maxCategoryTotal = categoryTotals.length > 0 ? categoryTotals[0].total : 1;
-  const categoryColors = [
-    '#7C3AED', // Purple
-    '#3B82F6', // Blue
-    '#10B981', // Emerald
-    '#F59E0B', // Amber
-    '#EF4444', // Red
-    '#EC4899', // Pink
-    '#06B6D4', // Cyan
-    '#8B5CF6', // Violet
-  ];
 
   const categoryRowsHTML = categoryTotals
-     .map((cat, index) => {
+     .map((cat) => {
        const percentage = totalAmount > 0 ? Math.round((cat.total / totalAmount) * 100) : 0;
        const barWidth = Math.max(2, Math.min(100, Math.round((cat.total / maxCategoryTotal) * 100)));
-       const color = categoryColors[index % categoryColors.length];
- 
+       const color = getCategoryColor(cat.category);
+
        return `
          <div class="category-row">
            <div class="category-info">

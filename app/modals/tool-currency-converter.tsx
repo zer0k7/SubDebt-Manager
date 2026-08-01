@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { AmbientBackground } from '../../components/AmbientBackground';
-import { CURRENCIES, getCurrencyByCode, Currency } from '../../constants/currencies';
+import { CURRENCIES, getCurrencyByCode, convertCurrency, Currency } from '../../constants/currencies';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
 
@@ -31,16 +31,8 @@ export default function ToolCurrencyConverterModal() {
     const numeric = parseFloat(amountStr);
     if (isNaN(numeric) || numeric <= 0) return 0;
 
-    // Convert from `fromCode` to base USD/INR via convertAmount hook logic
-    // Step 1: Convert `numeric` in `fromCode` to `toCode`
-    // Since convertAmount converts any currency to base user currencyCode,
-    // we can calculate: (amt in user currency) / (1 unit of toCurr in user currency)
-    const amtInBase = convertAmount(numeric, fromCode);
-    const toUnitInBase = convertAmount(1, toCode);
-
-    if (toUnitInBase === 0) return amtInBase;
-    return amtInBase / toUnitInBase;
-  }, [amountStr, fromCode, toCode, convertAmount]);
+    return convertCurrency(numeric, fromCode, toCode);
+  }, [amountStr, fromCode, toCode]);
 
   const handleSwap = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

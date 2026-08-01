@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
-import { getCurrencyByCode, DEFAULT_CURRENCY_CODE, Currency } from '../constants/currencies';
+import { getCurrencyByCode, convertCurrency, DEFAULT_CURRENCY_CODE, Currency } from '../constants/currencies';
 
 const listeners = new Set<(code: string) => void>();
 
@@ -36,15 +36,17 @@ export const useCurrency = () => {
     listeners.forEach((cb) => cb(code));
   }, []);
 
-  const convertAmount = useCallback((amount: number, _fromCode?: string) => {
-    return amount;
-  }, []);
+  const convertAmount = useCallback((amount: number, fromCode?: string, targetCode?: string) => {
+    const from = fromCode || 'USD';
+    const to = targetCode || currencyCode;
+    return convertCurrency(amount, from, to);
+  }, [currencyCode]);
 
   return {
-    currencyCode: 'INR',
-    currency: getCurrencyByCode('INR'),
+    currencyCode,
+    currency: getCurrencyByCode(currencyCode),
     setCurrency,
-    isLoaded: true,
+    isLoaded,
     refresh: loadCurrency,
     convertAmount,
   };

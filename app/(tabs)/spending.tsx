@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -422,9 +423,6 @@ export default function SpendingScreen() {
         <AmbientBackground />
         <View style={styles.header}>
           <Text style={styles.title}>Daily Spending</Text>
-          <View style={styles.addButton}>
-            <Ionicons name="add" size={22} color={colors.accent.purple} />
-          </View>
         </View>
         <SkeletonLoader variant="debts" />
       </SafeAreaView>
@@ -485,9 +483,6 @@ export default function SpendingScreen() {
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-            <Ionicons name="add" size={22} color={colors.accent.purple} />
-          </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => {
@@ -522,6 +517,10 @@ export default function SpendingScreen() {
         }
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={Platform.OS === 'android'}
         ListHeaderComponent={
           viewMode === 'overview' ? renderOverviewHeader : renderEntriesHeader
         }

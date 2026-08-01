@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
 import * as Crypto from 'expo-crypto';
@@ -234,8 +234,34 @@ export const useDebts = () => {
     }, 0);
   }, [debts]);
 
+  const [autoArchiveSetting, setAutoArchiveSetting] = useState('never');
+
+  useEffect(() => {
+    storage.getString(STORAGE_KEYS.AUTO_ARCHIVE_SETTLED).then((val) => {
+      if (val) setAutoArchiveSetting(val);
+    });
+  }, [debts]);
+
+  const filteredDebtsByArchive = useMemo(() => {
+    if (autoArchiveSetting === 'never') return debts;
+    const now = Date.now();
+    let maxMs = 0;
+    if (autoArchiveSetting === '30_days') maxMs = 30 * 24 * 60 * 60 * 1000;
+    else if (autoArchiveSetting === '90_days') maxMs = 90 * 24 * 60 * 60 * 1000;
+    else if (autoArchiveSetting === '1_year') maxMs = 365 * 24 * 60 * 60 * 1000;
+
+    if (maxMs === 0) return debts;
+
+    return debts.filter((d: Debt) => {
+      if (!d.isPaid) return true;
+      const createdTime = new Date(d.createdAt).getTime();
+      return (now - createdTime) <= maxMs;
+    });
+  }, [debts, autoArchiveSetting]);
+
   return {
-    debts,
+    debts: filteredDebtsByArchive,
+    rawDebts: debts,
     isLoaded,
     addDebt,
     updateDebt,

@@ -26,6 +26,11 @@ export type ThemeColors = {
     red: string;
     purple: string;
     indigo: string;
+    primary?: string;
+    primaryDark?: string;
+    gradient?: readonly [string, string];
+    glow?: string;
+    alpha?: (opacity: number) => string;
   };
   orb: {
     indigo: string;

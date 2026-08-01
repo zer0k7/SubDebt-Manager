@@ -60,7 +60,11 @@ function AppLayout() {
     const navigate = async () => {
       const hasSeen = await storage.getString(STORAGE_KEYS.HAS_SEEN_ONBOARDING);
       if (hasSeen === 'true') {
-        router.replace('/(tabs)/home' as any);
+        const defaultTab = await storage.getString('default_launch_tab');
+        const tab = defaultTab && ['home', 'subscriptions', 'owed', 'spending'].includes(defaultTab) 
+          ? defaultTab 
+          : 'home';
+        router.replace(`/(tabs)/${tab}` as any);
       }
 
       const info = await checkForUpdate();
@@ -157,68 +161,27 @@ function AppLayout() {
   );
 }
 
+import { CustomSplashScreen } from '../components/CustomSplashScreen';
+
+import { SettingsProvider } from '../context/SettingsContext';
+
 export default function RootLayout() {
-  const [appIsReady, setAppIsReady] = useState(false);
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.8)).current;
+  const [splashFinished, setSplashFinished] = useState(false);
 
   useEffect(() => {
-    async function prepare() {
-      try {
-        await hydrateStorage();
-        await new Promise(resolve => setTimeout(resolve, 300));
-      } catch {
-        // Ignore errors
-      } finally {
-        setAppIsReady(true);
-      }
-    }
-    prepare();
-
-    Animated.parallel([
-      Animated.timing(logoOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
-      Animated.spring(logoScale, { toValue: 1, friction: 8, tension: 40, useNativeDriver: true }),
-    ]).start();
-
-    setTimeout(() => {
-      Animated.timing(textOpacity, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-    }, 300);
+    SplashScreen.hideAsync().catch(() => {});
+    hydrateStorage();
   }, []);
 
-  useEffect(() => {
-    if (appIsReady) {
-      SplashScreen.hideAsync();
-    }
-  }, [appIsReady]);
-
-  if (!appIsReady) {
-    return (
-      <View style={styles.loadingContainer}>
-        {/* Custom Logo */}
-        <Animated.View style={[styles.logoWrap, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
-          <Image source={require('../assets/icon.png')} style={styles.logoImage} />
-        </Animated.View>
-
-        {/* App Name */}
-        <Animated.View style={{ opacity: textOpacity, alignItems: 'center' }}>
-          <Text style={styles.appName}>SubDebt</Text>
-          <Text style={styles.tagline}>Subscriptions & Debts Tracker</Text>
-        </Animated.View>
-
-        {/* Loader */}
-        <ActivityIndicator 
-          size="small" 
-          color="#4FC3F7" 
-          style={styles.loader} 
-        />
-      </View>
-    );
+  if (!splashFinished) {
+    return <CustomSplashScreen onFinish={() => setSplashFinished(true)} />;
   }
 
   return (
     <ThemeProvider>
-      <AppLayout />
+      <SettingsProvider>
+        <AppLayout />
+      </SettingsProvider>
     </ThemeProvider>
   );
 }

@@ -1,6 +1,6 @@
 import { useTheme } from '../../hooks/useTheme';
 import React, { useState, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -188,9 +188,6 @@ export default function CreditsScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Credits</Text>
           <View style={styles.headerRight}>
-            <View style={styles.addButton}>
-              <Ionicons name="add" size={22} color={colors.accent.green} />
-            </View>
             <View style={styles.iconButton}>
               <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
             </View>
@@ -209,9 +206,6 @@ export default function CreditsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Credits</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-            <Ionicons name="add" size={22} color={colors.accent.green} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')}>
             <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
           </TouchableOpacity>
@@ -235,6 +229,10 @@ export default function CreditsScreen() {
           data={filteredCredits}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContent}
           refreshControl={

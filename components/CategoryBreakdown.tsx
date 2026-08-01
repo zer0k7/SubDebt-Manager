@@ -9,6 +9,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+import { getCategoryIcon, getCategoryColor } from '../constants/categories';
+
 interface CategoryTotal {
   category: string;
   total: number;
@@ -19,38 +21,6 @@ interface CategoryBreakdownProps {
   currencyCode: string;
   rangeLabel?: string;
 }
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Food: '#EF5350',
-  Groceries: '#4CAF50',
-  Travel: '#42A5F5',
-  Shopping: '#AB47BC',
-  Bills: '#FFA726',
-  Recharge: '#FFCA28',
-  Study: '#5C6BC0',
-  Health: '#26C6DA',
-  'Personal Care': '#EC407A',
-  Home: '#8D6E63',
-  Entertainment: '#66BB6A',
-  Gifts: '#FF7043',
-  Other: '#78909C',
-};
-
-const CATEGORY_ICONS: Record<string, string> = {
-  Food: 'restaurant-outline',
-  Groceries: 'cart-outline',
-  Travel: 'bus-outline',
-  Shopping: 'bag-outline',
-  Bills: 'receipt-outline',
-  Recharge: 'flash-outline',
-  Study: 'book-outline',
-  Health: 'medkit-outline',
-  'Personal Care': 'color-wand-outline',
-  Home: 'home-outline',
-  Entertainment: 'film-outline',
-  Gifts: 'gift-outline',
-  Other: 'ellipsis-horizontal-outline',
-};
 
 export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
   categories,
@@ -75,7 +45,7 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
     const strokeLength = percentage * 282.74;
     const strokeOffset = 282.74 - (accumulatedPercentage * 282.74);
     accumulatedPercentage += percentage;
-    const color = CATEGORY_COLORS[cat.category] || '#78909C';
+    const color = getCategoryColor(cat.category);
     return {
       category: cat.category,
       color,
@@ -162,7 +132,7 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
         {/* Donut Legend */}
         <View style={styles.donutLegendContainer}>
           {categories.slice(0, 4).map((cat) => {
-            const color = CATEGORY_COLORS[cat.category] || '#78909C';
+            const color = getCategoryColor(cat.category);
             const percentage = grandTotal > 0 ? Math.round((cat.total / grandTotal) * 100) : 0;
             return (
               <View key={cat.category} style={styles.legendItem}>
@@ -181,8 +151,8 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
 
       {/* Category rows */}
       {visibleCategories.map((cat) => {
-        const color = CATEGORY_COLORS[cat.category] || '#78909C';
-        const icon = CATEGORY_ICONS[cat.category] || 'ellipsis-horizontal-outline';
+        const color = getCategoryColor(cat.category);
+        const icon = getCategoryIcon(cat.category);
         const percentage = grandTotal > 0 ? Math.round((cat.total / grandTotal) * 100) : 0;
         const barWidth = Math.max((cat.total / maxTotal) * 100, 4);
 

@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { AppDatePicker } from '../../components/AppDatePicker';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassInput } from '../../components/GlassInput';
@@ -101,8 +101,8 @@ export default function AddDebtModal() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <DateTimePickerModal isVisible={showTakenPicker} mode="date" themeVariant="dark" onConfirm={(d) => { setShowTakenPicker(false); setTakenDate(d); }} onCancel={() => setShowTakenPicker(false)} date={takenDate} />
-      <DateTimePickerModal isVisible={showDuePicker} mode="date" themeVariant="dark" onConfirm={(d) => { setShowDuePicker(false); setDueDate(d); }} onCancel={() => setShowDuePicker(false)} date={dueDate || new Date()} minimumDate={takenDate} />
+      <AppDatePicker visible={showTakenPicker} date={takenDate} onConfirm={(d) => { setShowTakenPicker(false); setTakenDate(d); }} onCancel={() => setShowTakenPicker(false)} />
+      <AppDatePicker visible={showDuePicker} date={dueDate || new Date()} minimumDate={takenDate} onConfirm={(d) => { setShowDuePicker(false); setDueDate(d); }} onCancel={() => setShowDuePicker(false)} />
       <CurrencyPicker
         visible={showCurrencyPicker}
         selectedCode={currency}

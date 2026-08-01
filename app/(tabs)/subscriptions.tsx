@@ -2,7 +2,7 @@ import { useTheme } from '../../hooks/useTheme';
 import React, { useState, useMemo, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl,
-  SectionList, ScrollView,
+  SectionList, ScrollView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Rect, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
@@ -496,7 +496,7 @@ export default function SubscriptionsScreen() {
                   styles.dayCapsule,
                   item.isToday && styles.dayCapsuleToday,
                   isSelected && styles.dayCapsuleSelected,
-                  { borderColor: isSelected ? colors.accent.blue : item.isToday ? 'rgba(79,195,247,0.4)' : colors.glass.cardBorder }
+                  { borderColor: isSelected ? colors.accent.blue : item.isToday ? (colors.accent.alpha ? colors.accent.alpha(0.4) : 'rgba(79,195,247,0.4)') : colors.glass.cardBorder }
                 ]}
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -611,7 +611,7 @@ export default function SubscriptionsScreen() {
               const brandColor = item.color || iconMeta.color || colors.accent.blue;
               
               let badgeColor = colors.accent.blue;
-              let badgeBg = 'rgba(79, 195, 247, 0.08)';
+              let badgeBg = colors.accent.alpha ? colors.accent.alpha(0.08) : 'rgba(79, 195, 247, 0.08)';
               let badgeText = `${item.daysLeft}d left`;
               
               if (item.daysLeft === 1) {
@@ -730,9 +730,6 @@ export default function SubscriptionsScreen() {
         <View style={styles.header}>
           <Text style={styles.title}>Subscriptions</Text>
           <View style={styles.headerRight}>
-            <View style={styles.addButton}>
-              <Ionicons name="add" size={22} color={colors.accent.blue} />
-            </View>
             <View style={styles.iconButton}>
               <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
             </View>
@@ -751,9 +748,6 @@ export default function SubscriptionsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Subscriptions</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.addButton} onPress={handleAddPress}>
-            <Ionicons name="add" size={22} color={colors.accent.blue} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')}>
             <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
           </TouchableOpacity>
@@ -799,6 +793,10 @@ export default function SubscriptionsScreen() {
           data={filteredSubscriptions}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
           ListHeaderComponent={renderHeader}
           contentContainerStyle={styles.listContent}
           refreshControl={
@@ -874,9 +872,9 @@ const getStyles = (colors: any) => StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(79,195,247,0.12)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.12) : 'rgba(79,195,247,0.12)',
     borderWidth: 0.5,
-    borderColor: 'rgba(79,195,247,0.3)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(0.3) : 'rgba(79,195,247,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -939,9 +937,9 @@ const getStyles = (colors: any) => StyleSheet.create({
     marginBottom: 12,
     paddingVertical: 8,
     borderRadius: 12,
-    backgroundColor: 'rgba(79,195,247,0.06)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.06) : 'rgba(79,195,247,0.06)',
     borderWidth: 0.5,
-    borderColor: 'rgba(79,195,247,0.15)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79,195,247,0.15)',
   },
   chartToggleText: {
     color: colors.accent.blue,
@@ -964,8 +962,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.glass.buttonSecondary,
   },
   filterPillActive: {
-    backgroundColor: 'rgba(79,195,247,0.15)',
-    borderColor: 'rgba(79,195,247,0.4)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79,195,247,0.15)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(0.4) : 'rgba(79,195,247,0.4)',
   },
   filterText: {
     color: colors.text.muted,
@@ -1004,7 +1002,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: 'rgba(79,195,247,0.1)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.1) : 'rgba(79,195,247,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1189,10 +1187,10 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 6,
   },
   dayCapsuleToday: {
-    backgroundColor: 'rgba(79,195,247,0.03)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.03) : 'rgba(79,195,247,0.03)',
   },
   dayCapsuleSelected: {
-    backgroundColor: 'rgba(79,195,247,0.12)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.12) : 'rgba(79,195,247,0.12)',
   },
   dayOfWeekText: {
     fontSize: 10,

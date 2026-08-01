@@ -158,7 +158,7 @@ export default function DataVaultToolScreen() {
         <Text style={styles.sectionLabel}>BACKUP & RESTORE ACTIONS</Text>
 
         <TouchableOpacity style={styles.actionCard} onPress={handleExportJSON} activeOpacity={0.8} disabled={loading}>
-          <View style={[styles.actionIconBox, { backgroundColor: 'rgba(79, 195, 247, 0.15)' }]}>
+          <View style={[styles.actionIconBox, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79, 195, 247, 0.15)' }]}>
             <Ionicons name="cloud-upload-outline" size={22} color={colors.accent.blue} />
           </View>
           <View style={styles.actionMeta}>
@@ -299,12 +299,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: isDark ? 'rgba(79, 195, 247, 0.08)' : 'rgba(2, 132, 199, 0.06)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.08 : 0.06) : (isDark ? 'rgba(79, 195, 247, 0.08)' : 'rgba(2, 132, 199, 0.06)'),
     borderRadius: 14,
     padding: 14,
     marginTop: 12,
     borderWidth: 0.5,
-    borderColor: isDark ? 'rgba(79, 195, 247, 0.2)' : 'rgba(2, 132, 199, 0.15)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.2 : 0.15) : (isDark ? 'rgba(79, 195, 247, 0.2)' : 'rgba(2, 132, 199, 0.15)'),
   },
   privacyText: { flex: 1, fontSize: 12, color: colors.text.secondary, lineHeight: 16 },
 });

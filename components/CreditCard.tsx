@@ -8,6 +8,8 @@ import { Credit } from '../hooks/useCredits';
 import { formatCurrency, formatDate, getDaysRemaining, isExpired } from '../utils/dateHelpers';
 import { getAvatarColor, hexToRgba } from '../utils/colorHelpers';
 
+import { useSettings } from '../context/SettingsContext';
+
 interface CreditCardProps {
   credit: Credit;
   onMarkReturned?: (id: string) => void;
@@ -18,7 +20,10 @@ interface CreditCardProps {
 
 export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, onPress, onDelete, onSharePress }) => {
   const { colors, isDark } = useTheme();
-  const styles = getStyles(colors, isDark);
+  const { cardDensityMode, formatCurrency, formatDate } = useSettings();
+  const isCompact = cardDensityMode === 'compact';
+
+  const styles = getStyles(colors, isDark, isCompact);
   const overdue = credit.expectedReturnDate ? isExpired(credit.expectedReturnDate) && !credit.isReturned : false;
   const daysRemaining = credit.expectedReturnDate ? getDaysRemaining(credit.expectedReturnDate) : null;
   const avatarColor = getAvatarColor(credit.personName);
@@ -144,11 +149,15 @@ export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, 
   );
 };
 
-const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => StyleSheet.create({
   card: {
-    marginHorizontal: 20, marginBottom: 12, padding: 16,
-    borderRadius: 20, backgroundColor: colors.glass.card,
-    borderWidth: 0.5, borderColor: colors.glass.cardBorder,
+    marginHorizontal: 20,
+    marginBottom: isCompact ? 6 : 12,
+    padding: isCompact ? 10 : 16,
+    borderRadius: isCompact ? 14 : 20,
+    backgroundColor: colors.glass.card,
+    borderWidth: 0.5,
+    borderColor: colors.glass.cardBorder,
   },
   cardReturned: { opacity: 0.65 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
@@ -234,10 +243,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     gap: 6,
     paddingVertical: 9,
     paddingHorizontal: 14,
-    backgroundColor: isDark ? 'rgba(79,195,247,0.08)' : 'rgba(79,195,247,0.1)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.08 : 0.1) : (isDark ? 'rgba(79,195,247,0.08)' : 'rgba(79,195,247,0.1)'),
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(79,195,247,0.2)' : 'rgba(79,195,247,0.25)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.2 : 0.25) : (isDark ? 'rgba(79,195,247,0.2)' : 'rgba(79,195,247,0.25)'),
   },
   actionBtnShareText: {
     color: colors.accent.blue,

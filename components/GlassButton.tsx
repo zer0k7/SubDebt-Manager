@@ -27,7 +27,7 @@ export const GlassButton: React.FC<GlassButtonProps> = ({ title, variant = 'prim
   if (variant === 'primary') {
     return (
       <TouchableOpacity style={[styles.btn, styles.btnPrimary, style]} activeOpacity={0.75} {...props}>
-        <LinearGradient colors={['#4FC3F7', '#1976D2']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={(colors.accent.gradient || [colors.accent.blue, colors.accent.blueDark]) as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         {content}
       </TouchableOpacity>
     );

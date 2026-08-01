@@ -8,6 +8,8 @@ import { Debt } from '../hooks/useDebts';
 import { formatCurrency, formatDate, getDaysRemaining, isExpired } from '../utils/dateHelpers';
 import { getAvatarColor, hexToRgba } from '../utils/colorHelpers';
 
+import { useSettings } from '../context/SettingsContext';
+
 interface DebtCardProps {
   debt: Debt;
   onTogglePaid?: (id: string) => void;
@@ -18,7 +20,10 @@ interface DebtCardProps {
 
 export const DebtCard: React.FC<DebtCardProps> = ({ debt, onTogglePaid, onPress, onDelete, onSharePress }) => {
   const { colors, isDark } = useTheme();
-  const styles = getStyles(colors, isDark);
+  const { cardDensityMode, formatCurrency, formatDate } = useSettings();
+  const isCompact = cardDensityMode === 'compact';
+
+  const styles = getStyles(colors, isDark, isCompact);
   const overdue = debt.dueDate ? isExpired(debt.dueDate) && !debt.isPaid : false;
   const daysRemaining = debt.dueDate ? getDaysRemaining(debt.dueDate) : null;
   const avatarColor = getAvatarColor(debt.personName);
@@ -182,14 +187,14 @@ export const DebtCard: React.FC<DebtCardProps> = ({ debt, onTogglePaid, onPress,
   );
 };
 
-const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => StyleSheet.create({
   card: {
     marginHorizontal: 16,
-    marginBottom: 10,
+    marginBottom: isCompact ? 6 : 10,
     paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    borderRadius: 20,
+    paddingTop: isCompact ? 10 : 16,
+    paddingBottom: isCompact ? 8 : 14,
+    borderRadius: isCompact ? 14 : 20,
     backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
     borderWidth: isDark ? 0.5 : 1,
     borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
@@ -415,10 +420,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 9,
-    backgroundColor: isDark ? 'rgba(79,195,247,0.08)' : 'rgba(2,132,199,0.07)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.08 : 0.07) : (isDark ? 'rgba(79,195,247,0.08)' : 'rgba(2,132,199,0.07)'),
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(79,195,247,0.2)' : 'rgba(2,132,199,0.18)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.2 : 0.18) : (isDark ? 'rgba(79,195,247,0.2)' : 'rgba(2,132,199,0.18)'),
   },
   actionBtnShareText: {
     color: colors.accent.blue,

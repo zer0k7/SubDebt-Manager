@@ -42,7 +42,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     justifyContent: 'center',
   },
   inputFocused: {
-    borderColor: 'rgba(79,195,247,0.5)',
+    borderColor: colors.glass.inputBorderFocused || 'rgba(79,195,247,0.5)',
   },
   inputError: {
     borderColor: colors.accent.red,

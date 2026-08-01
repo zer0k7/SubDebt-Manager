@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassInput } from '../../components/GlassInput';
@@ -11,11 +10,10 @@ import { GlassButton } from '../../components/GlassButton';
 import { AppPopup } from '../../components/AppPopup';
 import { AmbientBackground } from '../../components/AmbientBackground';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
+import { AppDatePicker } from '../../components/AppDatePicker';
 import { useDailySpending } from '../../hooks/useDailySpending';
 import { formatShortDate } from '../../utils/dateHelpers';
-import { getCurrencyByCode } from '../../constants/currencies';
-
-const categories = ['Food', 'Groceries', 'Travel', 'Shopping', 'Bills', 'Recharge', 'Study', 'Health', 'Personal Care', 'Home', 'Entertainment', 'Gifts', 'Other'];
+import { SPENDING_CATEGORIES } from '../../constants/categories';
 
 export default function EditSpendingModal() {
   const { colors, isDark } = useTheme();
@@ -106,18 +104,35 @@ export default function EditSpendingModal() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <GlassInput label="Spent On" placeholder="Tea, groceries, fuel..." value={title} onChangeText={setTitle} error={errors.title} />
-          <GlassInput label="Amount (₹)" placeholder="0.00" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={errors.amount} />
+          <GlassInput label="Amount" placeholder="0.00" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={errors.amount} />
           <Text style={styles.sectionLabel}>Category</Text>
           <View style={styles.chipRow}>
-            {categories.map((item) => (
-              <TouchableOpacity key={item} style={[styles.chip, category === item && styles.chipActive]} onPress={() => setCategory(item)}>
-                <Text style={[styles.chipText, category === item && styles.chipTextActive]}>{item}</Text>
-              </TouchableOpacity>
-            ))}
+            {SPENDING_CATEGORIES.map((item) => {
+              const isActive = category === item.name;
+              return (
+                <TouchableOpacity
+                  key={item.name}
+                  style={[styles.chip, isActive && styles.chipActive]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setCategory(item.name);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={item.icon as any}
+                    size={14}
+                    color={isActive ? colors.accent.blue : colors.text.muted}
+                    style={{ marginRight: 6 }}
+                  />
+                  <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{item.name}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
           <Text style={styles.sectionLabel}>Date</Text>
           <TouchableOpacity style={styles.dateRow} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={18} color={colors.accent.purple} />
+            <Ionicons name="calendar-outline" size={18} color={colors.accent.blue} />
             <Text style={styles.dateLabel}>Spent Date</Text>
             <Text style={styles.dateValue}>{formatShortDate(spentAt)}</Text>
           </TouchableOpacity>
@@ -128,7 +143,16 @@ export default function EditSpendingModal() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <DateTimePickerModal isVisible={showDatePicker} mode="date" themeVariant={isDark ? 'dark' : 'light'} onConfirm={(d) => { setShowDatePicker(false); setSpentAt(d); }} onCancel={() => setShowDatePicker(false)} date={spentAt} maximumDate={new Date()} />
+      <AppDatePicker
+        visible={showDatePicker}
+        date={spentAt}
+        maximumDate={new Date()}
+        onConfirm={(d) => {
+          setShowDatePicker(false);
+          setSpentAt(d);
+        }}
+        onCancel={() => setShowDatePicker(false)}
+      />
       <CurrencyPicker visible={showCurrencyPicker} selectedCode={currency} onSelect={setCurrency} onClose={() => setShowCurrencyPicker(false)} />
       <AppPopup visible={popupVisible} title="Delete Spending" message={`Are you sure you want to delete ${entry.title}?`} icon="trash-outline" iconColor={colors.accent.red} cancelText="Cancel" confirmText="Delete" isDestructive={true} onCancel={() => setPopupVisible(false)} onConfirm={confirmDelete} />
     </SafeAreaView>
@@ -152,10 +176,10 @@ const getStyles = (colors: any) => StyleSheet.create({
   currText: { color: colors.text.primary, fontSize: 15 },
   sectionLabel: { color: colors.text.secondary, fontSize: 13, marginBottom: 10, marginTop: 16, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.buttonSecondary },
-  chipActive: { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.4)' },
+  chip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.buttonSecondary },
+  chipActive: { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79,195,247,0.15)', borderColor: colors.accent.blue },
   chipText: { color: colors.text.muted, fontSize: 13, fontWeight: '500' },
-  chipTextActive: { color: colors.accent.purple, fontWeight: '600' },
+  chipTextActive: { color: colors.accent.blue, fontWeight: '700' },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.cardBorder, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, marginBottom: 8 },
   dateLabel: { color: colors.text.secondary, fontSize: 14, flex: 1 },
   dateValue: { color: colors.text.primary, fontSize: 14, fontWeight: '600' },

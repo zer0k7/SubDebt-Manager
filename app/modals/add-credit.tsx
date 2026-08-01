@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { AppDatePicker } from '../../components/AppDatePicker';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlassInput } from '../../components/GlassInput';
@@ -107,8 +107,8 @@ export default function AddCreditModal() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <DateTimePickerModal isVisible={showLentPicker} mode="date" themeVariant="dark" onConfirm={(d) => { setShowLentPicker(false); setLentDate(d); }} onCancel={() => setShowLentPicker(false)} date={lentDate} />
-      <DateTimePickerModal isVisible={showReturnPicker} mode="date" themeVariant="dark" onConfirm={(d) => { setShowReturnPicker(false); setExpectedReturnDate(d); }} onCancel={() => setShowReturnPicker(false)} date={expectedReturnDate || new Date()} minimumDate={lentDate} />
+      <AppDatePicker visible={showLentPicker} date={lentDate} onConfirm={(d) => { setShowLentPicker(false); setLentDate(d); }} onCancel={() => setShowLentPicker(false)} />
+      <AppDatePicker visible={showReturnPicker} date={expectedReturnDate || new Date()} minimumDate={lentDate} onConfirm={(d) => { setShowReturnPicker(false); setExpectedReturnDate(d); }} onCancel={() => setShowReturnPicker(false)} />
       <CurrencyPicker visible={showCurrencyPicker} selectedCode={currency} onSelect={setCurrency} onClose={() => setShowCurrencyPicker(false)} />
     </SafeAreaView>
   );

@@ -9,4 +9,10 @@ export const STORAGE_KEYS = {
   HAS_SEEN_ONBOARDING: 'has_seen_onboarding',
   IS_BIOMETRIC_AUTH_ENABLED: 'is_biometric_auth_enabled',
   MONTHLY_BUDGET: 'monthly_budget',
+  WEEK_START_DAY: 'week_start_day',
+  NUMBER_FORMAT: 'number_format',
+  DATE_FORMAT: 'date_format',
+  DEFAULT_PAYMENT_METHOD: 'default_payment_method',
+  AUTO_ARCHIVE_SETTLED: 'auto_archive_settled',
+  CARD_DENSITY_MODE: 'card_density_mode',
 } as const;

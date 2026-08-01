@@ -317,7 +317,7 @@ export default function DashboardScreen() {
             <Text style={styles.gridAmount}>{formatValue(totalCredit)}</Text>
             <Text style={styles.gridLabel}>Owed to You</Text>
           </View>
-          <View style={[styles.gridItem, { borderColor: isDark ? 'rgba(79,195,247,0.3)' : 'rgba(79,195,247,0.2)' }]}>
+          <View style={[styles.gridItem, { borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.3 : 0.2) : (isDark ? 'rgba(79,195,247,0.3)' : 'rgba(79,195,247,0.2)') }]}>
             <Ionicons name="card-outline" size={20} color={colors.accent.blue} />
             <Text style={styles.gridAmount}>{formatValue(totalSubs)}</Text>
             <Text style={styles.gridLabel}>Monthly Subs</Text>

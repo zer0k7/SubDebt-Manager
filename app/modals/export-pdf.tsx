@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { AppDatePicker } from '../../components/AppDatePicker';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AmbientBackground } from '../../components/AmbientBackground';
@@ -347,32 +347,27 @@ export default function ExportPDFModal() {
         </View>
       </ScrollView>
 
-      {/* Date Pickers */}
-      <DateTimePickerModal
-        isVisible={showStartDatePicker}
-        mode="date"
-        themeVariant={isDark ? 'dark' : 'light'}
+      <AppDatePicker
+        visible={showStartDatePicker}
+        date={startDate}
+        maximumDate={endDate}
         onConfirm={(d) => {
           setShowStartDatePicker(false);
           setStartDate(d);
         }}
         onCancel={() => setShowStartDatePicker(false)}
-        date={startDate}
-        maximumDate={endDate}
       />
 
-      <DateTimePickerModal
-        isVisible={showEndDatePicker}
-        mode="date"
-        themeVariant={isDark ? 'dark' : 'light'}
+      <AppDatePicker
+        visible={showEndDatePicker}
+        date={endDate}
+        minimumDate={startDate}
+        maximumDate={new Date()}
         onConfirm={(d) => {
           setShowEndDatePicker(false);
           setEndDate(d);
         }}
         onCancel={() => setShowEndDatePicker(false)}
-        date={endDate}
-        minimumDate={startDate}
-        maximumDate={new Date()}
       />
     </SafeAreaView>
   );

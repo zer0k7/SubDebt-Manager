@@ -166,8 +166,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: 'transparent',
   },
   optionRowSelected: {
-    backgroundColor: isDark ? 'rgba(79, 195, 247, 0.1)' : 'rgba(2, 132, 199, 0.05)',
-    borderColor: isDark ? 'rgba(79, 195, 247, 0.3)' : 'rgba(2, 132, 199, 0.2)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.1 : 0.05) : (isDark ? 'rgba(79, 195, 247, 0.1)' : 'rgba(2, 132, 199, 0.05)'),
+    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.3 : 0.2) : (isDark ? 'rgba(79, 195, 247, 0.3)' : 'rgba(2, 132, 199, 0.2)'),
   },
   optionLeft: {
     flexDirection: 'row',
@@ -183,7 +183,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
   },
   iconWrapSelected: {
-    backgroundColor: isDark ? 'rgba(79, 195, 247, 0.15)' : 'rgba(2, 132, 199, 0.1)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.15 : 0.1) : (isDark ? 'rgba(79, 195, 247, 0.15)' : 'rgba(2, 132, 199, 0.1)'),
   },
   optionLabel: {
     color: colors.text.secondary,

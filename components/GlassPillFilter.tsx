@@ -71,8 +71,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.glass.cardBorder,
   },
   pillActive: {
-    backgroundColor: 'rgba(79,195,247,0.2)',
-    borderColor: 'rgba(79,195,247,0.5)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.2) : 'rgba(79,195,247,0.2)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(0.5) : 'rgba(79,195,247,0.5)',
     shadowColor: colors.accent.blue,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.3,

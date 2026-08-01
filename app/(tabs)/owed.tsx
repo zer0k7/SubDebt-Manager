@@ -228,10 +228,10 @@ export default function OwedScreen() {
       </View>
 
       {/* Summary Card */}
-      <View style={[styles.summaryCard, { borderColor: viewMode === 'borrowed' ? 'rgba(255,183,77,0.2)' : 'rgba(79,195,247,0.2)' }]}>
+      <View style={[styles.summaryCard, { borderColor: viewMode === 'borrowed' ? 'rgba(255,183,77,0.2)' : (colors.accent.alpha ? colors.accent.alpha(0.2) : 'rgba(79,195,247,0.2)') }]}>
         <View style={styles.summaryTop}>
           <Text style={styles.summaryLabel}>{viewMode === 'borrowed' ? 'Total to Pay' : 'Total to Collect'}</Text>
-          <View style={[styles.pendingBadge, { backgroundColor: viewMode === 'borrowed' ? 'rgba(255,183,77,0.1)' : 'rgba(79,195,247,0.1)' }]}>
+          <View style={[styles.pendingBadge, { backgroundColor: viewMode === 'borrowed' ? 'rgba(255,183,77,0.1)' : (colors.accent.alpha ? colors.accent.alpha(0.1) : 'rgba(79,195,247,0.1)') }]}>
             <Text style={[styles.pendingBadgeText, { color: accentColor }]}>
               {data.filter((d: any) => viewMode === 'borrowed' ? !d.isPaid : !d.isReturned).length} pending
             </Text>
@@ -299,9 +299,6 @@ export default function OwedScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Ledger</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={[styles.addButton, { backgroundColor: `${accentColor}15` }]} onPress={handleAddPress}>
-            <Ionicons name="add" size={22} color={accentColor} />
-          </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')}>
             <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
           </TouchableOpacity>

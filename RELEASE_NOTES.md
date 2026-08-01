@@ -1,42 +1,50 @@
-# SubDebt Manager v2.1.1 Release Notes
+# 🚀 SubDebt Manager v2.2.0 Release Notes
 
-SubDebt Manager v2.1.1 fixes splash screen graphics, updates theme accent color switching, implements default startup tab routing, and enables privacy mode balance masking.
-
----
-
-## Technical Highlights & Features
-
-### Dedicated Financial Tools Suite
-- **Data Vault & Backup**: Create encrypted offline JSON backups, restore database dumps, and export daily spending spreadsheets directly on device.
-- **Financial Health Audit**: Comprehensive liquidity diagnostic score evaluating debt-to-credit balance, monthly velocity, and subscription bleed.
-- **Reminder Generator**: 1-tap WhatsApp and SMS payment reminder template generator for unreturned credits and due debts.
-- **Debt Payoff Simulator**: Interactive Snowball vs. Avalanche strategy calculator for optimized debt clearance timelines.
-- **Offline FX Currency Converter**: High-precision offline conversion between INR, USD, EUR, GBP, AED, and JPY.
-- **PDF & Receipt Statements**: Export full ledger statements and transaction receipts formatted for printing or sharing.
-
-### Customization & System Preferences
-- **Theme Accent Palette**: Choose custom high-contrast accent colors (Sapphire Blue, Emerald Green, Violet Purple, Amber Gold, Crimson Red).
-- **Default Startup Screen**: Customize which screen launches automatically on app startup (Home, Subscriptions, Owed/Debts, Spending).
-- **Privacy Mode**: Toggle switch to obscure monetary balance totals on the Home screen when viewing in public.
-- **Haptic Feedback Control**: Choose tactile vibration intensity (Heavy, Medium, Light, Off).
-- **System Notification Sync**: Automatic state synchronization with Android system notification permissions and custom reminder scheduling.
+> **Privacy-First Offline Financial Ledger & Manager**  
+> *Release Date: August 1, 2026*
 
 ---
 
-## Installation & Architecture Guide
+## 🌟 Highlights & Major Features
 
-Choose the appropriate binary file for your device architecture:
+### 💱 Real Offline FX Currency Converter
+- Replaced 1:1 dummy conversion with an offline conversion engine.
+- Benchmark exchange rates table covering **30 global currencies** (USD, INR, EUR, GBP, JPY, AED, CAD, AUD, etc.).
+- 100% offline — zero network telemetry or API keys required.
 
-| Binary File | Target Architecture | Recommended Devices |
-| :--- | :--- | :--- |
-| `SubDebt-arm64-v8a.apk` | ARM 64-bit (`arm64-v8a`) | **Recommended** for modern Android smartphones (Android 9.0+) |
-| `SubDebt-universal.apk` | Universal (All ABIs) | Compatible with all Android devices and custom ROMs |
-| `SubDebt-armeabi-v7a.apk` | ARM 32-bit (`armeabi-v7a`) | Legacy 32-bit Android smartphones and older hardware |
-| `SubDebt-x86_64.apk` | x86 64-bit (`x86_64`) | Android emulators, Intel/AMD Chromebooks, and tablets |
-| `SubDebt-app-release.aab` | Android App Bundle (AAB) | Target package for Google Play Store distribution |
+### 🎨 30+ Expanded Spending Categories
+- Expanded spending categories from 13 to **30+ categorized items** across 10 groups (Food & Dining, Transportation, Housing, Health & Fitness, Entertainment, Family, Financial, etc.).
+- Added dynamic icon and color styling integrated into forms, breakdown charts, entry cards, and settings.
+
+### 📅 High-Contrast Custom Calendar (`AppDatePicker`)
+- Custom glassmorphic date & time picker replacing native OS popups.
+- Solid surface backgrounds (`#FFFFFF` / `#141424`), bold slate typography (`#0F172A` / `#F8FAFC`), and crisp day cell tiles.
+- Configurable **First Day of the Week** (`Monday`, `Sunday`, `Saturday`).
+
+### ⚡ Top 1% Animated Custom Splash Screen
+- Smooth animated splash screen (`CustomSplashScreen`) featuring glowing emblem, kinetic spring entrance, and instant native splash dismissal.
+
+### ⚙️ Global Real-Time Settings Reactivity (`SettingsContext`)
+- Added global `SettingsContext` for live, real-time preference updates without needing app restarts:
+  - 🔢 **Number Format**: Standard (`1,234.56`), European (`1.234,56`), and Space (`1 234.56`).
+  - 📅 **Date Format**: `DD/MM/YYYY`, `MM/DD/YYYY`, and `YYYY-MM-DD`.
+  - 🗓️ **First Day of Week**: `Monday`, `Sunday`, `Saturday`.
+  - 💳 **Default Payment Method**: Card, Cash, UPI, or Bank Transfer.
+  - 🗃️ **Auto-Archive Settled Records**: Never, 30 Days, 90 Days, or 1 Year threshold.
+  - 📱 **Card Layout Density**: Comfortable vs Compact card modes.
+
+### 🧹 Header Cleanup & 60 FPS Performance
+- Removed redundant top header `+` buttons across all tabs (Spending, Subscriptions, Owed, Debts, Credits) for clean, uncluttered navigation headers.
+- Added list windowing optimizations (`initialNumToRender`, `maxToRenderPerBatch`, `removeClippedSubviews`) for 60 FPS smooth scrolling.
+- Refactored PDF report exporter to use matching UI category colors.
 
 ---
 
-## Verification & Integrity
+## 🔒 Security & Privacy
+- 100% offline MMKV local storage.
+- Optional biometric authentication lock (Face ID / Fingerprint / PIN).
+- Privacy Mode balance masking on Home screen.
 
-All builds in this release are compiled with 100% offline local storage (MMKV) and contain zero third-party telemetry or network trackers.
+---
+
+*Built with ❤️ for privacy-conscious personal finance tracking.*

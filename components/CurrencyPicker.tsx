@@ -188,9 +188,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: 2,
   },
   itemSelected: {
-    backgroundColor: isDark ? 'rgba(79,195,247,0.08)' : 'rgba(2,132,199,0.12)',
+    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.08 : 0.12) : (isDark ? 'rgba(79,195,247,0.08)' : 'rgba(2,132,199,0.12)'),
     borderWidth: 0.5,
-    borderColor: isDark ? 'rgba(79,195,247,0.2)' : 'rgba(2,132,199,0.28)',
+    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.2 : 0.28) : (isDark ? 'rgba(79,195,247,0.2)' : 'rgba(2,132,199,0.28)'),
   },
   flag: {
     fontSize: 24,
