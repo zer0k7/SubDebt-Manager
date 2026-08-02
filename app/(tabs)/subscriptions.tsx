@@ -748,8 +748,20 @@ export default function SubscriptionsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Subscriptions</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')}>
-            <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/modals/tool-subscription-forecast');
+            }}
+          >
+            <Ionicons name="calendar-outline" size={20} color={colors.accent.purple} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => router.push('/modals/settings')}
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.text.tertiary} />
           </TouchableOpacity>
         </View>
       </View>

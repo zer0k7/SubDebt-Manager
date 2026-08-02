@@ -5,7 +5,7 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { AppDatePicker } from '../../components/AppDatePicker';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,15 +22,17 @@ export default function AddDebtModal() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const router = useRouter();
+  const params = useLocalSearchParams<{ prefillPerson?: string; prefillAmount?: string; prefillNotes?: string }>();
   const { addDebt } = useDebts();
-  const [personName, setPersonName] = useState('');
+
+  const [personName, setPersonName] = useState(params.prefillPerson || '');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [amount, setAmount] = useState('');
+  const [amount, setAmount] = useState(params.prefillAmount || '');
   const { currencyCode: defaultCurrency } = useCurrency();
   const [currency, setCurrency] = useState(defaultCurrency);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
   const [purpose, setPurpose] = useState('');
-  const [notes, setNotes] = useState('');
+  const [notes, setNotes] = useState(params.prefillNotes || '');
   const [takenDate, setTakenDate] = useState(new Date());
   const [dueDate, setDueDate] = useState<Date | null>(null);
   const [showTakenPicker, setShowTakenPicker] = useState(false);

@@ -1,14 +1,13 @@
 import { useTheme } from '../hooks/useTheme';
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { SpendingEntry } from '../hooks/useDailySpending';
 import { formatCurrency, formatDate } from '../utils/dateHelpers';
-
 import { getCategoryIcon, getCategoryColor } from '../constants/categories';
-
 import { useSettings } from '../context/SettingsContext';
+import { DigitalReceiptModal } from './DigitalReceiptModal';
 
 interface SpendingEntryCardProps {
   entry: SpendingEntry;
@@ -20,30 +19,50 @@ export const SpendingEntryCard: React.FC<SpendingEntryCardProps> = ({ entry, onP
   const { colors } = useTheme();
   const { cardDensityMode, formatCurrency, formatDate } = useSettings();
   const isCompact = cardDensityMode === 'compact';
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const styles = getStyles(colors, isCompact);
   const icon = getCategoryIcon(entry.category);
   const color = getCategoryColor(entry.category);
 
   return (
-    <TouchableOpacity onPress={() => onPress?.(entry.id)} activeOpacity={0.85} style={styles.card}>
-      <View style={[styles.iconWrap, { backgroundColor: `${color}18`, borderColor: `${color}35` }]}>
-        <Ionicons name={icon as any} size={isCompact ? 16 : 22} color={color} />
-      </View>
-      <View style={styles.info}>
-        <Text style={styles.title} numberOfLines={1}>{entry.title}</Text>
-        <Text style={styles.meta} numberOfLines={1}>{entry.category} • {formatDate(entry.spentAt)}</Text>
-        {!isCompact && entry.notes && <Text style={styles.notes} numberOfLines={1}>{entry.notes}</Text>}
-      </View>
-      <View style={styles.amountWrap}>
-        <Text style={[styles.amount, { color }]}>{formatCurrency(entry.amount, entry.currency)}</Text>
-        {onDelete && (
-          <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDelete(); }} hitSlop={{top:10,bottom:10,left:10,right:10}}>
-            <Ionicons name="trash-outline" size={isCompact ? 14 : 17} color={colors.accent.red} />
-          </TouchableOpacity>
-        )}
-      </View>
-    </TouchableOpacity>
+    <>
+      <TouchableOpacity onPress={() => onPress?.(entry.id)} activeOpacity={0.85} style={styles.card}>
+        <View style={[styles.iconWrap, { backgroundColor: `${color}18`, borderColor: `${color}35` }]}>
+          <Ionicons name={icon as any} size={isCompact ? 16 : 22} color={color} />
+        </View>
+        <View style={styles.info}>
+          <Text style={styles.title} numberOfLines={1}>{entry.title}</Text>
+          <Text style={styles.meta} numberOfLines={1}>{entry.category} • {formatDate(entry.spentAt)}</Text>
+          {!isCompact && entry.notes && <Text style={styles.notes} numberOfLines={1}>{entry.notes}</Text>}
+        </View>
+        <View style={styles.amountWrap}>
+          <Text style={[styles.amount, { color }]}>{formatCurrency(entry.amount, entry.currency)}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowReceipt(true); }} hitSlop={{top:10,bottom:10,left:10,right:10}}>
+              <Ionicons name="receipt-outline" size={isCompact ? 14 : 16} color={colors.text.secondary} />
+            </TouchableOpacity>
+            {onDelete && (
+              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDelete(); }} hitSlop={{top:10,bottom:10,left:10,right:10}}>
+                <Ionicons name="trash-outline" size={isCompact ? 14 : 16} color={colors.accent.red} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      <DigitalReceiptModal
+        visible={showReceipt}
+        onClose={() => setShowReceipt(false)}
+        title={entry.title}
+        amount={entry.amount}
+        currency={entry.currency}
+        categoryOrPerson={entry.category}
+        date={entry.spentAt}
+        notes={entry.notes}
+        type="spending"
+      />
+    </>
   );
 };
 

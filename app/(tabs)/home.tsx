@@ -335,6 +335,9 @@ export default function DashboardScreen() {
           {[
             { id: 'health-audit', title: 'Health Audit', subtitle: 'Diagnostic & Score', icon: 'pulse-outline', color: colors.accent.green, route: '/modals/tool-health-audit' },
             { id: 'reminder-gen', title: 'Reminders', subtitle: 'WhatsApp / SMS', icon: 'paper-plane-outline', color: colors.accent.blue, route: '/modals/tool-reminder-generator' },
+            { id: 'emi-calc', title: 'Loan EMI Calc', subtitle: 'Schedule & Save', icon: 'card-outline', color: '#8B5CF6', route: '/modals/tool-emi-calculator' },
+            { id: 'sub-forecast', title: 'Sub Forecast', subtitle: '12-Month Outflow', icon: 'calendar-outline', color: '#6366F1', route: '/modals/tool-subscription-forecast' },
+            { id: 'import-csv', title: 'CSV Importer', subtitle: 'Bank & Sheets', icon: 'cloud-upload-outline', color: '#10B981', route: '/modals/import-csv' },
             { id: 'debt-payoff', title: 'Debt Payoff', subtitle: 'Snowball vs Avalanche', icon: 'calculator-outline', color: colors.accent.amber, route: '/modals/tool-debt-payoff' },
             { id: 'currency-converter', title: 'Converter', subtitle: 'Offline FX Rates', icon: 'swap-horizontal-outline', color: colors.accent.purple, route: '/modals/tool-currency-converter' },
             { id: 'export-statement', title: 'PDF & Statements', subtitle: 'Custom Reports', icon: 'document-text-outline', color: '#26A69A', route: '/modals/export-pdf' },

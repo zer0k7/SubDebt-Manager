@@ -346,6 +346,7 @@ export default function SpendingScreen() {
         categories={categoryTotals}
         currencyCode={currencyCode}
         rangeLabel={rangeLabel}
+        categoryLimits={budget.categoryLimits}
       />
 
       {/* Spending Heatmap */}

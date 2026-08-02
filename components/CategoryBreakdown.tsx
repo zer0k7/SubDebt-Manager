@@ -20,12 +20,14 @@ interface CategoryBreakdownProps {
   categories: CategoryTotal[];
   currencyCode: string;
   rangeLabel?: string;
+  categoryLimits?: Record<string, number>;
 }
 
 export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
   categories,
   currencyCode,
   rangeLabel,
+  categoryLimits,
 }) => {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
@@ -151,20 +153,28 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
 
       {/* Category rows */}
       {visibleCategories.map((cat) => {
-        const color = getCategoryColor(cat.category);
+        const catColor = getCategoryColor(cat.category);
         const icon = getCategoryIcon(cat.category);
         const percentage = grandTotal > 0 ? Math.round((cat.total / grandTotal) * 100) : 0;
         const barWidth = Math.max((cat.total / maxTotal) * 100, 4);
 
+        const limit = categoryLimits?.[cat.category] || 0;
+        const hasLimit = limit > 0;
+        const limitPct = hasLimit ? Math.round((cat.total / limit) * 100) : 0;
+        const isOver = hasLimit && cat.total > limit;
+        const isWarn = hasLimit && limitPct >= 70 && !isOver;
+
+        const barColor = isOver ? colors.accent.red : isWarn ? colors.accent.amber : catColor;
+
         return (
           <View key={cat.category} style={styles.row}>
-            <View style={[styles.iconCircle, { backgroundColor: `${color}18`, borderColor: `${color}35` }]}>
-              <Ionicons name={icon as any} size={16} color={color} />
+            <View style={[styles.iconCircle, { backgroundColor: `${barColor}18`, borderColor: `${barColor}35` }]}>
+              <Ionicons name={icon as any} size={16} color={barColor} />
             </View>
             <View style={styles.info}>
               <View style={styles.labelRow}>
                 <Text style={styles.catName}>{cat.category}</Text>
-                <Text style={styles.catAmount}>
+                <Text style={[styles.catAmount, isOver && { color: colors.accent.red }]}>
                   {formatCurrency(cat.total, currencyCode)}
                 </Text>
               </View>
@@ -173,13 +183,29 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
                   style={[
                     styles.barFill,
                     {
-                      width: `${barWidth}%`,
-                      backgroundColor: color,
+                      width: `${hasLimit ? Math.min(100, limitPct) : barWidth}%`,
+                      backgroundColor: barColor,
                     },
                   ]}
                 />
               </View>
-              <Text style={styles.percentText}>{percentage}% of total</Text>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={styles.percentText}>{percentage}% of total</Text>
+                {hasLimit && (
+                  <Text
+                    style={[
+                      styles.percentText,
+                      { fontWeight: '700' },
+                      isOver ? { color: colors.accent.red } : isWarn ? { color: colors.accent.amber } : { color: colors.text.secondary },
+                    ]}
+                  >
+                    {isOver
+                      ? `⚠️ Over limit by ${formatCurrency(cat.total - limit, currencyCode)}`
+                      : `${limitPct}% of ${formatCurrency(limit, currencyCode)} limit`}
+                  </Text>
+                )}
+              </View>
             </View>
           </View>
         );

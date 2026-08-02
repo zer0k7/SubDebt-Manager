@@ -37,7 +37,7 @@ const isNewer = (latest: string, current: string): boolean => {
 };
 
 export const getCurrentVersion = (): string => {
-  return Constants.expoConfig?.version || '2.2.0';
+  return Constants.expoConfig?.version || '2.3.0';
 };
 
 export const checkForUpdate = async (force = false): Promise<UpdateInfo | null> => {

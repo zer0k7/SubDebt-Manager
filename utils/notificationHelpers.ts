@@ -24,7 +24,7 @@ export async function registerForPushNotificationsAsync() {
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#FF231F7C',
+      lightColor: '#4FC3F7',
     });
   }
 
@@ -197,7 +197,29 @@ export async function rescheduleDailyReminder() {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysRemaining = Math.max(1, daysInMonth - now.getDate() + 1);
 
-  // 1. Morning Kickoff Notification (9:00 AM)
+  let morningHour = 9;
+  let morningMinute = 0;
+  try {
+    const timeStr = await storage.getString('morning_reminder_time');
+    if (timeStr && timeStr.includes(':')) {
+      const parts = timeStr.split(':');
+      morningHour = parseInt(parts[0], 10);
+      morningMinute = parseInt(parts[1], 10);
+    }
+  } catch (err) {}
+
+  let middayHour = 14;
+  let middayMinute = 0;
+  try {
+    const timeStr = await storage.getString('midday_reminder_time');
+    if (timeStr && timeStr.includes(':')) {
+      const parts = timeStr.split(':');
+      middayHour = parseInt(parts[0], 10);
+      middayMinute = parseInt(parts[1], 10);
+    }
+  } catch (err) {}
+
+  // 1. Morning Kickoff Notification
   let morningTitle = 'Good Morning! ☀️ Daily Allowance';
   let morningBody = 'Keep your financial goals on track today! Tap to check your balance.';
 
@@ -220,12 +242,12 @@ export async function rescheduleDailyReminder() {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 9,
-      minute: 0,
+      hour: morningHour,
+      minute: morningMinute,
     } as any,
   });
 
-  // 2. Midday Pulse Notification (2:00 PM / 14:00)
+  // 2. Midday Pulse Notification
   let afternoonTitle = 'Midday Pulse 📊 Financial Snapshot';
   let afternoonBody = 'Take a quick look at your recurring bills and pending debt settlements.';
 
@@ -260,8 +282,8 @@ export async function rescheduleDailyReminder() {
     },
     trigger: {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      hour: 14,
-      minute: 0,
+      hour: middayHour,
+      minute: middayMinute,
     } as any,
   });
 

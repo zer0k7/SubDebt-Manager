@@ -1,49 +1,51 @@
-# 🚀 SubDebt Manager v2.2.0 Release Notes
+# 🚀 SubDebt Manager v2.3.0 Release Notes
 
 > **Privacy-First Offline Financial Ledger & Manager**  
-> *Release Date: August 1, 2026*
+> *Release Date: August 2, 2026*  
+> *Codename: "Pro Suite & Receipt Vault"*
 
 ---
 
 ## 🌟 Highlights & Major Features
 
-### 💱 Real Offline FX Currency Converter
-- Replaced 1:1 dummy conversion with an offline conversion engine.
-- Benchmark exchange rates table covering **30 global currencies** (USD, INR, EUR, GBP, JPY, AED, CAD, AUD, etc.).
-- 100% offline — zero network telemetry or API keys required.
+### 🧮 Offline Loan & EMI Amortization Calculator
+- **Real-Time EMI Math Engine**: Compute Monthly EMI, Total Interest Payable, and Total Amount for any loan amount, tenure (years or months), and interest rate.
+- **0% Interest Support**: Gracefully handles 0% zero-interest EMI financing plans without division errors.
+- **Interactive Amortization Table**: Year-by-year and month-by-month breakdown of Principal, Interest, and Remaining Balance.
+- **1-Tap Ledger Integration**: Instantly transfers loan details into your Debt tracker with pre-filled lender name, principal amount, and EMI breakdown notes.
 
-### 🎨 30+ Expanded Spending Categories
-- Expanded spending categories from 13 to **30+ categorized items** across 10 groups (Food & Dining, Transportation, Housing, Health & Fitness, Entertainment, Family, Financial, etc.).
-- Added dynamic icon and color styling integrated into forms, breakdown charts, entry cards, and settings.
+### 🧾 1-Tap Branded Digital Receipt Generator & Share Sheet
+- **Digital Receipt Cards**: Generate high-contrast, verification-badged digital receipt certificates for expenses, debt settlements, and credit returns.
+- **Image Sharing**: Capture 1-tap high-resolution PNG receipt images using `react-native-view-shot` and share directly to WhatsApp, Email, or Telegram via `expo-sharing`.
 
-### 📅 High-Contrast Custom Calendar (`AppDatePicker`)
-- Custom glassmorphic date & time picker replacing native OS popups.
-- Solid surface backgrounds (`#FFFFFF` / `#141424`), bold slate typography (`#0F172A` / `#F8FAFC`), and crisp day cell tiles.
-- Configurable **First Day of the Week** (`Monday`, `Sunday`, `Saturday`).
+### 🗓️ 12-Month Subscription Cash Outflow Forecast
+- **Rolling 12-Month Projections**: Forecasts recurring subscription renewal expenses for the next 12 months across monthly, yearly, weekly, and quarterly billing cycles.
+- **Interactive Timeline**: Touch-selectable monthly bar chart with itemized subscription charge breakdowns per month.
 
-### ⚡ Top 1% Animated Custom Splash Screen
-- Smooth animated splash screen (`CustomSplashScreen`) featuring glowing emblem, kinetic spring entrance, and instant native splash dismissal.
+### 📁 CSV Bank Statement & Spreadsheet Importer
+- **Universal Importer**: Pick CSV files from Excel, Google Sheets, or Bank statements via `expo-document-picker`.
+- **Auto Column Detection**: Auto-detects Date, Description, Amount, and Category columns with interactive transaction previews before importing to your ledger.
 
-### ⚙️ Global Real-Time Settings Reactivity (`SettingsContext`)
-- Added global `SettingsContext` for live, real-time preference updates without needing app restarts:
-  - 🔢 **Number Format**: Standard (`1,234.56`), European (`1.234,56`), and Space (`1 234.56`).
-  - 📅 **Date Format**: `DD/MM/YYYY`, `MM/DD/YYYY`, and `YYYY-MM-DD`.
-  - 🗓️ **First Day of Week**: `Monday`, `Sunday`, `Saturday`.
-  - 💳 **Default Payment Method**: Card, Cash, UPI, or Bank Transfer.
-  - 🗃️ **Auto-Archive Settled Records**: Never, 30 Days, 90 Days, or 1 Year threshold.
-  - 📱 **Card Layout Density**: Comfortable vs Compact card modes.
+### 🔔 Fixed Android Status Bar Notification Icon
+- **Clean Vector Silhouette**: Replaced colored icon asset with a 192x192 monochrome white vector silhouette PNG on a 100% transparent background.
+- **No More White Box**: Eliminates the Android status bar and ambient notification dot solid white square box issue.
 
-### 🧹 Header Cleanup & 60 FPS Performance
-- Removed redundant top header `+` buttons across all tabs (Spending, Subscriptions, Owed, Debts, Credits) for clean, uncluttered navigation headers.
-- Added list windowing optimizations (`initialNumToRender`, `maxToRenderPerBatch`, `removeClippedSubviews`) for 60 FPS smooth scrolling.
-- Refactored PDF report exporter to use matching UI category colors.
+### ⏰ Custom Multi-Time Notification Scheduler
+- **3 Distinct Notification Slots**: Custom time scheduling for Morning Allowance Kickoff (9:00 AM), Midday Financial Pulse (2:00 PM), and Evening Ledger Wrap-up (8:00 PM).
+
+### 📊 Category Budget Caps & Progress Status Indicators
+- **Per-Category Budget Caps**: Track monthly spending against category limits set in `useBudget`.
+- **Status Indicator Colors**:
+  - 🟢 **Under 70%**: Normal Category Color
+  - 🟡 **70% to 90%**: Amber Warning (`#F59E0B`) with percentage used
+  - 🔴 **Over 90% / Over Budget**: Red Danger (`#EF4444`) with exact overage amount
 
 ---
 
 ## 🔒 Security & Privacy
-- 100% offline MMKV local storage.
+- 100% offline local MMKV storage.
 - Optional biometric authentication lock (Face ID / Fingerprint / PIN).
-- Privacy Mode balance masking on Home screen.
+- Zero external tracking, zero cloud accounts required.
 
 ---
 
