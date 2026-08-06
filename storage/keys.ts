@@ -15,4 +15,5 @@ export const STORAGE_KEYS = {
   DEFAULT_PAYMENT_METHOD: 'default_payment_method',
   AUTO_ARCHIVE_SETTLED: 'auto_archive_settled',
   CARD_DENSITY_MODE: 'card_density_mode',
+  CUSTOM_CATEGORIES: 'custom_categories_v1',
 } as const;

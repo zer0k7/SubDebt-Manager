@@ -77,23 +77,39 @@ export const SPENDING_CATEGORIES: CategoryDefinition[] = [
   { name: 'Other', icon: 'ellipse-outline', color: '#B0BEC5', group: 'General' },
 ];
 
+function getCustomCategoriesFromStorage(): CategoryDefinition[] {
+  try {
+    const { storage } = require('../storage/mmkv');
+    const { STORAGE_KEYS } = require('../storage/keys');
+    const raw = storage.getString(STORAGE_KEYS.CUSTOM_CATEGORIES);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return [];
+}
+
 export const getCategoryIcon = (categoryName: string): string => {
-  const cat = SPENDING_CATEGORIES.find(
-    (c) => c.name.toLowerCase() === (categoryName || '').toLowerCase()
-  );
+  const custom = getCustomCategoriesFromStorage();
+  const foundCustom = custom.find((c) => c.name.toLowerCase() === (categoryName || '').toLowerCase());
+  if (foundCustom) return foundCustom.icon;
+
+  const cat = SPENDING_CATEGORIES.find((c) => c.name.toLowerCase() === (categoryName || '').toLowerCase());
   return cat ? cat.icon : 'ellipse-outline';
 };
 
 export const getCategoryColor = (categoryName: string): string => {
-  const cat = SPENDING_CATEGORIES.find(
-    (c) => c.name.toLowerCase() === (categoryName || '').toLowerCase()
-  );
+  const custom = getCustomCategoriesFromStorage();
+  const foundCustom = custom.find((c) => c.name.toLowerCase() === (categoryName || '').toLowerCase());
+  if (foundCustom) return foundCustom.color;
+
+  const cat = SPENDING_CATEGORIES.find((c) => c.name.toLowerCase() === (categoryName || '').toLowerCase());
   return cat ? cat.color : '#4FC3F7';
 };
 
 export const getCategoryGroup = (categoryName: string): string => {
-  const cat = SPENDING_CATEGORIES.find(
-    (c) => c.name.toLowerCase() === (categoryName || '').toLowerCase()
-  );
+  const custom = getCustomCategoriesFromStorage();
+  const foundCustom = custom.find((c) => c.name.toLowerCase() === (categoryName || '').toLowerCase());
+  if (foundCustom) return foundCustom.group || 'General';
+
+  const cat = SPENDING_CATEGORIES.find((c) => c.name.toLowerCase() === (categoryName || '').toLowerCase());
   return cat ? cat.group : 'General';
 };

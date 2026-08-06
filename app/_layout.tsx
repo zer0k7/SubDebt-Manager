@@ -11,6 +11,7 @@ SplashScreen.preventAutoHideAsync();
 
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../hooks/useTheme';
+import { AuthLockProvider } from '../context/AuthLockContext';
 import { registerForPushNotificationsAsync } from '../utils/notificationHelpers';
 import { authenticate } from '../utils/authHelpers';
 import { checkForUpdate, UpdateInfo } from '../utils/updateChecker';
@@ -180,7 +181,9 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <SettingsProvider>
-        <AppLayout />
+        <AuthLockProvider>
+          <AppLayout />
+        </AuthLockProvider>
       </SettingsProvider>
     </ThemeProvider>
   );

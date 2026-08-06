@@ -351,8 +351,10 @@ export default function SpendingScreen() {
 
       {/* Spending Heatmap */}
       <SpendingHeatmap
-        data={heatmapData}
+        entries={entries}
         currencyCode={currencyCode}
+        dailyAverage={dailyAvg}
+        convertAmount={convertAmount}
       />
 
       {/* Smart Insights */}

@@ -1,66 +1,149 @@
 import { useTheme } from '../hooks/useTheme';
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-
-interface HeatmapDay {
-  date: string;
-  total: number;
-  intensity: number;
-}
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { SpendingEntry } from '../hooks/useDailySpending';
+import { useSettings } from '../context/SettingsContext';
 
 interface SpendingHeatmapProps {
-  data: HeatmapDay[];
+  entries: SpendingEntry[];
   currencyCode: string;
+  dailyAverage: number;
+  convertAmount: (amount: number, fromCurrency: string) => number;
 }
 
-export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({ data }) => {
+export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
+  entries,
+  currencyCode,
+  dailyAverage,
+  convertAmount,
+}) => {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
+  const { formatCurrency, formatDate } = useSettings();
 
-  if (data.length === 0) return null;
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
 
-  const activeDays = data.filter((d) => d.total > 0).length;
-  const noSpendDays = data.length - activeDays;
+  // Generate 30-day timeline data
+  const heatmapData = useMemo(() => {
+    const days: { date: Date; dateStr: string; amount: number; level: 'zero' | 'low' | 'med' | 'high' }[] = [];
+    const now = new Date();
 
-  const getColor = (intensity: number) => {
-    if (intensity === 0) return isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)';
-    if (intensity < 0.25) return isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.1)';
-    if (intensity < 0.5) return isDark ? 'rgba(124,58,237,0.3)' : 'rgba(124,58,237,0.2)';
-    if (intensity < 0.75) return isDark ? 'rgba(124,58,237,0.5)' : 'rgba(124,58,237,0.35)';
-    return isDark ? 'rgba(124,58,237,0.75)' : 'rgba(124,58,237,0.5)';
-  };
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+
+      const dayTotal = entries
+        .filter((e) => {
+          const spentDate = new Date(e.spentAt).toISOString().slice(0, 10);
+          return spentDate === dateStr;
+        })
+        .reduce((sum, e) => sum + convertAmount(e.amount, e.currency), 0);
+
+      let level: 'zero' | 'low' | 'med' | 'high' = 'zero';
+      const avg = dailyAverage > 0 ? dailyAverage : 500;
+
+      if (dayTotal > 0) {
+        if (dayTotal <= avg * 0.6) {
+          level = 'low';
+        } else if (dayTotal <= avg * 1.3) {
+          level = 'med';
+        } else {
+          level = 'high';
+        }
+      }
+
+      days.push({ date: d, dateStr, amount: dayTotal, level });
+    }
+
+    const greenDays = days.filter((d) => d.level === 'low').length;
+    const yellowDays = days.filter((d) => d.level === 'med').length;
+    const redDays = days.filter((d) => d.level === 'high').length;
+    const zeroDays = days.filter((d) => d.level === 'zero').length;
+
+    return { days, greenDays, yellowDays, redDays, zeroDays };
+  }, [entries, dailyAverage, convertAmount]);
+
+  const activeDay = selectedDayIndex !== null ? heatmapData.days[selectedDayIndex] : null;
 
   return (
     <View style={styles.card}>
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>SPENDING ACTIVITY</Text>
-        <View style={styles.legendRow}>
-          <Text style={styles.legendLabel}>Less</Text>
-          {[0, 0.2, 0.4, 0.7, 1].map((v, i) => (
-            <View key={i} style={[styles.legendDot, { backgroundColor: getColor(v) }]} />
-          ))}
-          <Text style={styles.legendLabel}>More</Text>
+      <View style={styles.cardHeader}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name="grid-outline" size={16} color={colors.accent.purple} />
+          <Text style={styles.cardTitle}>30-DAY SPENDING HEATMAP</Text>
         </View>
+        <Text style={styles.summarySubText}>
+          {heatmapData.zeroDays} Zero Spend Days 🟢
+        </Text>
       </View>
 
+      {/* 30 Blocks Grid */}
       <View style={styles.grid}>
-        {data.map((day, i) => (
-          <View key={i} style={[styles.cell, { backgroundColor: getColor(day.intensity) }]} />
-        ))}
+        {heatmapData.days.map((day, idx) => {
+          const isSelected = selectedDayIndex === idx;
+
+          let blockBg = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)';
+          let borderColor = 'transparent';
+
+          if (day.level === 'low') {
+            blockBg = 'rgba(16, 185, 129, 0.85)'; // Green
+          } else if (day.level === 'med') {
+            blockBg = 'rgba(245, 158, 11, 0.85)'; // Yellow
+          } else if (day.level === 'high') {
+            blockBg = 'rgba(239, 68, 68, 0.9)'; // Red
+          }
+
+          if (isSelected) {
+            borderColor = colors.text.primary;
+          }
+
+          return (
+            <TouchableOpacity
+              key={day.dateStr}
+              style={[
+                styles.block,
+                { backgroundColor: blockBg, borderColor },
+                isSelected && styles.blockSelected,
+              ]}
+              onPress={() => {
+                setSelectedDayIndex(idx);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              activeOpacity={0.85}
+            />
+          );
+        })}
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statItem}>
-          <Text style={styles.statNum}>{activeDays}</Text>
-          <Text style={styles.statDesc}>spending days</Text>
+      {/* Selected Day Info Badge */}
+      {activeDay ? (
+        <View style={styles.tooltipBox}>
+          <Text style={styles.tooltipDate}>{formatDate(activeDay.dateStr)}</Text>
+          <Text style={styles.tooltipAmount}>
+            {activeDay.amount > 0 ? formatCurrency(activeDay.amount, currencyCode) : 'No expenses logged'}
+          </Text>
         </View>
-        <View style={styles.statItem}>
-          <Text style={[styles.statNum, { color: colors.accent.green }]}>{noSpendDays}</Text>
-          <Text style={styles.statDesc}>no-spend days</Text>
+      ) : null}
+
+      {/* Legend Strip */}
+      <View style={styles.legendRow}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSquare, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }]} />
+          <Text style={styles.legendText}>$0</Text>
         </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statNum}>{data.length}</Text>
-          <Text style={styles.statDesc}>days tracked</Text>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSquare, { backgroundColor: 'rgba(16, 185, 129, 0.85)' }]} />
+          <Text style={styles.legendText}>Low</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSquare, { backgroundColor: 'rgba(245, 158, 11, 0.85)' }]} />
+          <Text style={styles.legendText}>Moderate</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendSquare, { backgroundColor: 'rgba(239, 68, 68, 0.9)' }]} />
+          <Text style={styles.legendText}>High</Text>
         </View>
       </View>
     </View>
@@ -70,71 +153,86 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({ data }) => {
 const getStyles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     card: {
-      marginHorizontal: 20,
-      marginBottom: 14,
-      padding: 18,
+      padding: 16,
       borderRadius: 22,
       backgroundColor: colors.glass.card,
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
+      gap: 12,
+      marginBottom: 16,
     },
-    headerRow: {
+    cardHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 14,
     },
-    title: {
+    cardTitle: {
       color: colors.text.tertiary,
       fontSize: 11,
-      fontWeight: '600',
+      fontWeight: '800',
       letterSpacing: 0.8,
     },
-    legendRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 3,
-    },
-    legendLabel: {
-      color: colors.text.muted,
-      fontSize: 9,
-      fontWeight: '500',
-    },
-    legendDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 2.5,
+    summarySubText: {
+      color: colors.accent.green,
+      fontSize: 11,
+      fontWeight: '700',
     },
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 4,
-      marginBottom: 14,
+      gap: 6,
+      justifyContent: 'center',
     },
-    cell: {
-      width: 14,
-      height: 14,
-      borderRadius: 3,
+    block: {
+      width: '12%',
+      aspectRatio: 1,
+      borderRadius: 8,
+      borderWidth: 1,
     },
-    statsRow: {
+    blockSelected: {
+      borderWidth: 2,
+    },
+    tooltipBox: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
-      paddingTop: 12,
-      borderTopWidth: 0.5,
-      borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-    },
-    statItem: {
+      justifyContent: 'space-between',
       alignItems: 'center',
+      padding: 10,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
     },
-    statNum: {
-      color: colors.accent.purple,
-      fontSize: 18,
+    tooltipDate: {
+      color: colors.text.secondary,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    tooltipAmount: {
+      color: colors.text.primary,
+      fontSize: 13,
       fontWeight: '800',
     },
-    statDesc: {
-      color: colors.text.muted,
+    legendRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      paddingTop: 6,
+      borderTopWidth: 0.5,
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    legendSquare: {
+      width: 10,
+      height: 10,
+      borderRadius: 3,
+    },
+    legendText: {
+      color: colors.text.secondary,
       fontSize: 10,
-      fontWeight: '500',
-      marginTop: 2,
+      fontWeight: '600',
     },
   });
