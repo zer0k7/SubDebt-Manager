@@ -207,7 +207,7 @@ export default function SettingsModal() {
     }
   };
 
-  const currentVersion = Constants.expoConfig?.version || '2.3.0';
+  const currentVersion = Constants.expoConfig?.version || '2.4.0';
 
   return (
     <SafeAreaView style={styles.container}>
