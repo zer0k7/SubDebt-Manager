@@ -2,7 +2,7 @@
   "expo": {
     "name": "SubDebt",
     "slug": "subdebt",
-    "version": "2.4.0",
+    "version": "2.5.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "subdebt",
@@ -18,10 +18,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.subdebt.app",
-      "buildNumber": "2.4.0"
+      "buildNumber": "2.5.0"
     },
     "android": {
-      "versionCode": 26,
+      "versionCode": 27,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0c0c14"

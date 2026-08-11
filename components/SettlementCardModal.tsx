@@ -49,14 +49,12 @@ export const SettlementCardModal: React.FC<SettlementCardModalProps> = ({
   const recordDate = isBorrowed ? item.takenDate : item.lentDate;
   const settleDate = isBorrowed ? item.paidDate : item.returnedDate;
 
-  // Theme variants
-  const gradientColors = isBorrowed
-    ? ['#0A2E1A', '#0E5C34', '#17A85A', '#1FD37C'] as const
-    : ['#0D1B3E', '#142B6B', '#1A4DB5', '#2E73F0'] as const;
+  // Theme variants: Professional White with Logo Accent Colors (#7C3AED)
+  const gradientColors = ['#FFFFFF', '#F8FAFC', '#F1F5F9'] as const;
 
-  const accentColor = isBorrowed ? '#1FD37C' : '#2E73F0';
-  const accentColorMid = isBorrowed ? '#17A85A' : '#1A4DB5';
-  const glowColor = isBorrowed ? 'rgba(31,211,124,0.35)' : 'rgba(46,115,240,0.35)';
+  const accentColor = '#7C3AED';
+  const accentColorMid = '#6D28D9';
+  const glowColor = 'rgba(124, 58, 237, 0.35)';
   const statusLabel = isBorrowed ? 'DEBT CLEARED' : 'FUNDS RETURNED';
   const statusIcon = isBorrowed ? 'checkmark-done-circle' : 'arrow-undo-circle';
   const initialsLetter = personName.charAt(0).toUpperCase();
@@ -103,25 +101,25 @@ export const SettlementCardModal: React.FC<SettlementCardModalProps> = ({
                 end={{ x: 0.9, y: 1 }}
                 style={styles.card}
               >
-                <View style={[styles.orb, styles.orbTopRight, { backgroundColor: accentColor, opacity: 0.12 }]} />
-                <View style={[styles.orb, styles.orbBottomLeft, { backgroundColor: accentColorMid, opacity: 0.10 }]} />
-                <View style={[styles.orbSmall, styles.orbSmallMid, { backgroundColor: accentColor, opacity: 0.08 }]} />
+                <View style={[styles.orb, styles.orbTopRight, { backgroundColor: accentColor, opacity: 0.08 }]} />
+                <View style={[styles.orb, styles.orbBottomLeft, { backgroundColor: accentColorMid, opacity: 0.06 }]} />
+                <View style={[styles.orbSmall, styles.orbSmallMid, { backgroundColor: accentColor, opacity: 0.05 }]} />
 
                 <LinearGradient
-                  colors={['transparent', 'rgba(255,255,255,0.04)', 'transparent']}
+                  colors={['transparent', 'rgba(124, 58, 237, 0.03)', 'transparent']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.shimmerStripe}
                 />
 
-                <View style={styles.topEdgeGlow} />
+                <View style={[styles.topEdgeGlow, { backgroundColor: 'rgba(124, 58, 237, 0.3)' }]} />
 
                 <View style={styles.headerRow}>
                   <View style={styles.brandPill}>
                     <Ionicons name="flash" size={10} color={accentColor} />
                     <Text style={[styles.brandPillText, { color: accentColor }]}>SUBDEBT</Text>
                   </View>
-                  <View style={[styles.statusChip, { borderColor: hexToRgba(accentColor, 0.4), backgroundColor: hexToRgba(accentColor, 0.12) }]}>
+                  <View style={[styles.statusChip, { borderColor: hexToRgba(accentColor, 0.3), backgroundColor: hexToRgba(accentColor, 0.08) }]}>
                     <View style={[styles.statusDot, { backgroundColor: accentColor }]} />
                     <Text style={[styles.statusChipText, { color: accentColor }]}>{statusLabel}</Text>
                   </View>
@@ -130,8 +128,8 @@ export const SettlementCardModal: React.FC<SettlementCardModalProps> = ({
                 <View style={styles.heroZone}>
                   <View style={[styles.glowRingOuter, { borderColor: hexToRgba(accentColor, 0.15) }]} />
                   <View style={[styles.glowRingMid, { borderColor: hexToRgba(accentColor, 0.25) }]} />
-                  <View style={[styles.iconCircle, { backgroundColor: hexToRgba(accentColor, 0.18), borderColor: hexToRgba(accentColor, 0.5) }]}>
-                    <Ionicons name={statusIcon as any} size={44} color="#FFF" />
+                  <View style={[styles.iconCircle, { backgroundColor: hexToRgba(accentColor, 0.1), borderColor: hexToRgba(accentColor, 0.35) }]}>
+                    <Ionicons name={statusIcon as any} size={44} color={accentColor} />
                   </View>
                 </View>
 
@@ -412,9 +410,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#FFF',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.2,
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
         shadowRadius: 12,
       },
     }),
@@ -422,7 +420,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
 
   // ── Amount ──
   amountLabel: {
-    color: 'rgba(255,255,255,0.5)',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 2,
@@ -430,7 +428,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: 4,
   },
   amountValue: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 42,
     fontWeight: '900',
     letterSpacing: -1.5,
@@ -438,9 +436,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: 20,
     ...Platform.select({
       ios: {
-        shadowColor: '#FFF',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.15,
+        shadowColor: '#7C3AED',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
         shadowRadius: 8,
       },
     }),
@@ -471,13 +469,13 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   },
   personMeta: { flex: 1 },
   personNameText: {
-    color: '#FFF',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: -0.3,
   },
   personRole: {
-    color: 'rgba(255,255,255,0.55)',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '500',
     marginTop: 2,
@@ -522,14 +520,14 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   tearLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(0,0,0,0.08)',
   },
   tearLineFill: { flex: 1 },
   tearDot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(0,0,0,0.12)',
     marginHorizontal: 3,
   },
 
@@ -537,11 +535,11 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   detailsGrid: {
     flexDirection: 'row',
     marginBottom: 16,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(0,0,0,0.03)',
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.06)',
   },
   detailCell: {
     flex: 1,
@@ -552,10 +550,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   detailCellBordered: {
     borderLeftWidth: 0.5,
     borderRightWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(0,0,0,0.08)',
   },
   detailCellLabel: {
-    color: 'rgba(255,255,255,0.45)',
+    color: '#64748B',
     fontSize: 8,
     fontWeight: '700',
     letterSpacing: 1,
@@ -563,7 +561,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     textTransform: 'uppercase',
   },
   detailCellValue: {
-    color: '#FFF',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '700',
     textAlign: 'center',
@@ -576,7 +574,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 16,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+    backgroundColor: 'rgba(124, 58, 237, 0.04)',
   },
   notesRow: {
     flexDirection: 'row',
@@ -587,10 +585,10 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 0.5,
-    borderTopColor: 'rgba(255,255,255,0.1)',
+    borderTopColor: 'rgba(124, 58, 237, 0.1)',
   },
   notesRowLabel: {
-    color: 'rgba(255,255,255,0.45)',
+    color: '#64748B',
     fontSize: 8,
     fontWeight: '800',
     letterSpacing: 1,
@@ -598,7 +596,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 52,
   },
   notesRowValue: {
-    color: 'rgba(255,255,255,0.85)',
+    color: '#1E293B',
     fontSize: 12,
     fontWeight: '600',
     flex: 1,
@@ -611,9 +609,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginLeft: -20,
     marginRight: -20,
     marginTop: 4,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(124, 58, 237, 0.04)',
     borderTopWidth: 0.5,
-    borderTopColor: 'rgba(255,255,255,0.08)',
+    borderTopColor: 'rgba(0,0,0,0.06)',
     paddingHorizontal: 20,
     paddingVertical: 14,
   },
@@ -630,7 +628,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 3,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: '#FFF',
+    backgroundColor: '#7C3AED',
   },
   bottomBrandRow: {
     flexDirection: 'row',
@@ -651,13 +649,13 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
   },
   bottomBrandName: {
-    color: 'rgba(255,255,255,0.85)',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.3,
   },
   bottomBrandSub: {
-    color: 'rgba(255,255,255,0.4)',
+    color: '#64748B',
     fontSize: 9,
     fontWeight: '600',
     letterSpacing: 0.5,
@@ -670,9 +668,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(124, 58, 237, 0.08)',
     borderWidth: 0.5,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(124, 58, 237, 0.2)',
   },
   verifiedText: {
     fontSize: 8,

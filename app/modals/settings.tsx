@@ -24,6 +24,7 @@ import { useSettings } from '../../context/SettingsContext';
 import { useDailySpending } from '../../hooks/useDailySpending';
 import { storage } from '../../storage/mmkv';
 import { STORAGE_KEYS } from '../../storage/keys';
+import { useAuthLock } from '../../context/AuthLockContext';
 import { checkForUpdate, UpdateInfo } from '../../utils/updateChecker';
 import { exportAllData } from '../../utils/exportData';
 import { exportSpendingCSV } from '../../utils/backupRestore';
@@ -43,6 +44,7 @@ export default function SettingsModal() {
     cardDensityMode, setCardDensityMode,
   } = useSettings();
 
+  const { enableLock, disableLock, removePin } = useAuthLock();
   const { currency, setCurrency: setSelectedCurrency } = useCurrency();
   const { budget, setBudget, setCategoryLimit } = useBudget();
   const { entries: spendingEntries } = useDailySpending();
@@ -117,10 +119,15 @@ export default function SettingsModal() {
   const handleToggleBiometrics = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const newVal = !biometricEnabled;
-    const success = await toggleBiometricAuth(newVal);
-    if (success) {
-      setBiometricEnabled(newVal);
-      await storage.set(STORAGE_KEYS.IS_BIOMETRIC_AUTH_ENABLED, newVal ? 'true' : 'false');
+    if (newVal) {
+      const success = await toggleBiometricAuth(true);
+      await enableLock(pinCode || undefined);
+      setBiometricEnabled(true);
+    } else {
+      await disableLock();
+      setBiometricEnabled(false);
+      setPinCode('');
+      setShowPinInput(false);
     }
   };
 
@@ -129,10 +136,19 @@ export default function SettingsModal() {
       Alert.alert('Invalid PIN', 'Please enter a 4-digit numeric PIN code.');
       return;
     }
-    await storage.set('security_pin_code', pinCode);
+    await enableLock(pinCode);
+    setBiometricEnabled(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowPinInput(false);
-    Alert.alert('PIN Saved', 'Your 4-digit security PIN has been updated.');
+    Alert.alert('PIN Saved', 'Your 4-digit security PIN has been updated and App Lock is enabled.');
+  };
+
+  const handleRemovePin = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await removePin();
+    setPinCode('');
+    setShowPinInput(false);
+    Alert.alert('PIN Removed', 'Your 4-digit security PIN code has been removed.');
   };
 
   const handleToggleReminders = async () => {
@@ -260,8 +276,11 @@ export default function SettingsModal() {
                   key={m}
                   style={[styles.segBtn, mode === m && styles.segBtnActive]}
                   onPress={() => { setMode(m); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  activeOpacity={0.8}
                 >
-                  <Text style={[styles.segBtnText, mode === m && styles.segBtnTextActive]}>{m.toUpperCase()}</Text>
+                  <Text style={[styles.segBtnText, mode === m && styles.segBtnTextActive]}>
+                    {m === 'dark' ? 'Dark' : 'Light'}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -279,6 +298,7 @@ export default function SettingsModal() {
                   key={d}
                   style={[styles.segBtn, cardDensityMode === d && styles.segBtnActive]}
                   onPress={() => { setCardDensityMode(d); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  activeOpacity={0.8}
                 >
                   <Text style={[styles.segBtnText, cardDensityMode === d && styles.segBtnTextActive]}>
                     {d === 'comfortable' ? 'Comfort' : 'Compact'}
@@ -300,6 +320,7 @@ export default function SettingsModal() {
                   key={f}
                   style={[styles.segBtn, numberFormat === f && styles.segBtnActive]}
                   onPress={() => { setNumberFormat(f); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  activeOpacity={0.8}
                 >
                   <Text style={[styles.segBtnText, numberFormat === f && styles.segBtnTextActive]}>
                     {f === 'standard' ? 'Std' : f === 'european' ? 'Euro' : 'Space'}
@@ -321,9 +342,10 @@ export default function SettingsModal() {
                   key={w}
                   style={[styles.segBtn, weekStartDay === w && styles.segBtnActive]}
                   onPress={() => { setWeekStartDay(w); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                  activeOpacity={0.8}
                 >
                   <Text style={[styles.segBtnText, weekStartDay === w && styles.segBtnTextActive]}>
-                    {w.slice(0, 3).toUpperCase()}
+                    {w === 'monday' ? 'Mon' : w === 'sunday' ? 'Sun' : 'Sat'}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -376,8 +398,13 @@ export default function SettingsModal() {
                   placeholderTextColor={colors.text.muted}
                 />
                 <TouchableOpacity style={styles.savePinBtn} onPress={handleSavePin} activeOpacity={0.8}>
-                  <Text style={styles.savePinBtnText}>Save PIN</Text>
+                  <Text style={styles.savePinBtnText}>Save</Text>
                 </TouchableOpacity>
+                {Boolean(pinCode) && (
+                  <TouchableOpacity style={styles.removePinBtn} onPress={handleRemovePin} activeOpacity={0.8}>
+                    <Text style={styles.removePinBtnText}>Remove</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
@@ -619,26 +646,33 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     segmentedRow: {
       flexDirection: 'row',
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
+      alignItems: 'center',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
       borderRadius: 10,
       padding: 2,
       gap: 2,
+      height: 36,
     },
     segBtn: {
+      height: 32,
       paddingHorizontal: 10,
-      paddingVertical: 5,
+      minWidth: 48,
       borderRadius: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     segBtnActive: {
       backgroundColor: colors.accent.purple,
     },
     segBtnText: {
       color: colors.text.secondary,
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: '700',
+      textAlign: 'center',
     },
     segBtnTextActive: {
       color: '#FFFFFF',
+      fontWeight: '800',
     },
     pinFormBox: {
       padding: 12,
@@ -661,7 +695,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       textAlign: 'center',
     },
     savePinBtn: {
-      paddingHorizontal: 14,
+      paddingHorizontal: 12,
       height: 40,
       borderRadius: 10,
       backgroundColor: colors.accent.purple,
@@ -669,6 +703,17 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'center',
     },
     savePinBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+    removePinBtn: {
+      paddingHorizontal: 12,
+      height: 40,
+      borderRadius: 10,
+      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+      borderWidth: 1,
+      borderColor: 'rgba(239, 68, 68, 0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    removePinBtnText: { color: colors.accent.red, fontSize: 12, fontWeight: '700' },
     budgetInputWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     budgetTextInput: {
       width: 80,

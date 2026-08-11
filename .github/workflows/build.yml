@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build:
-    name: Build Android APKs & Publish Release
+    name: Build ARM64 Android APK & Publish Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -52,7 +52,7 @@ jobs:
       - name: Prebuild Expo Android
         run: npx expo prebuild --platform android --clean
 
-      - name: Configure Proguard Rules & ABI Splits
+      - name: Configure Proguard Rules & ARM64 ABI
         run: |
           GRADLE_FILE="android/app/build.gradle"
           PROGUARD_FILE="android/app/proguard-rules.pro"
@@ -76,17 +76,17 @@ jobs:
                   abi {
                       enable true
                       reset()
-                      include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
-                      universalApk true
+                      include "arm64-v8a"
+                      universalApk false
                   }
               }
           }
           GRADLE_PATCH
 
-      - name: Build Release APKs & AAB
+      - name: Build Release ARM64 APK
         run: |
           cd android
-          ./gradlew assembleRelease bundleRelease --no-daemon \
+          ./gradlew assembleRelease --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
             -Dorg.gradle.workers.max=2 \
             -Dorg.gradle.parallel=false
@@ -103,11 +103,6 @@ jobs:
               echo "Collected: release-artifacts/$new_name"
             fi
           done
-
-          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
-            cp android/app/build/outputs/bundle/release/app-release.aab release-artifacts/SubDebt-app-release.aab
-            echo "Collected: release-artifacts/SubDebt-app-release.aab"
-          fi
 
       - name: Verify Build Artifacts
         run: |

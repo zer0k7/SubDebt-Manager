@@ -11,6 +11,7 @@ interface AuthLockContextType {
   unlockApp: () => void;
   enableLock: (pin?: string) => void;
   disableLock: () => void;
+  removePin: () => void;
 }
 
 const AuthLockContext = createContext<AuthLockContextType | undefined>(undefined);
@@ -25,12 +26,14 @@ export const AuthLockProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const isBio = await storage.getString(STORAGE_KEYS.IS_BIOMETRIC_AUTH_ENABLED);
       const pin = await storage.getString('security_pin_code');
 
-      const enabled = isBio === 'true' || Boolean(pin);
+      const enabled = isBio === 'true';
       setIsLockEnabled(enabled);
       setSecurityPin(pin || null);
 
       if (enabled) {
         setIsLocked(true);
+      } else {
+        setIsLocked(false);
       }
     } catch {}
   }, []);
@@ -69,6 +72,11 @@ export const AuthLockProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setIsLocked(false);
   }, []);
 
+  const removePin = useCallback(async () => {
+    await storage.delete('security_pin_code');
+    setSecurityPin(null);
+  }, []);
+
   return (
     <AuthLockContext.Provider
       value={{
@@ -78,6 +86,7 @@ export const AuthLockProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         unlockApp,
         enableLock,
         disableLock,
+        removePin,
       }}
     >
       {children}

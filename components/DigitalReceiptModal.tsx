@@ -133,18 +133,21 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
                 <Text style={styles.detailValMonospace}>{receiptId}</Text>
               </View>
 
-              <View style={styles.detailRow}>
+              <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
                 <Text style={styles.detailLabel}>Verification</Text>
                 <Text style={[styles.detailVal, { color: colors.accent.green }]}>100% Offline Verified</Text>
               </View>
-
-              {notes ? (
-                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                  <Text style={styles.detailLabel}>Notes</Text>
-                  <Text style={[styles.detailVal, { fontStyle: 'italic' }]}>{notes}</Text>
-                </View>
-              ) : null}
             </View>
+
+            {notes ? (
+              <View style={styles.notesContainer}>
+                <View style={styles.notesHeaderRow}>
+                  <Ionicons name="document-text-outline" size={14} color={isDark ? 'rgba(255, 255, 255, 0.6)' : '#64748B'} />
+                  <Text style={styles.notesHeading}>NOTES & REMARKS</Text>
+                </View>
+                <Text style={styles.notesContent}>{notes}</Text>
+              </View>
+            ) : null}
 
             <View style={styles.footerNote}>
               <Ionicons name="shield-checkmark" size={14} color={colors.accent.purple} />
@@ -290,6 +293,32 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontSize: 12,
       fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
       fontWeight: '700',
+    },
+    notesContainer: {
+      padding: 12,
+      borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+      gap: 6,
+    },
+    notesHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    notesHeading: {
+      color: isDark ? 'rgba(255, 255, 255, 0.6)' : '#64748B',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+    notesContent: {
+      color: isDark ? '#F1F5F9' : '#1E293B',
+      fontSize: 12,
+      fontWeight: '500',
+      lineHeight: 18,
+      fontStyle: 'italic',
     },
     footerNote: {
       flexDirection: 'row',

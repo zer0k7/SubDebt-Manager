@@ -1,76 +1,62 @@
-# v2.4.0 — Security Vault & Executive UI
+# v2.5.0 — Professional Settlement Cards, Heatmap Grid & Security Fixes
 
-**Release Date:** August 6, 2026
+**Release Date:** August 11, 2026
 
 ---
 
 ## Highlights
 
-This release introduces app-wide biometric and PIN security, a 30-day spending activity heatmap, and a complete redesign of the Settings and Home screens into clean, executive-grade interfaces.
+This release introduces professional white settlement cards with purple brand logo accents, a completely redesigned 7-column 30-day spending heatmap, enhanced note formatting on transaction receipts, uniform settings controls, and improved CI release packaging for ARM64 Android devices.
 
 ---
 
-## New Features
+## What's New & Fixed
 
-### Biometric & PIN Security Lock
-- Full-screen lock overlay with Face ID / Fingerprint hardware authentication.
-- 4-digit keypad PIN fallback with haptic feedback and error shake animation.
-- Automatic lock on app launch and background-to-foreground transitions.
-- Managed via `AuthLockContext` wrapping the entire app tree.
+### 🏷️ Professional Settlement Certificate Cards
+- Redesigned debt and credit settlement cards (`SettlementCardModal.tsx`) from dark green to a crisp **Professional White** certificate card with **SubDebt Logo Purple (`#7C3AED`)** brand accents.
+- High-contrast dark Slate typography for maximum legibility on exported share images.
 
-### 30-Day Spending Activity Heatmap
-- Visual activity grid rendered on the Spending tab.
-- Color-coded day blocks: green (low), yellow (moderate), red (high), muted (zero).
-- Tap any block to reveal exact date and amount.
+### 📅 Redesigned 7-Column 30-Day Spending Heatmap
+- Replaced the old layout with a structured 7-column calendar matrix featuring weekday headers (**Sun, Mon, Tue, Wed, Thu, Fri, Sat**).
+- Day of the month numbers (`1`, `2`, ..., `31`) rendered clearly on every cell with dynamic contrast colors.
+- Timezone-safe local date calculations to eliminate date offset shifts.
+- Interactive transaction inspector card showing date, total spend, and itemized transaction pills for any selected day.
 
-### Custom Category Manager
-- Create unlimited custom spending categories.
-- 35-icon palette and 12-color palette picker.
-- Categories persist via MMKV and override system defaults.
+### 📜 Enhanced Receipt Note Formatting
+- Upgraded transaction receipts (`DigitalReceiptModal.tsx`) to render notes inside a dedicated, full-width **Notes & Remarks** card container with document icons and multiline line wrapping.
+- Prevents text clipping or horizontal squashing when viewing or sharing receipts.
 
-### Full Financial Calendar Matrix
-- Interactive monthly calendar grid with event markers.
-- Subscription renewals, debt due dates, credit returns, and daily spending totals.
-- Tap any day to view the full agenda.
+### 🔒 Security Lock & PIN Removal Controls
+- Fixed App Lock toggle state evaluation in `AuthLockContext.tsx` so turning off lock completely deactivates the overlay.
+- Added a dedicated **Remove PIN** button in Settings (`settings.tsx`) allowing instant deletion and removal of security PIN codes.
 
----
+### ⚙️ Standardized Display & Regional Settings
+- Standardized all segmented toggle selectors (Theme Mode, Card Density, Number Formatting, Week Start Day) with uniform height (`36px`), button width (`48px`), and clean title-case labels.
+- Fixed bottom padding cutoff on the Home tab so all dashboard cards scroll smoothly above the floating navigation bar.
 
-## Redesigns
-
-### Executive Home Dashboard
-- Net Position hero card with `NET POSITIVE` / `NET LIABILITY` indicator.
-- Privacy mode toggle to mask all financial figures.
-- 4-metric Financial Pulse Matrix (budget usage, debt load, active subs, credit pending).
-- 1-tap quick action row and 10-tool Financial Utilities Hub.
-
-### Executive Settings Modal
-- Organized into 5 section cards: Display & Regional, Security & Privacy, Notifications, Budget & Categories, Data Vault & System.
-- Segmented controls for theme, density, number format, and week start day.
-- Inline PIN configuration form.
-- Direct navigation to Data Vault and Category Manager.
+### 🚀 Optimized Single ARM64 Build Workflow
+- Updated GitHub Actions release workflow (`build.yml`) to produce a single optimized ARM64 APK (`SubDebt-arm64-v8a.apk`) for faster build times and smaller download footprints.
 
 ---
 
-## Files Changed
+## Files Modified
 
 | Area | Files |
 |------|-------|
-| New Components | `SecurityLockOverlay.tsx`, `SpendingHeatmap.tsx` |
-| New Context | `AuthLockContext.tsx` |
-| New Hooks | `useCategoryManager.ts` |
-| New Modals | `manage-categories.tsx`, `tool-financial-calendar.tsx` |
-| Redesigned | `home.tsx`, `settings.tsx` |
-| Modified | `_layout.tsx`, `spending.tsx`, `categories.ts`, `keys.ts` |
+| Settlement Cards | `components/SettlementCardModal.tsx` |
+| Heatmap | `components/SpendingHeatmap.tsx` |
+| Receipts | `components/DigitalReceiptModal.tsx` |
+| Security & Context | `context/AuthLockContext.tsx` |
+| Settings & Home | `app/modals/settings.tsx`, `app/(tabs)/home.tsx` |
+| App Config & CI | `package.json`, `app.json`, `.github/workflows/build.yml` |
 
 ---
 
 ## Technical Notes
 
-- All features are 100% offline. No network dependency.
-- Security PIN stored locally via MMKV. Biometric auth via `expo-local-authentication`.
-- Custom categories dynamically override system defaults at runtime.
-- Zero TypeScript compilation errors (`tsc --noEmit` clean).
+- 100% offline functionality maintained.
+- All code clean with 0 TypeScript compilation errors (`tsc --noEmit`).
 
 ---
 
-**Full Changelog:** [`v2.3.0...v2.4.0`](https://github.com/zer0k7/SubDebt-Manager/compare/v2.3.0...v2.4.0)
+**Full Changelog:** [`v2.4.0...v2.5.0`](https://github.com/zer0k7/SubDebt-Manager/compare/v2.4.0...v2.5.0)
