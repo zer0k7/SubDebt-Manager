@@ -468,9 +468,9 @@ const getStyles = (colors: any, isDark: boolean) =>
     resultCard: {
       padding: 20,
       borderRadius: 24,
-      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.12)' : 'rgba(124, 58, 237, 0.06)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.06),
       borderWidth: 1,
-      borderColor: 'rgba(124, 58, 237, 0.25)',
+      borderColor: colors.accent.alpha(0.25),
       gap: 16,
     },
     emiHighlightBox: {
@@ -478,7 +478,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'center',
       paddingVertical: 12,
       borderBottomWidth: 1,
-      borderBottomColor: 'rgba(124, 58, 237, 0.18)',
+      borderBottomColor: colors.accent.alpha(0.18),
     },
     emiLabel: {
       color: colors.accent.purple,

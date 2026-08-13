@@ -216,7 +216,7 @@ const getStyles = (colors: any) => StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.buttonSecondary },
   chipSmall: { paddingHorizontal: 10, paddingVertical: 6 },
   chipActive: { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79,195,247,0.15)', borderColor: colors.accent.alpha ? colors.accent.alpha(0.4) : 'rgba(79,195,247,0.4)' },
-  chipCatActive: { backgroundColor: 'rgba(124,58,237,0.15)', borderColor: 'rgba(124,58,237,0.4)' },
+  chipCatActive: { backgroundColor: colors.accent.alpha(0.15), borderColor: colors.accent.alpha(0.4) },
   chipText: { color: colors.text.muted, fontSize: 13, fontWeight: '500' },
   chipTextSmall: { fontSize: 12 },
   chipTextActive: { color: colors.accent.blue, fontWeight: '600' },

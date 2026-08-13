@@ -142,6 +142,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       },
       accent: {
         ...baseColors.accent,
+        purple: primaryHex,
         blue: primaryHex,
         blueDark: secondaryHex,
         primary: primaryHex,
@@ -149,6 +150,15 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         gradient: palette.gradient,
         glow: palette.glow,
         alpha: alphaFn,
+      },
+      shadows: {
+        ...baseColors.shadows,
+        purpleGlow: primaryHex,
+      },
+      orb: {
+        ...baseColors.orb,
+        violet: primaryHex,
+        indigo: secondaryHex,
       },
     };
   }, [isDark, accentColor]);

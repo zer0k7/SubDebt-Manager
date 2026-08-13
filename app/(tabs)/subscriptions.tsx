@@ -620,7 +620,7 @@ export default function SubscriptionsScreen() {
                 badgeText = 'Tomorrow';
               } else if (item.daysLeft <= 3) {
                 badgeColor = colors.accent.purple;
-                badgeBg = 'rgba(124, 58, 237, 0.12)';
+                badgeBg = colors.accent.alpha(0.12);
                 badgeText = `${item.daysLeft}d left`;
               } else if (item.daysLeft === 0) {
                 badgeColor = colors.accent.red;
@@ -992,8 +992,8 @@ const getStyles = (colors: any) => StyleSheet.create({
     paddingVertical: 7,
   },
   categoryToggleActive: {
-    backgroundColor: 'rgba(124,58,237,0.15)',
-    borderColor: 'rgba(124,58,237,0.4)',
+    backgroundColor: colors.accent.alpha(0.15),
+    borderColor: colors.accent.alpha(0.4),
   },
   // Section Headers
   sectionHeader: {

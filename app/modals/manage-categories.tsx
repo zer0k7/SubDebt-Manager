@@ -285,11 +285,11 @@ const getStyles = (colors: any, isDark: boolean) =>
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.15)' : 'rgba(124, 58, 237, 0.08)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
-      borderColor: 'rgba(124, 58, 237, 0.25)',
+      borderColor: colors.accent.alpha(0.25),
     },
     headerTitle: {
       color: colors.text.primary,
@@ -301,9 +301,9 @@ const getStyles = (colors: any, isDark: boolean) =>
     addCard: {
       padding: 18,
       borderRadius: 22,
-      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.1)' : 'rgba(124, 58, 237, 0.04)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.1 : 0.04),
       borderWidth: 1,
-      borderColor: 'rgba(124, 58, 237, 0.25)',
+      borderColor: colors.accent.alpha(0.25),
       gap: 12,
     },
     listCard: {
@@ -333,7 +333,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 10,
-      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.15)' : 'rgba(124, 58, 237, 0.08)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
     },
     quickAddPillText: {
       color: colors.accent.purple,
@@ -450,7 +450,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     catRightWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     badgePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
     badgeSystem: { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' },
-    badgeCustom: { backgroundColor: 'rgba(124, 58, 237, 0.15)' },
+    badgeCustom: { backgroundColor: colors.accent.alpha(0.15) },
     badgeText: { fontSize: 10, fontWeight: '700' },
     badgeSystemText: { color: colors.text.secondary },
     badgeCustomText: { color: colors.accent.purple },

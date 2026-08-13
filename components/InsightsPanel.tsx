@@ -165,7 +165,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       width: 22,
       height: 22,
       borderRadius: 7,
-      backgroundColor: isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.08)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.08),
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 10,

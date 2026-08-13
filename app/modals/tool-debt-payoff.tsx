@@ -246,7 +246,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: colors.glass.cardBorder,
   },
   presetChipActive: {
-    backgroundColor: isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.1)',
+    backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.1),
     borderColor: colors.accent.purple,
   },
   presetText: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },

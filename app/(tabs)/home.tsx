@@ -235,7 +235,7 @@ export default function DashboardScreen() {
             }}
             activeOpacity={0.8}
           >
-            <View style={[styles.actionIconBox, { backgroundColor: 'rgba(124, 58, 237, 0.15)' }]}>
+            <View style={[styles.actionIconBox, { backgroundColor: colors.accent.alpha(0.15) }]}>
               <Ionicons name="add-circle-outline" size={22} color={colors.accent.purple} />
             </View>
             <Text style={styles.actionText}>+ Expense</Text>
@@ -325,13 +325,13 @@ export default function DashboardScreen() {
 
           {/* Subscriptions */}
           <TouchableOpacity
-            style={[styles.matrixCard, { borderColor: 'rgba(124, 58, 237, 0.25)' }]}
+            style={[styles.matrixCard, { borderColor: colors.accent.alpha(0.25) }]}
             onPress={() => router.push('/(tabs)/subscriptions')}
             activeOpacity={0.8}
           >
             <View style={styles.matrixCardTop}>
               <Ionicons name="refresh-circle-outline" size={20} color={colors.accent.purple} />
-              <View style={[styles.pillBadge, { backgroundColor: 'rgba(124, 58, 237, 0.15)' }]}>
+              <View style={[styles.pillBadge, { backgroundColor: colors.accent.alpha(0.15) }]}>
                 <Text style={{ color: colors.accent.purple, fontSize: 10, fontWeight: '700' }}>
                   {subscriptions.filter((s) => s.isActive).length} Active
                 </Text>

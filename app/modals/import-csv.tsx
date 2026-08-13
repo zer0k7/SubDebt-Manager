@@ -222,9 +222,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingVertical: 16,
       paddingHorizontal: 20,
       borderRadius: 16,
-      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.12)' : 'rgba(124, 58, 237, 0.06)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.06),
       borderWidth: 1,
-      borderColor: 'rgba(124, 58, 237, 0.25)',
+      borderColor: colors.accent.alpha(0.25),
       marginTop: 4,
     },
     uploadBtnText: {

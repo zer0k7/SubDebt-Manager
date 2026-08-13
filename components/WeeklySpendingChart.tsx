@@ -167,13 +167,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 12,
-      backgroundColor: isDark
-        ? 'rgba(124,58,237,0.12)'
-        : 'rgba(124,58,237,0.08)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.08),
       borderWidth: 0.5,
-      borderColor: isDark
-        ? 'rgba(124,58,237,0.25)'
-        : 'rgba(124,58,237,0.2)',
+      borderColor: colors.accent.alpha(isDark ? 0.25 : 0.2),
     },
     badgeText: {
       color: colors.accent.purple,

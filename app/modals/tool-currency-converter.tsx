@@ -17,7 +17,7 @@ export default function ToolCurrencyConverterModal() {
 
   const { currencyCode, convertAmount } = useCurrency();
 
-  const [fromCode, setFromCode] = useState<string>('USD');
+  const [fromCode, setFromCode] = useState<string>('INR');
   const [toCode, setToCode] = useState<string>(currencyCode || 'INR');
   const [amountStr, setAmountStr] = useState<string>('100');
 

@@ -136,7 +136,7 @@ export async function rescheduleDailyReminder() {
   }
 
   // Compute live financial data for meaningful notification content
-  let currencyCode = 'USD';
+  let currencyCode = 'INR';
   try {
     const savedCurrency = await storage.getString(STORAGE_KEYS.CURRENCY);
     if (savedCurrency) currencyCode = savedCurrency;
@@ -329,7 +329,7 @@ export async function rescheduleDailyReminder() {
 
 export async function checkAndTriggerBudgetAlerts() {
   try {
-    let currencyCode = 'USD';
+    let currencyCode = 'INR';
     const savedCurrency = await storage.getString(STORAGE_KEYS.CURRENCY);
     if (savedCurrency) {
       currencyCode = savedCurrency;

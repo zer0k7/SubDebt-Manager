@@ -311,7 +311,7 @@ export default function FinancialCalendarModal() {
 
           {/* 2. Subscriptions Due */}
           {activeDayEvents.subsDue.map((s) => (
-            <View key={s.id} style={[styles.agendaBox, { borderColor: 'rgba(124, 58, 237, 0.3)' }]}>
+            <View key={s.id} style={[styles.agendaBox, { borderColor: colors.accent.alpha(0.3) }]}>
               <View style={styles.agendaHeader}>
                 <Ionicons name="refresh-circle-outline" size={18} color={colors.accent.purple} />
                 <Text style={styles.agendaTitle}>Subscription Renewal: {s.name}</Text>

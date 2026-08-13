@@ -1,4 +1,4 @@
-import { useTheme } from '../../hooks/useTheme';
+import { useTheme, ACCENT_PALETTE, AccentColor } from '../../hooks/useTheme';
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
@@ -10,6 +10,7 @@ import {
   TextInput,
   Switch,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,7 @@ import { storage } from '../../storage/mmkv';
 import { STORAGE_KEYS } from '../../storage/keys';
 import { useAuthLock } from '../../context/AuthLockContext';
 import { checkForUpdate, UpdateInfo } from '../../utils/updateChecker';
+import { UpdatePrompt } from '../../components/UpdatePrompt';
 import { exportAllData } from '../../utils/exportData';
 import { exportSpendingCSV } from '../../utils/backupRestore';
 import { SPENDING_CATEGORIES, getCategoryIcon } from '../../constants/categories';
@@ -33,7 +35,7 @@ import { hasBiometrics, toggleBiometricAuth } from '../../utils/authHelpers';
 import Constants from 'expo-constants';
 
 export default function SettingsModal() {
-  const { colors, isDark, mode, setMode } = useTheme();
+  const { colors, isDark, mode, setMode, accentColor, setAccentColor } = useTheme();
   const styles = getStyles(colors, isDark);
   const router = useRouter();
 
@@ -65,6 +67,8 @@ export default function SettingsModal() {
 
   const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
 
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupConfig, setPopupConfig] = useState<any>({});
@@ -179,15 +183,8 @@ export default function SettingsModal() {
     try {
       const info = await checkForUpdate(true);
       if (info && info.available) {
-        showPopup({
-          title: 'Update Available',
-          message: `Version ${info.latestVersion} is available. Download to access new features.`,
-          icon: 'download-outline',
-          iconColor: colors.accent.blue,
-          confirmText: 'Download',
-          cancelText: 'Later',
-          onConfirm: () => closePopup(),
-        });
+        setUpdateInfo(info);
+        setShowUpdatePrompt(true);
       } else {
         showPopup({
           title: 'Up to Date',
@@ -283,6 +280,36 @@ export default function SettingsModal() {
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
+          </View>
+
+          {/* Accent Color */}
+          <View style={styles.settingRow}>
+            <View style={styles.settingMeta}>
+              <Text style={styles.settingTitle}>Accent Color</Text>
+              <Text style={styles.settingSub}>Customize app-wide highlight color</Text>
+            </View>
+            <View style={styles.accentRow}>
+              {(['blue', 'green', 'purple', 'amber', 'red'] as AccentColor[]).map((c) => {
+                const isSelected = accentColor === c;
+                const swatchColor = isDark ? ACCENT_PALETTE[c].dark.primary : ACCENT_PALETTE[c].light.primary;
+                return (
+                  <TouchableOpacity
+                    key={c}
+                    onPress={() => { setAccentColor(c); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                    activeOpacity={0.8}
+                    style={[
+                      styles.accentSwatch,
+                      { backgroundColor: swatchColor },
+                      isSelected && styles.accentSwatchSelected,
+                    ]}
+                  >
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={14} color="#FFFFFF" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
@@ -500,22 +527,57 @@ export default function SettingsModal() {
           </TouchableOpacity>
 
           {/* Export JSON Backup Direct */}
-          <TouchableOpacity style={styles.settingRow} onPress={handleExportData} activeOpacity={0.8} disabled={exporting}>
+          <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={handleExportData} activeOpacity={0.8} disabled={exporting}>
             <View style={styles.settingMeta}>
               <Text style={styles.settingTitle}>Export Ledger JSON File</Text>
               <Text style={styles.settingSub}>Generate encrypted backup file</Text>
             </View>
             {exporting ? <ActivityIndicator size="small" color={colors.accent.purple} /> : <Ionicons name="share-outline" size={18} color={colors.text.muted} />}
           </TouchableOpacity>
+        </View>
 
-          {/* Check App Updates */}
-          <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={handleCheckUpdate} activeOpacity={0.8} disabled={checkingUpdate}>
-            <View style={styles.settingMeta}>
-              <Text style={styles.settingTitle}>Check GitHub App Updates</Text>
-              <Text style={styles.settingSub}>Version {currentVersion} installed</Text>
-            </View>
-            {checkingUpdate ? <ActivityIndicator size="small" color={colors.accent.purple} /> : <Ionicons name="refresh-outline" size={18} color={colors.text.muted} />}
+        {/* ABOUT FOOTER */}
+        <View style={styles.aboutFooter}>
+          <Image
+            source={require('../../assets/icon.png')}
+            style={styles.aboutLogo}
+          />
+          <Text style={styles.aboutAppName}>SubDebt Manager</Text>
+          <Text style={styles.aboutVersion}>v{currentVersion}</Text>
+
+          <View style={styles.aboutBadgeRow}>
+            {[
+              { icon: 'shield-checkmark', label: '100% Offline' },
+              { icon: 'lock-closed', label: 'On-Device Vault' },
+              { icon: 'logo-github', label: 'Open Source' },
+              { icon: 'ban', label: 'Zero Ads' },
+            ].map((item) => (
+              <View key={item.label} style={styles.aboutBadge}>
+                <Ionicons name={item.icon as any} size={12} color={colors.accent.purple} />
+                <Text style={styles.aboutBadgeText}>{item.label}</Text>
+              </View>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.aboutCheckUpdateBtn}
+            onPress={handleCheckUpdate}
+            activeOpacity={0.8}
+            disabled={checkingUpdate}
+          >
+            {checkingUpdate ? (
+              <ActivityIndicator size="small" color={colors.accent.purple} />
+            ) : (
+              <>
+                <Ionicons name="refresh-outline" size={16} color={colors.accent.purple} />
+                <Text style={styles.aboutCheckUpdateText}>Check for Updates</Text>
+              </>
+            )}
           </TouchableOpacity>
+
+          <Text style={styles.aboutMadeWith}>
+            Made with ❤️ for financial freedom
+          </Text>
         </View>
       </ScrollView>
 
@@ -542,6 +604,14 @@ export default function SettingsModal() {
         onConfirm={popupConfig.onConfirm || closePopup}
         onCancel={popupConfig.onCancel || closePopup}
       />
+
+      {updateInfo && (
+        <UpdatePrompt
+          visible={showUpdatePrompt}
+          updateInfo={updateInfo}
+          onDismiss={() => setShowUpdatePrompt(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -580,9 +650,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       gap: 6,
       paddingVertical: 8,
       borderRadius: 12,
-      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.12)' : 'rgba(124, 58, 237, 0.06)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.06),
       borderWidth: 0.5,
-      borderColor: 'rgba(124, 58, 237, 0.2)',
+      borderColor: colors.accent.alpha(0.2),
     },
     topInfoText: {
       color: colors.accent.purple,
@@ -733,5 +803,93 @@ const getStyles = (colors: any, isDark: boolean) =>
       backgroundColor: colors.accent.purple,
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    accentRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    accentSwatch: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: 'transparent',
+    },
+    accentSwatchSelected: {
+      borderColor: '#FFFFFF',
+      transform: [{ scale: 1.15 }],
+    },
+    aboutFooter: {
+      alignItems: 'center',
+      paddingVertical: 28,
+      paddingHorizontal: 20,
+      gap: 6,
+    },
+    aboutLogo: {
+      width: 56,
+      height: 56,
+      borderRadius: 16,
+      marginBottom: 8,
+    },
+    aboutAppName: {
+      color: colors.text.primary,
+      fontSize: 17,
+      fontWeight: '800',
+      letterSpacing: -0.3,
+    },
+    aboutVersion: {
+      color: colors.text.tertiary,
+      fontSize: 12,
+      fontWeight: '600',
+      marginBottom: 12,
+    },
+    aboutBadgeRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 6,
+      marginBottom: 16,
+    },
+    aboutBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: colors.accent.alpha(isDark ? 0.1 : 0.06),
+      borderWidth: 0.5,
+      borderColor: colors.accent.alpha(isDark ? 0.2 : 0.12),
+    },
+    aboutBadgeText: {
+      color: colors.text.secondary,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    aboutCheckUpdateBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.08),
+      borderWidth: 0.5,
+      borderColor: colors.accent.alpha(isDark ? 0.25 : 0.15),
+      marginBottom: 12,
+    },
+    aboutCheckUpdateText: {
+      color: colors.accent.purple,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    aboutMadeWith: {
+      color: colors.text.muted,
+      fontSize: 11,
+      fontWeight: '500',
     },
   });

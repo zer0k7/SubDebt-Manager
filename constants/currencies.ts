@@ -74,7 +74,7 @@ export const EXCHANGE_RATES: Record<string, number> = {
   RUB: 96.5,
 };
 
-export function convertCurrency(amount: number, fromCode: string = 'USD', toCode: string = 'USD'): number {
+export function convertCurrency(amount: number, fromCode: string = 'INR', toCode: string = 'INR'): number {
   if (!amount || isNaN(amount)) return 0;
   if (fromCode === toCode) return amount;
   

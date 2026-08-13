@@ -279,7 +279,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       width: 60,
       height: 60,
       borderRadius: 20,
-      backgroundColor: isDark ? 'rgba(124,58,237,0.12)' : 'rgba(124,58,237,0.08)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.08),
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 16,
@@ -305,9 +305,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
     },
     versionBadgeNew: {
-      backgroundColor: isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.1)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.1),
       borderWidth: 0.5,
-      borderColor: isDark ? 'rgba(124,58,237,0.35)' : 'rgba(124,58,237,0.25)',
+      borderColor: colors.accent.alpha(isDark ? 0.35 : 0.25),
     },
     versionLabel: {
       color: colors.text.secondary,

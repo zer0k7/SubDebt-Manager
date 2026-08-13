@@ -642,21 +642,15 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'center',
     },
     toggleBtnActive: {
-      backgroundColor: isDark
-        ? 'rgba(124,58,237,0.15)'
-        : 'rgba(124,58,237,0.1)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.1),
     },
     addButton: {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: isDark
-        ? 'rgba(124,58,237,0.12)'
-        : 'rgba(124,58,237,0.1)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.1),
       borderWidth: 0.5,
-      borderColor: isDark
-        ? 'rgba(124,58,237,0.3)'
-        : 'rgba(124,58,237,0.2)',
+      borderColor: colors.accent.alpha(isDark ? 0.3 : 0.2),
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -686,12 +680,8 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderColor: colors.glass.cardBorder,
     },
     timeFilterPillActive: {
-      backgroundColor: isDark
-        ? 'rgba(124,58,237,0.18)'
-        : 'rgba(124,58,237,0.12)',
-      borderColor: isDark
-        ? 'rgba(124,58,237,0.4)'
-        : 'rgba(124,58,237,0.35)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.18 : 0.12),
+      borderColor: colors.accent.alpha(isDark ? 0.4 : 0.35),
     },
     timeFilterText: {
       color: colors.text.muted,
@@ -773,9 +763,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'space-between',
     },
     statCardPrimary: {
-      borderColor: isDark
-        ? 'rgba(124,58,237,0.35)'
-        : 'rgba(124,58,237,0.25)',
+      borderColor: colors.accent.alpha(isDark ? 0.35 : 0.25),
     },
     statHeader: {
       flexDirection: 'row',
@@ -874,13 +862,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       marginBottom: 12,
       padding: 12,
       borderRadius: 14,
-      backgroundColor: isDark
-        ? 'rgba(124,58,237,0.08)'
-        : 'rgba(124,58,237,0.05)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.08 : 0.05),
       borderWidth: 0.5,
-      borderColor: isDark
-        ? 'rgba(124,58,237,0.2)'
-        : 'rgba(124,58,237,0.15)',
+      borderColor: colors.accent.alpha(isDark ? 0.2 : 0.15),
     },
     entriesQuickLabel: {
       color: colors.text.secondary,
@@ -920,13 +904,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       marginBottom: 8,
       paddingVertical: 12,
       borderRadius: 16,
-      backgroundColor: isDark
-        ? 'rgba(124,58,237,0.08)'
-        : 'rgba(124,58,237,0.06)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.08 : 0.06),
       borderWidth: 0.5,
-      borderColor: isDark
-        ? 'rgba(124,58,237,0.2)'
-        : 'rgba(124,58,237,0.15)',
+      borderColor: colors.accent.alpha(isDark ? 0.2 : 0.15),
     },
     viewAllText: {
       color: colors.accent.purple,

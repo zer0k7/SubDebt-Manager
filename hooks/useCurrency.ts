@@ -12,7 +12,12 @@ export const useCurrency = () => {
   const loadCurrency = useCallback(async () => {
     try {
       const saved = await storage.getString(STORAGE_KEYS.CURRENCY);
-      if (saved) setCurrencyCode(saved);
+      if (saved) {
+        setCurrencyCode(saved);
+      } else {
+        await storage.set(STORAGE_KEYS.CURRENCY, 'INR');
+        setCurrencyCode('INR');
+      }
     } catch {}
     setIsLoaded(true);
   }, []);
@@ -37,7 +42,7 @@ export const useCurrency = () => {
   }, []);
 
   const convertAmount = useCallback((amount: number, fromCode?: string, targetCode?: string) => {
-    const from = fromCode || 'USD';
+    const from = fromCode || 'INR';
     const to = targetCode || currencyCode;
     return convertCurrency(amount, from, to);
   }, [currencyCode]);

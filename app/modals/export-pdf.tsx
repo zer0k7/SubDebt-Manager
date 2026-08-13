@@ -434,8 +434,8 @@ const getStyles = (colors: any, isDark: boolean) =>
       gap: 10,
     },
     rangeCardActive: {
-      backgroundColor: isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.08)',
-      borderColor: isDark ? 'rgba(124,58,237,0.4)' : 'rgba(124,58,237,0.3)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
+      borderColor: colors.accent.alpha(isDark ? 0.4 : 0.3),
     },
     rangeIcon: {
       width: 22,
@@ -470,7 +470,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       width: 32,
       height: 32,
       borderRadius: 8,
-      backgroundColor: isDark ? 'rgba(124,58,237,0.15)' : 'rgba(124,58,237,0.08)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
       justifyContent: 'center',
       alignItems: 'center',
     },

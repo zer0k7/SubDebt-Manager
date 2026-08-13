@@ -26,11 +26,11 @@ export type ThemeColors = {
     red: string;
     purple: string;
     indigo: string;
-    primary?: string;
-    primaryDark?: string;
-    gradient?: readonly [string, string];
-    glow?: string;
-    alpha?: (opacity: number) => string;
+    primary: string;
+    primaryDark: string;
+    gradient: readonly [string, string];
+    glow: string;
+    alpha: (opacity: number) => string;
   };
   orb: {
     indigo: string;
@@ -60,6 +60,18 @@ export type ThemeColors = {
   };
 };
 
+function hexToRgba(hex: string, alpha: number): string {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) {
+    return `rgba(79, 195, 247, ${alpha})`;
+  }
+  let c = hex.substring(1);
+  if (c.length === 3) {
+    c = c.split('').map(x => x + x).join('');
+  }
+  const num = parseInt(c, 16);
+  return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+}
+
 export const darkColors: ThemeColors = {
   background: {
     primary: '#0a0a0f',
@@ -86,6 +98,11 @@ export const darkColors: ThemeColors = {
     red: '#EF5350',
     purple: '#7c3aed',
     indigo: '#3730a3',
+    primary: '#4FC3F7',
+    primaryDark: '#1976D2',
+    gradient: ['#4FC3F7', '#1976D2'],
+    glow: 'rgba(79, 195, 247, 0.4)',
+    alpha: (opacity: number) => hexToRgba('#4FC3F7', opacity),
   },
   orb: {
     indigo: '#3730a3',
@@ -135,6 +152,11 @@ export const lightColors: ThemeColors = {
     red: '#dc2626',
     purple: '#7c3aed',
     indigo: '#4f46e5',
+    primary: '#0284c7',
+    primaryDark: '#0369a1',
+    gradient: ['#0284c7', '#0369a1'],
+    glow: 'rgba(2, 132, 199, 0.3)',
+    alpha: (opacity: number) => hexToRgba('#0284c7', opacity),
   },
   orb: {
     indigo: '#e0e7ff',

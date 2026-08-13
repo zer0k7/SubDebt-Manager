@@ -1,41 +1,40 @@
-# v2.5.0 — Professional Settlement Cards, Heatmap Grid & Security Fixes
+# v2.6.0 — Full App-Wide Accent Color System, In-App Updater Integration & Indian Rupee (INR) Fixes
 
-**Release Date:** August 11, 2026
+**Release Date:** August 13, 2026
 
 ---
 
 ## Highlights
 
-This release introduces professional white settlement cards with purple brand logo accents, a completely redesigned 7-column 30-day spending heatmap, enhanced note formatting on transaction receipts, uniform settings controls, and improved CI release packaging for ARM64 Android devices.
+This release restores complete **Accent Color customization** across the entire application, integrates the native **In-App Updater** directly into the redesigned Settings About footer, fixes parameter fallbacks to standardize **Indian Rupee (INR - ₹)** formatting globally, and ensures 100% type-safe compilation.
 
 ---
 
 ## What's New & Fixed
 
-### 🏷️ Professional Settlement Certificate Cards
-- Redesigned debt and credit settlement cards (`SettlementCardModal.tsx`) from dark green to a crisp **Professional White** certificate card with **SubDebt Logo Purple (`#7C3AED`)** brand accents.
-- High-contrast dark Slate typography for maximum legibility on exported share images.
+### 🎨 App-Wide Accent Color System
+- Added back the **Accent Color Picker** in Settings under *Display & Regional Preferences* featuring 5 interactive color swatches: **Blue**, **Green**, **Purple**, **Amber**, and **Red**.
+- Updated `useTheme.tsx` so that changing the accent color dynamically overwrites `purple`, `blue`, `purpleGlow`, and orb gradient tokens.
+- Replaced 60+ hardcoded `rgba(124, 58, 237, ...)` color strings across 15+ screens, modals, and component files with dynamic `colors.accent.alpha(opacity)` calls.
+- Selection changes now instantly propagate across all buttons, active chips, chart badges, toggle switches, and focus borders everywhere in the app.
 
-### 📅 Redesigned 7-Column 30-Day Spending Heatmap
-- Replaced the old layout with a structured 7-column calendar matrix featuring weekday headers (**Sun, Mon, Tue, Wed, Thu, Fri, Sat**).
-- Day of the month numbers (`1`, `2`, ..., `31`) rendered clearly on every cell with dynamic contrast colors.
-- Timezone-safe local date calculations to eliminate date offset shifts.
-- Interactive transaction inspector card showing date, total spend, and itemized transaction pills for any selected day.
+### 🚀 Redesigned Settings Footer & In-App Updater
+- Added an **About Footer** centered at the bottom of Settings displaying:
+  - App Logo icon (`56x56px`) with smooth rounded corners.
+  - App Name (`SubDebt Manager`) & Version badge (`v2.6.0`).
+  - Core app status pills: **100% Offline**, **On-Device Vault**, **Open Source**, **Zero Ads**.
+  - Direct **Check for Updates** action button.
+- Tapping **Check for Updates** fetches the latest single-APK release from GitHub and seamlessly opens the native `UpdatePrompt` in-app installation modal (showing version comparison, changelog bullet points, download progress bar, and direct package installer launch).
 
-### 📜 Enhanced Receipt Note Formatting
-- Upgraded transaction receipts (`DigitalReceiptModal.tsx`) to render notes inside a dedicated, full-width **Notes & Remarks** card container with document icons and multiline line wrapping.
-- Prevents text clipping or horizontal squashing when viewing or sharing receipts.
+### 🇮🇳 Indian Rupee (INR - ₹) Currency Standard
+- Fixed parameter fallbacks in `useCurrency.ts` and `currencies.ts` where unassigned item currencies defaulted to `USD`, previously causing an unintended `86.5x` conversion multiplier on INR values.
+- Updated `useCurrency.ts` to automatically store `'INR'` into MMKV storage on initial app launch.
+- Updated scheduled push notifications in `notificationHelpers.ts` to default currency calculations and alert messages to **INR (₹)** instead of `$`.
+- Updated default tool states (e.g. `tool-currency-converter.tsx`) to start with `INR`.
 
-### 🔒 Security Lock & PIN Removal Controls
-- Fixed App Lock toggle state evaluation in `AuthLockContext.tsx` so turning off lock completely deactivates the overlay.
-- Added a dedicated **Remove PIN** button in Settings (`settings.tsx`) allowing instant deletion and removal of security PIN codes.
-
-### ⚙️ Standardized Display & Regional Settings
-- Standardized all segmented toggle selectors (Theme Mode, Card Density, Number Formatting, Week Start Day) with uniform height (`36px`), button width (`48px`), and clean title-case labels.
-- Fixed bottom padding cutoff on the Home tab so all dashboard cards scroll smoothly above the floating navigation bar.
-
-### 🚀 Optimized Single ARM64 Build Workflow
-- Updated GitHub Actions release workflow (`build.yml`) to produce a single optimized ARM64 APK (`SubDebt-arm64-v8a.apk`) for faster build times and smaller download footprints.
+### 🛡️ Type Safety & Build Hardening
+- Updated `ThemeColors` interface in `constants/colors.ts` so `alpha`, `primary`, `primaryDark`, `gradient`, and `glow` tokens are required properties with default initializers.
+- Confirmed zero TypeScript compilation errors (`npx tsc --noEmit` code 0).
 
 ---
 
@@ -43,20 +42,17 @@ This release introduces professional white settlement cards with purple brand lo
 
 | Area | Files |
 |------|-------|
-| Settlement Cards | `components/SettlementCardModal.tsx` |
-| Heatmap | `components/SpendingHeatmap.tsx` |
-| Receipts | `components/DigitalReceiptModal.tsx` |
-| Security & Context | `context/AuthLockContext.tsx` |
-| Settings & Home | `app/modals/settings.tsx`, `app/(tabs)/home.tsx` |
-| App Config & CI | `package.json`, `app.json`, `.github/workflows/build.yml` |
+| Settings & Footer | `app/modals/settings.tsx` |
+| Theme System & Colors | `hooks/useTheme.tsx`, `constants/colors.ts` |
+| Currency & Notifications | `hooks/useCurrency.ts`, `constants/currencies.ts`, `utils/notificationHelpers.ts`, `app/modals/tool-currency-converter.tsx` |
+| Main Tabs | `app/(tabs)/home.tsx`, `app/(tabs)/spending.tsx`, `app/(tabs)/subscriptions.tsx` |
+| Modals & Tools | `app/modals/add-subscription.tsx`, `app/modals/edit-subscription.tsx`, `app/modals/export-pdf.tsx`, `app/modals/import-csv.tsx`, `app/modals/manage-categories.tsx`, `app/modals/tool-debt-payoff.tsx`, `app/modals/tool-emi-calculator.tsx`, `app/modals/tool-financial-calendar.tsx` |
+| Components | `components/CategoryBreakdown.tsx`, `components/InsightsPanel.tsx`, `components/SecurityLockOverlay.tsx`, `components/SpendingEntryCard.tsx`, `components/UpdatePrompt.tsx`, `components/WeeklySpendingChart.tsx` |
+| Version Configuration | `package.json`, `app.json`, `RELEASE_NOTES.md` |
 
 ---
 
 ## Technical Notes
 
-- 100% offline functionality maintained.
+- 100% offline functionality & local vault security maintained.
 - All code clean with 0 TypeScript compilation errors (`tsc --noEmit`).
-
----
-
-**Full Changelog:** [`v2.4.0...v2.5.0`](https://github.com/zer0k7/SubDebt-Manager/compare/v2.4.0...v2.5.0)

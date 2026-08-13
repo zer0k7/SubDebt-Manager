@@ -259,9 +259,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 8,
-      backgroundColor: isDark
-        ? 'rgba(124,58,237,0.12)'
-        : 'rgba(124,58,237,0.08)',
+      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.08),
     },
     rangePillText: {
       color: colors.accent.purple,
