@@ -22,6 +22,7 @@ import { SettlementCardModal } from '../../components/SettlementCardModal';
 import { useDebts, Debt } from '../../hooks/useDebts';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
+import { FloatingTopHeader } from '../../components/FloatingTopHeader';
 
 const filterOptions = [
   { key: 'all', label: 'All Debts', icon: 'albums-outline' },
@@ -148,8 +149,8 @@ export default function DebtsScreen() {
       {/* ── Hero Summary Card ── */}
       <LinearGradient
         colors={isDark
-          ? ['rgba(255,183,77,0.18)', 'rgba(255,140,0,0.08)', 'transparent'] as const
-          : ['rgba(245,158,11,0.12)', 'rgba(251,191,36,0.06)', 'transparent'] as const
+          ? ['rgba(244,63,94,0.18)', 'rgba(225,29,72,0.08)', 'transparent'] as const
+          : ['rgba(244,63,94,0.12)', 'rgba(251,113,133,0.06)', 'transparent'] as const
         }
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -165,14 +166,14 @@ export default function DebtsScreen() {
               <Text style={styles.heroAmount}>{formatCurrency(totalPending, currencyCode)}</Text>
             </View>
             <View style={styles.heroIconCircle}>
-              <Ionicons name="wallet-outline" size={26} color={colors.accent.amber} />
+              <Ionicons name="wallet-outline" size={26} color={isDark ? '#FB7185' : '#E11D48'} />
             </View>
           </View>
 
           {/* Stats Row */}
           <View style={styles.heroStatsRow}>
             <View style={styles.heroStatItem}>
-              <View style={[styles.heroStatDot, { backgroundColor: colors.accent.amber }]} />
+              <View style={[styles.heroStatDot, { backgroundColor: isDark ? '#FB7185' : '#E11D48' }]} />
               <Text style={styles.heroStatLabel}>Pending</Text>
               <Text style={styles.heroStatValue}>{pendingCount}</Text>
             </View>
@@ -197,7 +198,7 @@ export default function DebtsScreen() {
         value={searchQuery}
         onChangeText={setSearchQuery}
         placeholder="Search by name, purpose..."
-        accentColor={colors.accent.amber}
+        accentColor={isDark ? '#FB7185' : '#E11D48'}
       />
 
       {/* ── Filter Pills + Sort ── */}
@@ -216,7 +217,7 @@ export default function DebtsScreen() {
               <Ionicons
                 name={opt.icon as any}
                 size={13}
-                color={filter === opt.key ? colors.accent.amber : colors.text.muted}
+                color={filter === opt.key ? (isDark ? '#FB7185' : '#E11D48') : colors.text.muted}
                 style={{ marginRight: 4 }}
               />
               <Text style={[styles.filterText, filter === opt.key && styles.filterTextActive]}>
@@ -270,18 +271,16 @@ export default function DebtsScreen() {
       <AmbientBackground />
       <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerEyebrow}>TRACKER</Text>
-          <Text style={styles.title}>Debts</Text>
-        </View>
-        <View style={styles.headerRight}>
+      {/* ── Floating Top Bar ── */}
+      <FloatingTopHeader
+        title="Debts"
+        subtitle="Money You Owe"
+        rightActions={
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')} activeOpacity={0.8}>
-            <Ionicons name="settings-outline" size={20} color={colors.text.tertiary} />
+            <Ionicons name="settings-outline" size={19} color={colors.text.tertiary} />
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       {filteredDebts.length === 0 && !searchQuery ? (
         <>
@@ -378,12 +377,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     paddingBottom: 4,
   },
   headerEyebrow: {
-    color: colors.accent.amber,
+    color: isDark ? '#FB7185' : '#E11D48',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 2,
     marginBottom: 2,
-    opacity: 0.8,
+    opacity: 0.9,
   },
   title: {
     color: colors.text.primary,
@@ -400,19 +399,19 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: isDark ? 'rgba(255,183,77,0.13)' : 'rgba(245,158,11,0.1)',
+    backgroundColor: isDark ? 'rgba(244,63,94,0.15)' : '#FFE4E6',
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,183,77,0.28)' : 'rgba(245,158,11,0.25)',
+    borderColor: isDark ? 'rgba(244,63,94,0.3)' : '#FDA4AF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   iconButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.glass.card,
-    borderWidth: 0.5,
-    borderColor: colors.glass.cardBorder,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -427,12 +426,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   heroCard: {
     borderRadius: 24,
     padding: 20,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
-    borderWidth: isDark ? 0.5 : 1,
-    borderColor: isDark ? 'rgba(255,183,77,0.2)' : 'rgba(245,158,11,0.15)',
+    backgroundColor: isDark ? 'rgba(18,18,28,0.88)' : '#ffffff',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(251,113,133,0.25)' : 'rgba(225,29,72,0.18)',
     overflow: 'hidden',
     ...(isDark ? {} : {
-      shadowColor: 'rgba(245,158,11,0.3)',
+      shadowColor: 'rgba(225,29,72,0.15)',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 1,
       shadowRadius: 16,
@@ -444,7 +443,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: isDark ? 'rgba(255,183,77,0.07)' : 'rgba(245,158,11,0.06)',
+    backgroundColor: isDark ? 'rgba(244,63,94,0.08)' : 'rgba(225,29,72,0.06)',
     top: -30,
     right: -20,
   },
@@ -455,7 +454,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     marginBottom: 18,
   },
   heroEyebrow: {
-    color: isDark ? 'rgba(255,183,77,0.7)' : 'rgba(180,120,0,0.7)',
+    color: isDark ? '#FB7185' : '#BE123C',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
@@ -471,9 +470,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: isDark ? 'rgba(255,183,77,0.1)' : 'rgba(245,158,11,0.09)',
+    backgroundColor: isDark ? 'rgba(244,63,94,0.15)' : '#FFE4E6',
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(255,183,77,0.25)' : 'rgba(245,158,11,0.2)',
+    borderColor: isDark ? 'rgba(244,63,94,0.3)' : '#FDA4AF',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -482,12 +481,12 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   heroStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC',
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderWidth: 0.5,
-    borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+    borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#E2E8F0',
   },
   heroStatItem: {
     flex: 1,
@@ -538,8 +537,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
   },
   filterPillActive: {
-    backgroundColor: isDark ? 'rgba(255,183,77,0.15)' : 'rgba(245,158,11,0.1)',
-    borderColor: isDark ? 'rgba(255,183,77,0.4)' : 'rgba(245,158,11,0.35)',
+    backgroundColor: isDark ? 'rgba(244,63,94,0.18)' : '#FFE4E6',
+    borderColor: isDark ? 'rgba(244,63,94,0.4)' : '#FDA4AF',
   },
   filterText: {
     color: colors.text.muted,
@@ -547,7 +546,8 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     fontWeight: '600',
   },
   filterTextActive: {
-    color: colors.accent.amber,
+    color: isDark ? '#FB7185' : '#E11D48',
+    fontWeight: '700',
   },
   sortBtn: {
     flexDirection: 'row',

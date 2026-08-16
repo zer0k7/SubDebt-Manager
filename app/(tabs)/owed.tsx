@@ -23,6 +23,7 @@ import { useDebts, Debt } from '../../hooks/useDebts';
 import { useCredits, Credit } from '../../hooks/useCredits';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
+import { FloatingTopHeader } from '../../components/FloatingTopHeader';
 
 const filterOptions = [
   { key: 'all', label: 'All' },
@@ -61,7 +62,9 @@ export default function OwedScreen() {
   const [shareItem, setShareItem] = useState<{ item: any; type: 'borrowed' | 'lent' } | null>(null);
 
   const data = viewMode === 'borrowed' ? debts : credits;
-  const accentColor = viewMode === 'borrowed' ? colors.accent.amber : colors.accent.blue;
+  const accentColor = viewMode === 'borrowed' 
+    ? (isDark ? '#FB7185' : '#E11D48') 
+    : (isDark ? colors.accent.blue : '#0284C7');
 
   const filteredData = useMemo(() => {
     let result = [...data];
@@ -228,10 +231,24 @@ export default function OwedScreen() {
       </View>
 
       {/* Summary Card */}
-      <View style={[styles.summaryCard, { borderColor: viewMode === 'borrowed' ? 'rgba(255,183,77,0.2)' : (colors.accent.alpha ? colors.accent.alpha(0.2) : 'rgba(79,195,247,0.2)') }]}>
+      <View style={[
+        styles.summaryCard, 
+        { 
+          borderColor: viewMode === 'borrowed' 
+            ? (isDark ? 'rgba(251,113,133,0.35)' : 'rgba(225,29,72,0.25)') 
+            : (isDark ? 'rgba(79,195,247,0.35)' : 'rgba(2,132,199,0.25)') 
+        }
+      ]}>
         <View style={styles.summaryTop}>
           <Text style={styles.summaryLabel}>{viewMode === 'borrowed' ? 'Total to Pay' : 'Total to Collect'}</Text>
-          <View style={[styles.pendingBadge, { backgroundColor: viewMode === 'borrowed' ? 'rgba(255,183,77,0.1)' : (colors.accent.alpha ? colors.accent.alpha(0.1) : 'rgba(79,195,247,0.1)') }]}>
+          <View style={[
+            styles.pendingBadge, 
+            { 
+              backgroundColor: viewMode === 'borrowed' 
+                ? (isDark ? 'rgba(251,113,133,0.15)' : '#FFE4E6') 
+                : (isDark ? 'rgba(79,195,247,0.15)' : '#E0F2FE') 
+            }
+          ]}>
             <Text style={[styles.pendingBadgeText, { color: accentColor }]}>
               {data.filter((d: any) => viewMode === 'borrowed' ? !d.isPaid : !d.isReturned).length} pending
             </Text>
@@ -296,14 +313,16 @@ export default function OwedScreen() {
       <AmbientBackground />
       <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
       
-      <View style={styles.header}>
-        <Text style={styles.title}>Ledger</Text>
-        <View style={styles.headerRight}>
+      {/* Floating Top Bar */}
+      <FloatingTopHeader
+        title="Ledger"
+        subtitle={viewMode === 'borrowed' ? 'Debts & Borrowed' : 'Credits & Owed'}
+        rightActions={
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')}>
-            <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
+            <Ionicons name="settings-outline" size={19} color={colors.text.tertiary} />
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       {filteredData.length === 0 && !searchQuery ? (
         <>
@@ -406,23 +425,25 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.glass.card,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   segmentedWrapper: {
     flexDirection: 'row',
-    backgroundColor: colors.glass.card,
+    backgroundColor: isDark ? 'rgba(18, 18, 28, 0.88)' : '#FFFFFF',
     padding: 4,
     borderRadius: 16,
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 8,
-    borderWidth: 0.5,
-    borderColor: colors.glass.cardBorder,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
   },
   segment: {
     flex: 1,
@@ -434,26 +455,32 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     borderRadius: 12,
   },
   segmentActiveBorrowed: {
-    backgroundColor: colors.accent.amber,
+    backgroundColor: isDark ? '#F43F5E' : '#E11D48',
   },
   segmentActiveLent: {
-    backgroundColor: colors.accent.blue,
+    backgroundColor: isDark ? colors.accent.blue : '#0284C7',
   },
   segmentText: {
-    color: colors.text.tertiary,
+    color: isDark ? colors.text.muted : '#64748B',
     fontSize: 14,
     fontWeight: '600',
   },
   segmentTextActive: {
     color: '#fff',
+    fontWeight: '700',
   },
   summaryCard: {
-    marginHorizontal: 20,
+    marginHorizontal: 16,
     marginBottom: 12,
     padding: 20,
     borderRadius: 20,
-    backgroundColor: colors.glass.card,
+    backgroundColor: isDark ? 'rgba(18, 18, 28, 0.88)' : '#FFFFFF',
     borderWidth: 1,
+    elevation: isDark ? 2 : 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: isDark ? 0.3 : 0.06,
+    shadowRadius: 8,
   },
   summaryTop: {
     flexDirection: 'row',

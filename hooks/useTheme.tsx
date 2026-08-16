@@ -57,22 +57,22 @@ export const ACCENT_PALETTE: Record<AccentColor, {
   },
 };
 
-const defaultAlpha = (alpha: number) => hexToRgba('#4FC3F7', alpha);
+const defaultAlpha = (alpha: number) => hexToRgba('#0284c7', alpha);
 const defaultThemeColors: ThemeColors = {
-  ...darkColors,
+  ...lightColors,
   accent: {
-    ...darkColors.accent,
-    primary: '#4FC3F7',
-    primaryDark: '#1976D2',
-    gradient: ['#4FC3F7', '#1976D2'],
-    glow: 'rgba(79, 195, 247, 0.4)',
+    ...lightColors.accent,
+    primary: '#0284c7',
+    primaryDark: '#0369a1',
+    gradient: ['#0284c7', '#0369a1'],
+    glow: 'rgba(2, 132, 199, 0.3)',
     alpha: defaultAlpha,
   },
 };
 
 const ThemeContext = createContext<ThemeContextType>({
-  mode: 'dark',
-  isDark: true,
+  mode: 'light',
+  isDark: false,
   accentColor: 'blue',
   colors: defaultThemeColors,
   setMode: () => {},
@@ -81,7 +81,7 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
   const systemColorScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('dark');
+  const [mode, setModeState] = useState<ThemeMode>('light');
   const [accentColor, setAccentColorState] = useState<AccentColor>('blue');
   const [isReady, setIsReady] = useState(false);
 
@@ -92,7 +92,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
         if (savedMode === 'light' || savedMode === 'dark' || savedMode === 'system') {
           setModeState(savedMode as ThemeMode);
         } else {
-          setModeState('dark');
+          setModeState('light');
         }
 
         const savedAccent = await storage.getString('app_accent_color');
@@ -100,7 +100,7 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
           setAccentColorState(savedAccent as AccentColor);
         }
       } catch (e) {
-        setModeState('dark');
+        setModeState('light');
       } finally {
         setIsReady(true);
       }

@@ -51,28 +51,103 @@ export async function registerForPushNotificationsAsync() {
   return token;
 }
 
-export async function scheduleSubscriptionReminder(id: string, name: string, expiryDate: string) {
-  const triggerDate = new Date(expiryDate);
-  // Remind 1 day before
-  triggerDate.setDate(triggerDate.getDate() - 1);
-  triggerDate.setHours(10, 0, 0, 0); // 10 AM
+export interface SubscriptionReminderOptions {
+  id: string;
+  name: string;
+  expiryDate: string;
+  amount?: number;
+  currency?: string;
+  reminderDaysBefore?: number[]; // e.g. [0, 1, 3, 7]
+  isTrial?: boolean;
+}
 
-  if (triggerDate.getTime() <= Date.now()) {
-    // If 1 day before is already in the past, don't schedule or schedule for now if appropriate
-    // For now, just skip if it's too late
-    return null;
+export async function scheduleSubscriptionReminder(
+  optionsOrId: string | SubscriptionReminderOptions,
+  legacyName?: string,
+  legacyExpiryDate?: string
+): Promise<string | null> {
+  const opts: SubscriptionReminderOptions = typeof optionsOrId === 'string'
+    ? {
+        id: optionsOrId,
+        name: legacyName || 'Subscription',
+        expiryDate: legacyExpiryDate || '',
+        reminderDaysBefore: [1],
+      }
+    : optionsOrId;
+
+  if (!opts.expiryDate) return null;
+  const expiry = new Date(opts.expiryDate);
+  if (isNaN(expiry.getTime())) return null;
+
+  const now = Date.now();
+  const scheduledIds: string[] = [];
+  const daysList = (opts.reminderDaysBefore && opts.reminderDaysBefore.length > 0)
+    ? opts.reminderDaysBefore
+    : [1];
+
+  const formattedAmount = opts.amount && opts.currency ? ` (${opts.currency} ${opts.amount})` : '';
+
+  for (const daysBefore of daysList) {
+    const triggerDate = new Date(expiry.getTime());
+    triggerDate.setDate(triggerDate.getDate() - daysBefore);
+    // If daysBefore === 0 (day of renewal), set to 9:00 AM
+    // Else set to 10:00 AM
+    triggerDate.setHours(daysBefore === 0 ? 9 : 10, 0, 0, 0);
+
+    if (triggerDate.getTime() <= now) {
+      continue; // Skip past triggers
+    }
+
+    let title = opts.isTrial ? '⏳ Free Trial Ending Soon' : '🔔 Subscription Renewal';
+    let body = '';
+
+    if (opts.isTrial) {
+      if (daysBefore === 0) {
+        body = `Your ${opts.name} free trial ends today! Cancel now if you don't wish to be billed${formattedAmount}.`;
+      } else if (daysBefore === 1) {
+        body = `Your ${opts.name} free trial ends tomorrow! Cancel today to avoid being charged${formattedAmount}.`;
+      } else {
+        body = `Your ${opts.name} trial ends in ${daysBefore} days${formattedAmount}. Check your renewal settings.`;
+      }
+    } else {
+      if (daysBefore === 0) {
+        body = `Your ${opts.name} subscription renews today${formattedAmount}. Tap to view or log renewal.`;
+      } else if (daysBefore === 1) {
+        body = `Your ${opts.name} subscription renews tomorrow${formattedAmount}!`;
+      } else {
+        body = `Upcoming renewal: ${opts.name} is due in ${daysBefore} days${formattedAmount}.`;
+      }
+    }
+
+    try {
+      const nid = await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data: { type: 'subscription', id: opts.id, isTrial: !!opts.isTrial },
+        },
+        trigger: { type: 'date', date: triggerDate } as any,
+      });
+      if (nid) scheduledIds.push(nid);
+    } catch (err) {
+      // Ignore scheduling errors on unsupported platforms
+    }
   }
 
-  const notificationId = await Notifications.scheduleNotificationAsync({
-    content: {
-      title: 'Subscription Renewal',
-      body: `Your ${name} subscription expires tomorrow!`,
-      data: { type: 'subscription', id },
-    },
-    trigger: { type: 'date', date: triggerDate } as any,
-  });
+  return scheduledIds.length > 0 ? scheduledIds.join(',') : null;
+}
 
-  return notificationId;
+export async function cancelNotification(notificationId?: string | null) {
+  if (!notificationId) return;
+  const ids = notificationId.includes(',') ? notificationId.split(',') : [notificationId];
+  for (const id of ids) {
+    const clean = id.trim();
+    if (clean) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(clean);
+      } catch {}
+    }
+  }
 }
 
 export async function scheduleDebtReminder(id: string, personName: string, dueDate: string) {
@@ -96,11 +171,6 @@ export async function scheduleDebtReminder(id: string, personName: string, dueDa
   return notificationId;
 }
 
-export async function cancelNotification(notificationId: string) {
-  if (notificationId) {
-    await Notifications.cancelScheduledNotificationAsync(notificationId);
-  }
-}
 
 export async function cancelAllNotifications() {
   await Notifications.cancelAllScheduledNotificationsAsync();

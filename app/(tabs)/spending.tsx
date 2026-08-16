@@ -25,6 +25,7 @@ import { AmbientBackground } from '../../components/AmbientBackground';
 import { AppPopup } from '../../components/AppPopup';
 import { SearchBar } from '../../components/SearchBar';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
+import { FloatingTopHeader } from '../../components/FloatingTopHeader';
 import {
   useDailySpending,
   SpendingEntry,
@@ -436,81 +437,84 @@ export default function SpendingScreen() {
     <SafeAreaView style={styles.container}>
       <AmbientBackground />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Daily Spending</Text>
-        <View style={styles.headerRight}>
-          {/* View mode toggle */}
-          <View style={styles.toggleWrap}>
-            <TouchableOpacity
-              style={[
-                styles.toggleBtn,
-                viewMode === 'overview' && styles.toggleBtnActive,
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setViewMode('overview');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="stats-chart"
-                size={16}
-                color={
-                  viewMode === 'overview'
-                    ? colors.accent.purple
-                    : colors.text.muted
-                }
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.toggleBtn,
-                viewMode === 'entries' && styles.toggleBtnActive,
-              ]}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setViewMode('entries');
-              }}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name="list"
-                size={16}
-                color={
-                  viewMode === 'entries'
-                    ? colors.accent.purple
-                    : colors.text.muted
-                }
-              />
-            </TouchableOpacity>
-          </View>
+      {/* Floating Top Bar */}
+      <FloatingTopHeader
+        title="Daily Spending"
+        subtitle="Track & Analytics"
+        rightActions={
+          <>
+            {/* View mode toggle */}
+            <View style={styles.toggleWrap}>
+              <TouchableOpacity
+                style={[
+                  styles.toggleBtn,
+                  viewMode === 'overview' && styles.toggleBtnActive,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setViewMode('overview');
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="stats-chart"
+                  size={15}
+                  color={
+                    viewMode === 'overview'
+                      ? colors.accent.purple
+                      : colors.text.muted
+                  }
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.toggleBtn,
+                  viewMode === 'entries' && styles.toggleBtnActive,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setViewMode('entries');
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="list"
+                  size={15}
+                  color={
+                    viewMode === 'entries'
+                      ? colors.accent.purple
+                      : colors.text.muted
+                  }
+                />
+              </TouchableOpacity>
+            </View>
 
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              router.push('/modals/export-pdf');
-            }}
-          >
-            <Ionicons
-              name="document-text-outline"
-              size={22}
-              color={colors.accent.purple}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={() => router.push('/modals/settings')}
-          >
-            <Ionicons
-              name="settings-outline"
-              size={22}
-              color={colors.text.tertiary}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/modals/export-pdf');
+              }}
+            >
+              <Ionicons
+                name="document-text-outline"
+                size={19}
+                color={colors.accent.purple}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => router.push('/modals/settings')}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={19}
+                color={colors.text.tertiary}
+              />
+            </TouchableOpacity>
+          </>
+        }
+      />
 
       <FlatList
         data={
@@ -628,10 +632,10 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     toggleWrap: {
       flexDirection: 'row',
-      backgroundColor: colors.glass.card,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
       borderRadius: 14,
-      borderWidth: 0.5,
-      borderColor: colors.glass.cardBorder,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
       padding: 3,
     },
     toggleBtn: {
@@ -642,15 +646,13 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'center',
     },
     toggleBtnActive: {
-      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.1),
+      backgroundColor: isDark ? 'rgba(171, 71, 188, 0.25)' : 'rgba(171, 71, 188, 0.15)',
     },
     addButton: {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.1),
-      borderWidth: 0.5,
-      borderColor: colors.accent.alpha(isDark ? 0.3 : 0.2),
+      backgroundColor: colors.accent.blue,
       justifyContent: 'center',
       alignItems: 'center',
     },
@@ -658,7 +660,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: colors.glass.card,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
       justifyContent: 'center',
       alignItems: 'center',
     },

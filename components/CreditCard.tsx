@@ -1,13 +1,12 @@
 import { useTheme } from '../hooks/useTheme';
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GlassBadge } from './GlassBadge';
 import { Credit } from '../hooks/useCredits';
 import { formatCurrency, formatDate, getDaysRemaining, isExpired } from '../utils/dateHelpers';
 import { getAvatarColor, hexToRgba } from '../utils/colorHelpers';
-
 import { useSettings } from '../context/SettingsContext';
 
 interface CreditCardProps {
@@ -39,8 +38,8 @@ export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, 
           <View style={[
             styles.avatar,
             {
-              backgroundColor: hexToRgba(avatarColor, 0.15),
-              borderColor: hexToRgba(avatarColor, 0.3)
+              backgroundColor: hexToRgba(avatarColor, isDark ? 0.2 : 0.12),
+              borderColor: hexToRgba(avatarColor, isDark ? 0.35 : 0.25)
             },
             credit.isReturned && { opacity: 0.6 }
           ]}>
@@ -50,7 +49,12 @@ export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, 
           </View>
           <View style={styles.personInfo}>
             <Text style={[styles.personName, credit.isReturned && styles.strike]}>{credit.personName}</Text>
-            {credit.phoneNumber && <Text style={styles.phone}>{credit.phoneNumber}</Text>}
+            {credit.phoneNumber && (
+              <View style={styles.phoneRow}>
+                <Ionicons name="call-outline" size={11} color={isDark ? colors.text.muted : '#64748B'} />
+                <Text style={styles.phone}>{credit.phoneNumber}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -67,10 +71,21 @@ export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, 
         </View>
       </View>
 
+      {/* Purpose & Notes Container (Full multi-line visibility) */}
       {(credit.purpose || credit.notes) && (
-        <View style={styles.middleSection}>
-          {credit.purpose && <Text style={styles.purpose} numberOfLines={1}>{credit.purpose}</Text>}
-          {credit.notes && <Text style={styles.notes} numberOfLines={2}>{credit.notes}</Text>}
+        <View style={styles.notesContainer}>
+          {credit.purpose && (
+            <View style={styles.purposeRow}>
+              <Ionicons name="pricetag-outline" size={12} color={colors.accent.green} style={{ marginTop: 2 }} />
+              <Text style={styles.purposeText}>{credit.purpose}</Text>
+            </View>
+          )}
+          {credit.notes && (
+            <View style={[styles.notesRow, credit.purpose && { marginTop: 4 }]}>
+              <Ionicons name="document-text-outline" size={12} color={isDark ? colors.text.muted : '#64748B'} style={{ marginTop: 2 }} />
+              <Text style={styles.notesText}>{credit.notes}</Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -93,28 +108,28 @@ export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, 
       <View style={styles.bottomRow}>
         <View style={styles.datesCol}>
           <View style={styles.dateRow}>
-            <Ionicons name="cash-outline" size={14} color={colors.text.muted} />
-            <Text style={styles.dateText}>Given: {formatDate(credit.lentDate)}</Text>
+            <Ionicons name="cash-outline" size={13} color={isDark ? colors.text.muted : '#64748B'} />
+            <Text style={styles.dateText}>Given {formatDate(credit.lentDate)}</Text>
           </View>
           {credit.expectedReturnDate && (
             <View style={styles.dateRow}>
-              <Ionicons name={overdue ? "alert-circle" : "time-outline"} size={14} color={overdue ? colors.accent.red : colors.text.muted} />
+              <Ionicons name={overdue ? "alert-circle" : "time-outline"} size={13} color={overdue ? colors.accent.red : (isDark ? colors.text.muted : '#64748B')} />
               <Text style={[styles.dateText, overdue && { color: colors.accent.red }]}>
-                Expected: {formatDate(credit.expectedReturnDate)}{overdue && ` (${Math.abs(daysRemaining || 0)}d overdue)`}
+                Expected {formatDate(credit.expectedReturnDate)}{overdue && ` (${Math.abs(daysRemaining || 0)}d overdue)`}
               </Text>
             </View>
           )}
           {credit.isReturned && credit.returnedDate && (
             <View style={styles.dateRow}>
-              <Ionicons name="checkmark-circle" size={14} color={colors.accent.green} />
-              <Text style={[styles.dateText, { color: colors.accent.green }]}>Returned: {formatDate(credit.returnedDate)}</Text>
+              <Ionicons name="checkmark-circle" size={13} color={colors.accent.green} />
+              <Text style={[styles.dateText, { color: colors.accent.green }]}>Returned {formatDate(credit.returnedDate)}</Text>
             </View>
           )}
         </View>
 
         {!credit.isReturned && onMarkReturned && (
           <TouchableOpacity style={styles.markBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onMarkReturned(credit.id); }}>
-            <Ionicons name="checkmark-circle" size={20} color={colors.accent.green} />
+            <Ionicons name="checkmark-circle" size={16} color={isDark ? colors.accent.green : '#15803D'} />
             <Text style={styles.markText}>Mark Returned</Text>
           </TouchableOpacity>
         )}
@@ -151,13 +166,24 @@ export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, 
 
 const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => StyleSheet.create({
   card: {
-    marginHorizontal: 20,
-    marginBottom: isCompact ? 6 : 12,
-    padding: isCompact ? 10 : 16,
+    marginHorizontal: 16,
+    marginBottom: isCompact ? 6 : 10,
+    paddingHorizontal: 16,
+    paddingTop: isCompact ? 10 : 16,
+    paddingBottom: isCompact ? 8 : 14,
     borderRadius: isCompact ? 14 : 20,
-    backgroundColor: colors.glass.card,
-    borderWidth: 0.5,
-    borderColor: colors.glass.cardBorder,
+    backgroundColor: isDark ? 'rgba(18, 18, 28, 0.88)' : '#ffffff',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: isDark ? 0.3 : 0.06,
+        shadowRadius: 8,
+      },
+      android: { elevation: isDark ? 2 : 3 },
+    }),
   },
   cardReturned: { opacity: 0.65 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
@@ -166,25 +192,57 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
   avatarText: { fontSize: 18, fontWeight: '700' },
   personInfo: { marginLeft: 12, flex: 1 },
   personName: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
-  phone: { color: colors.text.muted, fontSize: 12, marginTop: 2 },
+  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  phone: { color: isDark ? colors.text.muted : '#64748B', fontSize: 12 },
   amountWrap: { alignItems: 'flex-end' },
-  amount: { fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
-  amountPending: { color: colors.accent.green },
-  amountReturned: { color: colors.text.muted },
-  strike: { textDecorationLine: 'line-through', color: colors.text.muted },
+  amount: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  amountPending: { color: isDark ? colors.accent.green : '#059669' },
+  amountReturned: { color: isDark ? colors.text.muted : '#94A3B8' },
+  strike: { textDecorationLine: 'line-through', color: isDark ? colors.text.muted : '#94A3B8' },
   badgeRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 10, alignSelf: 'flex-end' },
-  middleSection: { marginTop: 16 },
-  purpose: { color: colors.text.primary, fontSize: 14, fontWeight: '500', marginBottom: 4 },
-  notes: { color: colors.text.muted, fontSize: 13, fontStyle: 'italic', lineHeight: 18 },
+  
+  // Purpose & Notes Container
+  notesContainer: {
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#E2E8F0',
+  },
+  purposeRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  purposeText: {
+    color: isDark ? colors.accent.green : '#047857',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 18,
+  },
+  notesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  notesText: {
+    color: isDark ? colors.text.secondary : '#334155',
+    fontSize: 12,
+    flex: 1,
+    lineHeight: 17,
+  },
 
   // Progress Bar Styles
   progressContainer: {
-    marginTop: 14,
+    marginTop: 12,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : '#F8FAFC',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.07)' : '#E2E8F0',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -194,17 +252,17 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
   progressLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.text.muted,
+    color: isDark ? colors.text.muted : '#64748B',
   },
   progressValue: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.text.secondary,
+    color: isDark ? colors.text.secondary : '#334155',
   },
   progressBarBg: {
-    height: 6,
+    height: 5,
     borderRadius: 3,
-    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.05)',
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.09)' : '#E2E8F0',
     overflow: 'hidden',
   },
   progressBarFill: {
@@ -213,27 +271,29 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     backgroundColor: colors.accent.green,
   },
 
-  divider: { height: 1, backgroundColor: colors.glass.card, marginVertical: 14 },
+  divider: { height: 1, backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9', marginVertical: 12 },
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-  datesCol: { gap: 6, flex: 1 },
-  dateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dateText: { color: colors.text.secondary, fontSize: 13, fontWeight: '500' },
+  datesCol: { gap: 5, flex: 1 },
+  dateRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dateText: { color: isDark ? colors.text.secondary : '#64748B', fontSize: 12, fontWeight: '500' },
   markBtn: { 
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingVertical: 8, paddingHorizontal: 14, 
-    backgroundColor: 'rgba(102,187,106,0.1)', borderRadius: 16, 
-    borderWidth: 1, borderColor: 'rgba(102,187,106,0.3)' 
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingVertical: 7, paddingHorizontal: 13, 
+    backgroundColor: isDark ? 'rgba(102,187,106,0.12)' : '#DCFCE7',
+    borderRadius: 14, 
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(102,187,106,0.28)' : '#86EFAC' 
   },
-  markText: { color: colors.accent.green, fontSize: 13, fontWeight: '700' },
+  markText: { color: isDark ? colors.accent.green : '#15803D', fontSize: 12, fontWeight: '700' },
 
   // Action Pill Buttons (Share & Delete)
   actionButtonsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-    paddingTop: 12,
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
     borderTopWidth: 0.5,
-    borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9',
   },
   actionBtnShare: {
     flex: 1,
@@ -242,14 +302,13 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 9,
-    paddingHorizontal: 14,
-    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.08 : 0.1) : (isDark ? 'rgba(79,195,247,0.08)' : 'rgba(79,195,247,0.1)'),
+    backgroundColor: isDark ? 'rgba(79,195,247,0.08)' : '#E0F2FE',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.2 : 0.25) : (isDark ? 'rgba(79,195,247,0.2)' : 'rgba(79,195,247,0.25)'),
+    borderColor: isDark ? 'rgba(79,195,247,0.2)' : '#BAE6FD',
   },
   actionBtnShareText: {
-    color: colors.accent.blue,
+    color: isDark ? colors.accent.blue : '#0284C7',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -260,11 +319,10 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 9,
-    paddingHorizontal: 14,
-    backgroundColor: isDark ? 'rgba(239,83,80,0.08)' : 'rgba(239,83,80,0.1)',
+    backgroundColor: isDark ? 'rgba(239,83,80,0.08)' : '#FEE2E2',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(239,83,80,0.2)' : 'rgba(239,83,80,0.25)',
+    borderColor: isDark ? 'rgba(239,83,80,0.2)' : '#FECACA',
   },
   actionBtnDeleteText: {
     color: colors.accent.red,

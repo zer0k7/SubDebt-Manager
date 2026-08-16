@@ -12,6 +12,8 @@ interface EmptyStateProps {
   actionLabel?: string;
   onAction?: () => void;
   variant?: 'subscriptions' | 'debts' | 'credits';
+  style?: any;
+  children?: React.ReactNode;
 }
 
 // Animated SVG illustration for subscriptions
@@ -148,7 +150,7 @@ const DebtIllustration = () => {
 };
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon, title, subtitle, actionLabel, onAction, variant,
+  icon, title, subtitle, actionLabel, onAction, variant, style, children,
 }) => {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -163,12 +165,12 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       {/* Animated Illustration */}
       {variant === 'debts' || variant === 'credits' ? <DebtIllustration /> : <SubscriptionIllustration />}
 
       {/* Text content with fade-in */}
-      <Animated.View style={{ opacity: fadeIn, transform: [{ translateY: slideUp }], alignItems: 'center' }}>
+      <Animated.View style={{ opacity: fadeIn, transform: [{ translateY: slideUp }], alignItems: 'center', width: '100%' }}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
         {actionLabel && onAction && (
@@ -176,6 +178,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             <GlassButton title={actionLabel} variant="secondary" onPress={onAction} />
           </View>
         )}
+        {children}
       </Animated.View>
     </View>
   );
@@ -183,10 +186,10 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
   },
   illustrationWrap: {
     width: 140,

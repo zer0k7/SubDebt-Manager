@@ -7,7 +7,6 @@ import { GlassBadge } from './GlassBadge';
 import { Debt } from '../hooks/useDebts';
 import { formatCurrency, formatDate, getDaysRemaining, isExpired } from '../utils/dateHelpers';
 import { getAvatarColor, hexToRgba } from '../utils/colorHelpers';
-
 import { useSettings } from '../context/SettingsContext';
 
 interface DebtCardProps {
@@ -61,12 +60,9 @@ export const DebtCard: React.FC<DebtCardProps> = ({ debt, onTogglePaid, onPress,
           </Text>
           {debt.phoneNumber && (
             <View style={styles.phoneRow}>
-              <Ionicons name="call-outline" size={11} color={colors.text.muted} />
+              <Ionicons name="call-outline" size={11} color={isDark ? colors.text.muted : '#64748B'} />
               <Text style={styles.phone}>{debt.phoneNumber}</Text>
             </View>
-          )}
-          {debt.purpose && (
-            <Text style={styles.purposeInline} numberOfLines={1}>{debt.purpose}</Text>
           )}
         </View>
 
@@ -103,11 +99,21 @@ export const DebtCard: React.FC<DebtCardProps> = ({ debt, onTogglePaid, onPress,
         </View>
       )}
 
-      {/* ── NOTES ── */}
-      {debt.notes && !debt.purpose && (
-        <View style={styles.notesWrap}>
-          <Ionicons name="document-text-outline" size={12} color={colors.text.muted} style={{ marginTop: 1 }} />
-          <Text style={styles.notes} numberOfLines={2}>{debt.notes}</Text>
+      {/* ── PURPOSE & NOTES (Full multi-line visibility) ── */}
+      {(debt.purpose || debt.notes) && (
+        <View style={styles.notesContainer}>
+          {debt.purpose && (
+            <View style={styles.purposeRow}>
+              <Ionicons name="pricetag-outline" size={12} color={isDark ? '#FB7185' : '#E11D48'} style={{ marginTop: 2 }} />
+              <Text style={styles.purposeText}>{debt.purpose}</Text>
+            </View>
+          )}
+          {debt.notes && (
+            <View style={[styles.notesRow, debt.purpose && { marginTop: 4 }]}>
+              <Ionicons name="document-text-outline" size={12} color={isDark ? colors.text.muted : '#64748B'} style={{ marginTop: 2 }} />
+              <Text style={styles.notesText}>{debt.notes}</Text>
+            </View>
+          )}
         </View>
       )}
 
@@ -119,15 +125,15 @@ export const DebtCard: React.FC<DebtCardProps> = ({ debt, onTogglePaid, onPress,
         {/* Dates column */}
         <View style={styles.datesCol}>
           <View style={styles.dateRow}>
-            <Ionicons name="calendar-outline" size={13} color={colors.text.muted} />
-            <Text style={styles.dateText}>{formatDate(debt.takenDate)}</Text>
+            <Ionicons name="calendar-outline" size={13} color={isDark ? colors.text.muted : '#64748B'} />
+            <Text style={styles.dateText}>Taken {formatDate(debt.takenDate)}</Text>
           </View>
           {debt.dueDate && (
             <View style={styles.dateRow}>
               <Ionicons
                 name={overdue ? 'alert-circle' : 'time-outline'}
                 size={13}
-                color={overdue ? colors.accent.red : colors.text.muted}
+                color={overdue ? colors.accent.red : (isDark ? colors.text.muted : '#64748B')}
               />
               <Text style={[styles.dateText, overdue && styles.overdueText]}>
                 Due {formatDate(debt.dueDate)}
@@ -195,16 +201,16 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     paddingTop: isCompact ? 10 : 16,
     paddingBottom: isCompact ? 8 : 14,
     borderRadius: isCompact ? 14 : 20,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#ffffff',
-    borderWidth: isDark ? 0.5 : 1,
-    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)',
+    backgroundColor: isDark ? 'rgba(18, 18, 28, 0.88)' : '#ffffff',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
     overflow: 'hidden',
     ...Platform.select({
       ios: {
-        shadowColor: isDark ? '#000' : 'rgba(0,0,0,0.12)',
+        shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: isDark ? 0.3 : 1,
-        shadowRadius: isDark ? 8 : 8,
+        shadowOpacity: isDark ? 0.3 : 0.06,
+        shadowRadius: 8,
       },
       android: { elevation: isDark ? 2 : 3 },
     }),
@@ -213,15 +219,15 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     opacity: isDark ? 0.6 : 0.65,
   },
   cardOverdue: {
-    borderColor: isDark ? 'rgba(239,83,80,0.3)' : 'rgba(220,38,38,0.2)',
-    backgroundColor: isDark ? 'rgba(239,83,80,0.04)' : 'rgba(220,38,38,0.02)',
+    borderColor: isDark ? 'rgba(239,83,80,0.4)' : '#FCA5A5',
+    backgroundColor: isDark ? 'rgba(239,83,80,0.06)' : '#FEF2F2',
   },
   overdueStrip: {
     position: 'absolute',
     top: 0,
     left: 0,
     bottom: 0,
-    width: 3,
+    width: 3.5,
     borderTopLeftRadius: 20,
     borderBottomLeftRadius: 20,
     backgroundColor: colors.accent.red,
@@ -265,12 +271,7 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     gap: 4,
   },
   phone: {
-    color: colors.text.muted,
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  purposeInline: {
-    color: colors.text.secondary,
+    color: isDark ? colors.text.muted : '#64748B',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -286,7 +287,7 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     letterSpacing: -0.5,
   },
   amountPending: {
-    color: isDark ? '#FFB74D' : '#d97706',
+    color: isDark ? '#FB7185' : '#E11D48',
   },
   amountPaid: {
     color: isDark ? '#66BB6A' : '#16a34a',
@@ -296,24 +297,42 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
   },
   strike: {
     textDecorationLine: 'line-through',
-    color: colors.text.muted,
+    color: isDark ? colors.text.muted : '#94A3B8',
   },
   badgeWrap: {
     alignSelf: 'flex-end',
   },
 
-  // ── Notes (standalone) ──
-  notesWrap: {
+  // ── Purpose & Notes Container ──
+  notesContainer: {
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : '#F8FAFC',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : '#E2E8F0',
+  },
+  purposeRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 6,
-    marginTop: 10,
-    paddingHorizontal: 4,
   },
-  notes: {
-    color: colors.text.secondary,
+  purposeText: {
+    color: isDark ? '#FB7185' : '#BE123C',
+    fontSize: 13,
+    fontWeight: '600',
+    flex: 1,
+    lineHeight: 18,
+  },
+  notesRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  notesText: {
+    color: isDark ? colors.text.secondary : '#334155',
     fontSize: 12,
-    fontStyle: 'italic',
     flex: 1,
     lineHeight: 17,
   },
@@ -323,9 +342,9 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     marginTop: 12,
     padding: 10,
     borderRadius: 12,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.03)',
-    borderWidth: 0.5,
-    borderColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255,255,255,0.07)' : '#E2E8F0',
   },
   progressHeader: {
     flexDirection: 'row',
@@ -335,29 +354,29 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
   progressLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.text.muted,
+    color: isDark ? colors.text.muted : '#64748B',
   },
   progressValue: {
     fontSize: 11,
     fontWeight: '700',
-    color: colors.text.secondary,
+    color: isDark ? colors.text.secondary : '#334155',
   },
   progressBg: {
     height: 5,
     borderRadius: 3,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.09)' : 'rgba(0,0,0,0.07)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.09)' : '#E2E8F0',
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: 3,
-    backgroundColor: colors.accent.amber,
+    backgroundColor: isDark ? '#FB7185' : '#E11D48',
   },
 
   // ── Divider ──
   divider: {
-    height: 0.5,
-    backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+    height: 1,
+    backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9',
     marginVertical: 12,
   },
 
@@ -377,7 +396,7 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     gap: 5,
   },
   dateText: {
-    color: colors.text.secondary,
+    color: isDark ? colors.text.secondary : '#64748B',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -393,13 +412,13 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     gap: 5,
     paddingVertical: 7,
     paddingHorizontal: 13,
-    backgroundColor: isDark ? 'rgba(102,187,106,0.1)' : 'rgba(22,163,74,0.08)',
+    backgroundColor: isDark ? 'rgba(102,187,106,0.12)' : '#DCFCE7',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(102,187,106,0.28)' : 'rgba(22,163,74,0.22)',
+    borderColor: isDark ? 'rgba(102,187,106,0.28)' : '#86EFAC',
   },
   markPaidText: {
-    color: colors.accent.green,
+    color: isDark ? colors.accent.green : '#15803D',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -411,7 +430,7 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 0.5,
-    borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)',
+    borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : '#F1F5F9',
   },
   actionBtnShare: {
     flex: 1,
@@ -420,13 +439,13 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 9,
-    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.08 : 0.07) : (isDark ? 'rgba(79,195,247,0.08)' : 'rgba(2,132,199,0.07)'),
+    backgroundColor: isDark ? 'rgba(79,195,247,0.08)' : '#E0F2FE',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.2 : 0.18) : (isDark ? 'rgba(79,195,247,0.2)' : 'rgba(2,132,199,0.18)'),
+    borderColor: isDark ? 'rgba(79,195,247,0.2)' : '#BAE6FD',
   },
   actionBtnShareText: {
-    color: colors.accent.blue,
+    color: isDark ? colors.accent.blue : '#0284C7',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -437,10 +456,10 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 9,
-    backgroundColor: isDark ? 'rgba(239,83,80,0.07)' : 'rgba(220,38,38,0.06)',
+    backgroundColor: isDark ? 'rgba(239,83,80,0.08)' : '#FEE2E2',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(239,83,80,0.2)' : 'rgba(220,38,38,0.16)',
+    borderColor: isDark ? 'rgba(239,83,80,0.2)' : '#FECACA',
   },
   actionBtnDeleteText: {
     color: colors.accent.red,

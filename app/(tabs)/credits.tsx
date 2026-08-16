@@ -17,6 +17,7 @@ import { SortFilterSheet, SortOption } from '../../components/SortFilterSheet';
 import { useCredits, Credit } from '../../hooks/useCredits';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
+import { FloatingTopHeader } from '../../components/FloatingTopHeader';
 
 const filterOptions = [
   { key: 'all', label: 'All' },
@@ -33,8 +34,8 @@ const sortOptions: SortOption[] = [
 ];
 
 export default function CreditsScreen() {
-  const { colors } = useTheme();
-  const styles = getStyles(colors);
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
   const router = useRouter();
   const { credits, isLoaded, deleteCredit, markCreditAsReturned, getTotalPendingAmount, refresh } = useCredits();
   const { currencyCode, convertAmount, refresh: refreshCurrency } = useCurrency();
@@ -203,14 +204,16 @@ export default function CreditsScreen() {
       <AmbientBackground />
       <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      <View style={styles.header}>
-        <Text style={styles.title}>Credits</Text>
-        <View style={styles.headerRight}>
+      {/* Floating Top Bar */}
+      <FloatingTopHeader
+        title="Credits"
+        subtitle="Money Owed to You"
+        rightActions={
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/modals/settings')}>
-            <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
+            <Ionicons name="settings-outline" size={19} color={colors.text.tertiary} />
           </TouchableOpacity>
-        </View>
-      </View>
+        }
+      />
 
       {filteredCredits.length === 0 && !searchQuery ? (
         <>
@@ -280,13 +283,22 @@ export default function CreditsScreen() {
   );
 }
 
-const getStyles = (colors: any) => StyleSheet.create({
+const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background.primary },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
   title: { color: colors.text.primary, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   addButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(102,187,106,0.12)', borderWidth: 0.5, borderColor: 'rgba(102,187,106,0.3)', justifyContent: 'center', alignItems: 'center' },
-  iconButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.glass.card, justifyContent: 'center', alignItems: 'center' },
+  iconButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   summaryCard: { marginHorizontal: 20, marginTop: 8, marginBottom: 12, padding: 20, borderRadius: 20, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.cardBorder },
   summaryTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   summaryLabel: { color: colors.text.tertiary, fontSize: 13, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },

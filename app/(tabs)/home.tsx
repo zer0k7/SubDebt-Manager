@@ -23,6 +23,7 @@ import { useBudget } from '../../hooks/useBudget';
 import { useSettings } from '../../context/SettingsContext';
 import { storage } from '../../storage/mmkv';
 import { getCategoryIcon } from '../../constants/categories';
+import { FloatingTopHeader } from '../../components/FloatingTopHeader';
 
 export default function DashboardScreen() {
   const { colors, isDark } = useTheme();
@@ -158,22 +159,21 @@ export default function DashboardScreen() {
     <SafeAreaView style={styles.container}>
       <AmbientBackground />
 
-      {/* Modern Executive Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greetingTitle}>Financial Dashboard</Text>
-          <Text style={styles.greetingSub}>Real-Time Overview & Cash Flow</Text>
-        </View>
-
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.iconBtn} onPress={togglePrivacyMode} activeOpacity={0.8}>
-            <Ionicons name={privacyMode ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.text.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/modals/settings')} activeOpacity={0.8}>
-            <Ionicons name="settings-outline" size={20} color={colors.text.primary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Modern Floating Top Bar */}
+      <FloatingTopHeader
+        title="Financial Dashboard"
+        subtitle="Real-Time Overview & Cash Flow"
+        rightActions={
+          <>
+            <TouchableOpacity style={styles.iconBtn} onPress={togglePrivacyMode} activeOpacity={0.8}>
+              <Ionicons name={privacyMode ? 'eye-off-outline' : 'eye-outline'} size={19} color={colors.text.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/modals/settings')} activeOpacity={0.8}>
+              <Ionicons name="settings-outline" size={19} color={colors.text.primary} />
+            </TouchableOpacity>
+          </>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={styles.content}
