@@ -6,9 +6,11 @@ import {
   Animated,
   Easing,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTheme } from '../hooks/useTheme';
 
 const { width, height } = Dimensions.get('window');
 
@@ -17,51 +19,64 @@ interface CustomSplashScreenProps {
 }
 
 export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish }) => {
-  // Animation values
-  const logoScale = useRef(new Animated.Value(0.3)).current;
+  const { colors, isDark, accentColor } = useTheme();
+
+  // Animations
+  const logoScale = useRef(new Animated.Value(0.4)).current;
   const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoRotate = useRef(new Animated.Value(0)).current;
+  const logoTranslateY = useRef(new Animated.Value(20)).current;
 
-  const glowScale = useRef(new Animated.Value(0.8)).current;
-  const glowOpacity = useRef(new Animated.Value(0.3)).current;
+  const floatValue = useRef(new Animated.Value(0)).current;
+  const orbPulse = useRef(new Animated.Value(0.9)).current;
+  const orbOpacity = useRef(new Animated.Value(0.4)).current;
 
-  const titleOpacity = useRef(new Animated.Value(0)).current;
-  const titleTranslateY = useRef(new Animated.Value(20)).current;
-
-  const badgeOpacity = useRef(new Animated.Value(0)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
+  const contentTranslateY = useRef(new Animated.Value(15)).current;
 
   const progress = useRef(new Animated.Value(0)).current;
   const containerOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // 1. Pulsing Ambient Background Glow Loop
+    // 1. Continuous Floating & Pulsing Ambient Aura
     Animated.loop(
       Animated.sequence([
         Animated.parallel([
-          Animated.timing(glowScale, {
-            toValue: 1.25,
-            duration: 1800,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(floatValue, {
+            toValue: -8,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
-          Animated.timing(glowOpacity, {
-            toValue: 0.7,
-            duration: 1800,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(orbPulse, {
+            toValue: 1.15,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(orbOpacity, {
+            toValue: isDark ? 0.6 : 0.45,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
         ]),
         Animated.parallel([
-          Animated.timing(glowScale, {
-            toValue: 0.85,
-            duration: 1800,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(floatValue, {
+            toValue: 0,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
-          Animated.timing(glowOpacity, {
-            toValue: 0.3,
-            duration: 1800,
-            easing: Easing.inOut(Easing.ease),
+          Animated.timing(orbPulse, {
+            toValue: 0.9,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(orbOpacity, {
+            toValue: isDark ? 0.3 : 0.25,
+            duration: 1600,
+            easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
         ]),
@@ -70,59 +85,54 @@ export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish
 
     // 2. Entrance Stagger Sequence
     Animated.sequence([
-      // Logo Pop In with Spring
+      // Logo Spring in
       Animated.parallel([
         Animated.spring(logoScale, {
           toValue: 1,
-          friction: 6,
-          tension: 40,
+          friction: 6.5,
+          tension: 45,
           useNativeDriver: true,
         }),
         Animated.timing(logoOpacity, {
           toValue: 1,
-          duration: 400,
+          duration: 350,
           useNativeDriver: true,
         }),
-        Animated.timing(logoRotate, {
-          toValue: 1,
-          duration: 600,
-          easing: Easing.out(Easing.back(1.5)),
-          useNativeDriver: true,
-        }),
-      ]),
-
-      // Title & Subtitle Fade Slide
-      Animated.parallel([
-        Animated.timing(titleOpacity, {
-          toValue: 1,
-          duration: 400,
-          useNativeDriver: true,
-        }),
-        Animated.timing(titleTranslateY, {
+        Animated.timing(logoTranslateY, {
           toValue: 0,
-          duration: 400,
+          duration: 350,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.timing(badgeOpacity, {
+      ]),
+
+      // Title & Pill Fade Slide In
+      Animated.parallel([
+        Animated.timing(contentOpacity, {
           toValue: 1,
-          duration: 400,
+          duration: 350,
+          useNativeDriver: true,
+        }),
+        Animated.timing(contentTranslateY, {
+          toValue: 0,
+          duration: 350,
+          easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
 
-      // Progress Line Fill
+      // Progress bar fill
       Animated.timing(progress, {
         toValue: 1,
-        duration: 900,
+        duration: 750,
         easing: Easing.inOut(Easing.quad),
         useNativeDriver: false,
       }),
     ]).start(() => {
-      // Exit animation: Smooth Fade Out
+      // Exit animation: Smooth Fade Out into App
       Animated.timing(containerOpacity, {
         toValue: 0,
-        duration: 350,
+        duration: 300,
         easing: Easing.out(Easing.ease),
         useNativeDriver: true,
       }).start(() => {
@@ -131,91 +141,170 @@ export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish
     });
   }, []);
 
-  const spin = logoRotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-15deg', '0deg'],
-  });
-
   const progressWidth = progress.interpolate({
     inputRange: [0, 1],
     outputRange: ['0%', '100%'],
   });
 
+  const bgGradient: readonly [string, string, ...string[]] = isDark
+    ? ['#0A0A10', '#110E24', '#06060A']
+    : ['#FFFFFF', '#F8FAFC', '#EFF6FF'];
+
+  const orbGradient: readonly [string, string, ...string[]] = isDark
+    ? ['rgba(124, 58, 237, 0.45)', 'rgba(79, 195, 247, 0.35)', 'transparent']
+    : ['rgba(2, 132, 199, 0.22)', 'rgba(124, 58, 237, 0.18)', 'transparent'];
+
+  const emblemBorder = isDark
+    ? 'rgba(255, 255, 255, 0.15)'
+    : 'rgba(2, 132, 199, 0.2)';
+
+  const emblemBg: readonly [string, string, ...string[]] = isDark
+    ? ['rgba(255, 255, 255, 0.08)', 'rgba(255, 255, 255, 0.03)']
+    : ['#FFFFFF', 'rgba(240, 249, 255, 0.8)'];
+
+  const primaryAccent = colors.accent.primary || (isDark ? '#4FC3F7' : '#0284c7');
+  const secondaryAccent = colors.accent.purple || '#7c3aed';
+
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
       {/* Background Gradient */}
-      <LinearGradient
-        colors={['#080711', '#0f0c22', '#05040a']}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <LinearGradient colors={bgGradient} style={StyleSheet.absoluteFillObject} />
 
-      {/* Ambient Pulsing Glow Orbs */}
+      {/* Ambient Pulsing Aura Orb */}
       <Animated.View
         style={[
           styles.glowOrb,
           {
-            transform: [{ scale: glowScale }],
-            opacity: glowOpacity,
+            transform: [{ scale: orbPulse }],
+            opacity: orbOpacity,
+          },
+        ]}
+      >
+        <LinearGradient colors={orbGradient} style={styles.glowGradient} />
+      </Animated.View>
+
+      {/* Secondary Ambient Accent Spot */}
+      <Animated.View
+        style={[
+          styles.glowOrbSmall,
+          {
+            opacity: orbOpacity,
           },
         ]}
       >
         <LinearGradient
-          colors={['rgba(79, 195, 247, 0.35)', 'rgba(167, 139, 250, 0.25)', 'transparent']}
+          colors={[
+            isDark ? 'rgba(79, 195, 247, 0.25)' : 'rgba(124, 58, 237, 0.15)',
+            'transparent',
+          ]}
           style={styles.glowGradient}
         />
       </Animated.View>
 
-      {/* Center Hero Emblem */}
+      {/* Center Hero Glassmorphic Emblem */}
       <Animated.View
         style={[
-          styles.logoContainer,
+          styles.heroWrap,
           {
             opacity: logoOpacity,
-            transform: [{ scale: logoScale }, { rotate: spin }],
+            transform: [
+              { scale: logoScale },
+              { translateY: Animated.add(logoTranslateY, floatValue) },
+            ],
           },
         ]}
       >
         <LinearGradient
-          colors={['rgba(79, 195, 247, 0.25)', 'rgba(167, 139, 250, 0.15)']}
-          style={styles.logoGlassCard}
+          colors={emblemBg}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[
+            styles.emblemCard,
+            {
+              borderColor: emblemBorder,
+              shadowColor: primaryAccent,
+            },
+          ]}
         >
-          <View style={styles.iconCircleInner}>
-            <Ionicons name="wallet-outline" size={44} color="#4FC3F7" />
-          </View>
-          {/* Subtle Decorative Ring */}
-          <View style={styles.logoRing} />
+          {/* Subtle Accent Glow Ring */}
+          <LinearGradient
+            colors={[`${primaryAccent}40`, `${secondaryAccent}25`]}
+            style={styles.emblemGlowRing}
+          >
+            <View
+              style={[
+                styles.iconCore,
+                {
+                  backgroundColor: isDark
+                    ? 'rgba(10, 10, 16, 0.7)'
+                    : 'rgba(255, 255, 255, 0.95)',
+                },
+              ]}
+            >
+              <Ionicons name="wallet" size={38} color={primaryAccent} />
+            </View>
+          </LinearGradient>
         </LinearGradient>
       </Animated.View>
 
-      {/* App Branding */}
+      {/* App Branding & Gen-Z Pill */}
       <Animated.View
         style={[
-          styles.textContainer,
+          styles.brandWrap,
           {
-            opacity: titleOpacity,
-            transform: [{ translateY: titleTranslateY }],
+            opacity: contentOpacity,
+            transform: [{ translateY: contentTranslateY }],
           },
         ]}
       >
-        <Text style={styles.brandTitle}>SUBDEBT</Text>
-        <Text style={styles.brandSubtitle}>FINANCIAL CLARITY & TRACKER</Text>
+        <View style={styles.pillBadge}>
+          <Ionicons name="sparkles" size={12} color={primaryAccent} />
+          <Text style={[styles.pillBadgeText, { color: primaryAccent }]}>
+            NEXT-GEN FINANCE
+          </Text>
+        </View>
 
-        <Animated.View style={[styles.badgeWrap, { opacity: badgeOpacity }]}>
-          <LinearGradient
-            colors={['rgba(79, 195, 247, 0.2)', 'rgba(167, 139, 250, 0.2)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.badgeGradient}
-          >
-            <Ionicons name="shield-checkmark" size={12} color="#4FC3F7" />
-            <Text style={styles.badgeText}>OFFLINE SECURE</Text>
-          </LinearGradient>
-        </Animated.View>
+        <Text
+          style={[
+            styles.brandTitle,
+            { color: isDark ? '#FFFFFF' : '#0F172A' },
+          ]}
+        >
+          SUBDEBT
+        </Text>
+
+        <Text
+          style={[
+            styles.brandTagline,
+            { color: isDark ? 'rgba(255, 255, 255, 0.5)' : '#64748B' },
+          ]}
+        >
+          Smart Spending · Subscriptions · Financial Freedom
+        </Text>
       </Animated.View>
 
-      {/* Bottom Progress Bar */}
-      <View style={styles.progressTrack}>
-        <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+      {/* Minimalist Shimmering Loading Pill Bar */}
+      <View style={styles.progressContainer}>
+        <View
+          style={[
+            styles.progressTrack,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255, 255, 255, 0.08)'
+                : 'rgba(0, 0, 0, 0.06)',
+            },
+          ]}
+        >
+          <Animated.View
+            style={[
+              styles.progressThumb,
+              {
+                width: progressWidth,
+                backgroundColor: primaryAccent,
+              },
+            ]}
+          />
+        </View>
       </View>
     </Animated.View>
   );
@@ -227,111 +316,107 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,
-    backgroundColor: '#080711',
   },
   glowOrb: {
     position: 'absolute',
-    width: width * 0.9,
-    height: width * 0.9,
-    borderRadius: (width * 0.9) / 2,
+    width: width * 0.95,
+    height: width * 0.95,
+    borderRadius: (width * 0.95) / 2,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  glowOrbSmall: {
+    position: 'absolute',
+    top: height * 0.25,
+    right: -width * 0.2,
+    width: width * 0.7,
+    height: width * 0.7,
+    borderRadius: (width * 0.7) / 2,
   },
   glowGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: (width * 0.9) / 2,
+    borderRadius: width,
   },
-  logoContainer: {
-    marginBottom: 32,
+  heroWrap: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 28,
   },
-  logoGlassCard: {
-    width: 104,
-    height: 104,
-    borderRadius: 32,
+  emblemCard: {
+    width: 96,
+    height: 96,
+    borderRadius: 28,
+    borderWidth: 1.2,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    shadowColor: '#4FC3F7',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.22,
     shadowRadius: 16,
-    elevation: 12,
+    elevation: 8,
   },
-  iconCircleInner: {
+  emblemGlowRing: {
     width: 76,
     height: 76,
-    borderRadius: 24,
-    backgroundColor: 'rgba(15, 12, 34, 0.85)',
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 0.5,
-    borderColor: 'rgba(79, 195, 247, 0.4)',
+    padding: 2,
   },
-  logoRing: {
-    position: 'absolute',
-    width: 118,
-    height: 118,
-    borderRadius: 38,
-    borderWidth: 1,
-    borderColor: 'rgba(79, 195, 247, 0.2)',
-    borderStyle: 'dashed',
-  },
-  textContainer: {
-    alignItems: 'center',
-  },
-  brandTitle: {
-    color: '#ffffff',
-    fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: 4,
-    textAlign: 'center',
-    textShadowColor: 'rgba(79, 195, 247, 0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
-  brandSubtitle: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 2,
-    marginTop: 6,
-    marginBottom: 16,
-  },
-  badgeWrap: {
+  iconCore: {
+    width: '100%',
+    height: '100%',
     borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 0.5,
-    borderColor: 'rgba(79, 195, 247, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  badgeGradient: {
+  brandWrap: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  pillBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
     paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: 'rgba(2, 132, 199, 0.1)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(2, 132, 199, 0.25)',
+    marginBottom: 4,
   },
-  badgeText: {
-    color: '#4FC3F7',
+  pillBadgeText: {
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
+  },
+  brandTitle: {
+    fontSize: 30,
+    fontWeight: '900',
+    letterSpacing: 4.5,
+    textAlign: 'center',
+  },
+  brandTagline: {
+    fontSize: 12,
+    fontWeight: '500',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+  progressContainer: {
+    position: 'absolute',
+    bottom: 64,
+    width: width * 0.42,
+    alignItems: 'center',
   },
   progressTrack: {
-    position: 'absolute',
-    bottom: 60,
-    width: 140,
-    height: 3,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: '100%',
+    height: 4,
     borderRadius: 2,
     overflow: 'hidden',
   },
-  progressFill: {
+  progressThumb: {
     height: '100%',
-    backgroundColor: '#4FC3F7',
     borderRadius: 2,
   },
 });

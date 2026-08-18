@@ -73,9 +73,15 @@ export default function DataVaultToolScreen() {
         setLoading(false);
         if (result.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          const totalRecords =
+            result.subscriptionsCount +
+            result.debtsCount +
+            result.creditsCount +
+            result.spendingCount +
+            result.categoriesCount;
           showPopup({
-            title: 'Ledger Restored',
-            message: `Successfully imported ${result.subscriptionsCount + result.debtsCount + result.creditsCount} records into your offline vault.`,
+            title: 'Vault Restored',
+            message: `Successfully imported ${totalRecords} records across all tabs, custom categories, and restored your settings.`,
             icon: 'checkmark-circle-outline',
             iconColor: '#66BB6A',
             confirmText: 'Done',

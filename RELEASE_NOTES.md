@@ -1,67 +1,43 @@
-# v2.7.0 — Floating Top Header, Light Theme Contrast Overhaul, Multi-Line Notes Display & UI Modernization
+# v2.8.0 — Spending Explorer, Receipt Photo Vault, Dual-Theme Calibration & Full-Ledger Backup Architecture
 
-**Release Date:** August 16, 2026
-
----
-
-## Highlights
-
-This release introduces a responsive Floating Top Capsule Header across all application screens, delivers a comprehensive light theme visual contrast overhaul, sets the default app theme for new installs to light mode, resolves note field multi-line truncation across all transaction cards, improves the multi-line input interaction model, refines the subscription tab architecture, and modernizes the borrowed liability color identity to a premium Rose Crimson palette.
+SubDebt v2.8.0 delivers an extensive capability upgrade featuring a dedicated Spending Explorer and Analytics console, native camera and gallery receipt photo attachments with an interactive full-screen Photo Vault, full dual-theme visual calibration, and a re-engineered backup engine that captures the complete state of the offline ledger and user preferences.
 
 ---
 
-## Key Improvements and Fixes
+## Key Highlights & New Capabilities
 
-### 1. Responsive Floating Capsule Header
-- Implemented a unified, floating glass capsule header (`FloatingTopHeader.tsx`) across Home, Spending, Subscriptions, Debts, Credits, and Owed screens.
-- Utilizes dynamic window dimension scaling for consistent padding, margins, and pill height across compact and extra-large displays.
-- Integrated dual-theme translucent glass styling with subtle borders and high-contrast action buttons.
+### 1. Dedicated Spending Explorer & Advanced Analytics
+- **Multi-Criteria Filtering Engine**: Filter expense records across preset date intervals (Today, Yesterday, This Week, This Month, Last Month, 90 Days, This Year) or custom date windows with intuitive date pickers.
+- **Concurrent Category & Keyword Filtering**: Filter simultaneously across custom categories, merchants, descriptions, and notes.
+- **Live Metric Aggregation**: Instant metric computation providing total filtered volume, average cost per transaction, and top spending category.
+- **Interactive Distribution Visualizer**: Dynamic progress indicators demonstrating category-wise allocation and percentage shares.
+- **Configurable Sorting Matrix**: Reorder transactions by newest, oldest, highest amount, lowest amount, or alphabetical title.
+- **One-Tap Spreadsheet Export**: Export filtered transaction views directly to formatted CSV files with native sharing integration.
 
-### 2. Light Theme Contrast & Default App Theme
-- Set default theme initialization for fresh installs to Light mode in `useTheme.tsx` while preserving local user preference persistence.
-- Overhauled card containers, chips, switches, date pickers, and badges in `SubscriptionCard`, `DebtCard`, `CreditCard`, `add-subscription`, and `edit-subscription` for crisp readability on white backgrounds.
-- Replaced low-contrast glass overlays in light mode with solid `#FFFFFF` cards, refined borders (`#E2E8F0` / `rgba(0, 0, 0, 0.08)`), and high-contrast typography (`#0F172A` / `#334155` / `#475569`).
+### 2. Receipt Attachment System & Interactive Photo Vault
+- **Permanent Local Storage Pipeline**: Attach photos taken directly with the camera or selected from the device photo library. Receipt images are copied to persistent application storage to ensure longevity across system cache clear operations.
+- **Full-Screen Photo Vault Inspector**: Dedicated high-resolution image viewer with backdrop blur, native share triggers, and transaction metadata overlays.
+- **Expense Card Integration**: Transaction items with attached receipts automatically display interactive photo badges for rapid visual inspection.
+- **Streamlined Modal Workflows**: Add and edit spending interfaces now feature dedicated receipt management cards supporting live previews, replacement, and removal.
 
-### 3. Multi-Line Notes & Purpose Display
-- Resolved truncation issues in `SubscriptionCard`, `DebtCard`, and `CreditCard`.
-- Replaced single-line and two-line clamped containers with dedicated, unconstrained multi-line info cards displaying full user notes and transaction purposes.
-- Fixed a conditional rendering bug in `DebtCard` where notes were suppressed whenever a purpose was present.
+### 3. Calendar Heatmap & Localization Calibration
+- **Present-Day High-Visibility Indicator**: Today's calendar cell features a high-contrast accent ring border, glowing focal indicator, and distinct background highlight for immediate identification.
+- **Dynamic Localization in Legend**: Legend values now dynamically reflect the user's active currency configuration (including Indian Rupees INR) rather than static fallback symbols.
 
-### 4. Multiline Input Container Expansion
-- Upgraded `GlassInput.tsx` to automatically calculate flexible vertical container sizing when `multiline={true}` is specified.
-- Added explicit `textAlignVertical: 'top'` and top-padding compensation for Android and iOS text inputs, preventing earlier lines from scrolling out of view.
+### 4. Theme-Adaptive Launch & Visual Hierarchy
+- **White Background Native Launch Calibration**: Updated native adaptive icon and splash configurations to pure white, eliminating dark border boxes during initial application boot.
+- **Theme-Reactive Splash Experience**: Custom splash sequence automatically harmonizes with the user's active theme palette and accent selections, utilizing glassmorphic surfaces and hardware-accelerated transitions.
+- **Dual-Theme Contrast Calibration**: Elevated cards, filter pills, search fields, and modal bottom sheets have been calibrated for crisp visibility and contrast in both Light and Dark themes.
 
-### 5. Edit Modal Loading State Optimization
-- Integrated an `isLoaded` hydration guard in `edit-subscription.tsx`.
-- Displays a clean skeleton placeholder during asynchronous storage reads, eliminating the momentary "Subscription not found" screen flash on modal launch.
-
-### 6. Subscriptions Architecture Simplification
-- Removed the heavy 12-month outflow projection SVG chart from `subscriptions.tsx` to streamline the user interface and decrease render overhead.
-- Retained the Monthly Bill Calendar and Burn Rate Summary cards with enhanced light/dark theme contrast.
-
-### 7. Modernized Borrowed Section Accent Color
-- Updated the default accent color for borrowed debts in `owed.tsx`, `debts.tsx`, and `DebtCard.tsx` from yellow/amber to a modern Rose Crimson palette (`#FB7185` in Dark Mode, `#E11D48` in Light Mode).
-- Synchronized segmented tab controls, summary card borders, pending count badges, and hero gradients.
-
-### 8. Spending 30-Day Heatmap Refinements
-- Optimized the daily spending calendar grid in `spending.tsx` to reflect accurate month-based day distributions with refined cell sizing and spacing.
+### 5. Comprehensive Full-Ledger Backup & Restore Architecture
+- **Complete State Export**: Backup JSON files now serialize all operational datasets, including Subscriptions, Debts, Credits, Daily Spending entries (with receipt associations), Monthly Budgets, Category Limits, and Custom Categories.
+- **Preference & Setting Persistence**: Backups capture application settings including currency, number formatting (Indian vs Western), date formatting, week start day, card density mode, default payment methods, theme preferences, accent color selections, and reminder schedules.
+- **Dual-Mode Restoration**: Full support for both non-destructive Smart Merge and Complete Vault Replacement modes with automatic notification rescheduling.
 
 ---
 
-## File Changes Summary
+## Technical Specifications & Verification
 
-| Module | Files Modified / Added |
-|---|---|
-| Navigation & Headers | `components/FloatingTopHeader.tsx`, `app/(tabs)/home.tsx`, `app/(tabs)/spending.tsx`, `app/(tabs)/subscriptions.tsx`, `app/(tabs)/debts.tsx`, `app/(tabs)/credits.tsx`, `app/(tabs)/owed.tsx` |
-| Cards & Display | `components/SubscriptionCard.tsx`, `components/DebtCard.tsx`, `components/CreditCard.tsx` |
-| Form Controls | `components/GlassInput.tsx` |
-| Modals | `app/modals/add-subscription.tsx`, `app/modals/edit-subscription.tsx` |
-| Theme & Storage | `hooks/useTheme.tsx` |
-| Configuration & Web | `package.json`, `app.json`, `index.html`, `RELEASE_NOTES.md` |
-
----
-
-## Verification & Build Integrity
-
-- Fully verified with TypeScript compiler (`npx tsc --noEmit`): **0 errors**.
-- 100% offline data safety preserved with zero schema breaking changes.
+- **TypeScript Type Safety**: 100% type coverage verified with strict zero-error compiler validation.
+- **Storage Layer**: Asynchronous persistent storage integration with integrity guarantees across schema version 2.
+- **Media Pipelines**: Native permissions and asset resolution handled via dedicated image picking and file sharing integrations.

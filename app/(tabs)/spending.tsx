@@ -33,6 +33,7 @@ import {
 } from '../../hooks/useDailySpending';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useBudget } from '../../hooks/useBudget';
+import { useCategoryManager } from '../../hooks/useCategoryManager';
 import { formatCurrency } from '../../utils/dateHelpers';
 
 type ViewMode = 'overview' | 'entries';
@@ -75,9 +76,11 @@ export default function SpendingScreen() {
   } = useDailySpending();
   const { budget, refresh: refreshBudget } = useBudget();
   const { currencyCode, convertAmount, refresh: refreshCurrency } = useCurrency();
+  const { allCategories } = useCategoryManager();
   const [refreshing, setRefreshing] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [timeRange, setTimeRange] = useState<TimeRange>('7d');
 
@@ -129,7 +132,12 @@ export default function SpendingScreen() {
   const savingMessage = getSavingMessage();
 
   const filteredEntries = useMemo(() => {
-    const source = viewMode === 'entries' ? rangeEntries : rangeEntries;
+    let source = rangeEntries;
+    if (selectedCategory !== 'ALL') {
+      source = source.filter(
+        (entry) => entry.category.toLowerCase() === selectedCategory.toLowerCase()
+      );
+    }
     if (!searchQuery.trim()) return source;
     const q = searchQuery.toLowerCase().trim();
     return source.filter(
@@ -138,7 +146,7 @@ export default function SpendingScreen() {
         entry.category.toLowerCase().includes(q) ||
         (entry.notes && entry.notes.toLowerCase().includes(q))
     );
-  }, [rangeEntries, searchQuery, viewMode]);
+  }, [rangeEntries, searchQuery, selectedCategory]);
 
   const rangeLabel = useMemo(() => {
     const opt = TIME_RANGE_OPTIONS.find((o) => o.key === timeRange);
@@ -231,10 +239,101 @@ export default function SpendingScreen() {
     </ScrollView>
   );
 
+  const renderCategoryFilter = () => (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.catFilterContainer}
+      style={styles.catFilterScroll}
+    >
+      <TouchableOpacity
+        style={[
+          styles.catFilterPill,
+          selectedCategory === 'ALL' && styles.catFilterPillActive,
+        ]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setSelectedCategory('ALL');
+        }}
+        activeOpacity={0.7}
+      >
+        <Ionicons
+          name="grid-outline"
+          size={12}
+          color={selectedCategory === 'ALL' ? '#FFFFFF' : colors.text.secondary}
+        />
+        <Text
+          style={[
+            styles.catFilterText,
+            selectedCategory === 'ALL' && styles.catFilterTextActive,
+          ]}
+        >
+          All
+        </Text>
+      </TouchableOpacity>
+      {allCategories.map((cat) => {
+        const isActive = selectedCategory.toLowerCase() === cat.name.toLowerCase();
+        return (
+          <TouchableOpacity
+            key={cat.name}
+            style={[
+              styles.catFilterPill,
+              isActive && {
+                backgroundColor: `${cat.color}22`,
+                borderColor: cat.color,
+                borderWidth: 1.2,
+              },
+            ]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSelectedCategory(isActive ? 'ALL' : cat.name);
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={cat.icon as any}
+              size={12}
+              color={isActive ? cat.color : colors.text.secondary}
+            />
+            <Text
+              style={[
+                styles.catFilterText,
+                isActive && { color: cat.color, fontWeight: '700' },
+              ]}
+            >
+              {cat.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+
   const renderOverviewHeader = () => (
     <>
       {/* Time Range Filter */}
       {renderTimeRangeFilter()}
+
+      {/* Explorer Shortcut Banner */}
+      <TouchableOpacity
+        style={styles.explorerBanner}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          router.push('/modals/spending-explorer');
+        }}
+        activeOpacity={0.8}
+      >
+        <View style={styles.explorerBannerLeft}>
+          <View style={styles.explorerIconCircle}>
+            <Ionicons name="search" size={14} color={colors.accent.purple} />
+          </View>
+          <View>
+            <Text style={styles.explorerBannerTitle}>Deep Spending Explorer</Text>
+            <Text style={styles.explorerBannerSubtitle}>Filter by Category, Dates & Export CSV</Text>
+          </View>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color={colors.accent.purple} />
+      </TouchableOpacity>
 
       {/* Monthly Budget Card */}
       {budget.amount > 0 && (
@@ -397,6 +496,9 @@ export default function SpendingScreen() {
       {/* Time Range Filter */}
       {renderTimeRangeFilter()}
 
+      {/* Category Filter Chips */}
+      {renderCategoryFilter()}
+
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
@@ -407,8 +509,8 @@ export default function SpendingScreen() {
       {/* Quick total for filtered view */}
       <View style={styles.entriesQuickStat}>
         <Text style={styles.entriesQuickLabel}>
-          {searchQuery
-            ? `Results for "${searchQuery}"`
+          {searchQuery || selectedCategory !== 'ALL'
+            ? `Results (${filteredEntries.length} found)`
             : `${rangeLabel} • ${filteredEntries.length} entries`}
         </Text>
         <Text style={styles.entriesQuickTotal}>
@@ -488,6 +590,20 @@ export default function SpendingScreen() {
                 />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/modals/spending-explorer');
+              }}
+            >
+              <Ionicons
+                name="funnel-outline"
+                size={18}
+                color={colors.accent.purple}
+              />
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.iconButton}
@@ -695,6 +811,76 @@ const getStyles = (colors: any, isDark: boolean) =>
     timeFilterTextActive: {
       color: colors.accent.purple,
       fontWeight: '700',
+    },
+
+    // Category Filter Chips
+    catFilterScroll: {
+      marginBottom: 10,
+    },
+    catFilterContainer: {
+      paddingHorizontal: 20,
+      gap: 8,
+      alignItems: 'center',
+    },
+    catFilterPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 12,
+      backgroundColor: colors.glass.card,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+    },
+    catFilterPillActive: {
+      backgroundColor: colors.accent.purple,
+      borderColor: colors.accent.purple,
+    },
+    catFilterText: {
+      color: colors.text.secondary,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    catFilterTextActive: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+
+    // Explorer Banner
+    explorerBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: 20,
+      marginBottom: 14,
+      padding: 12,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(171, 71, 188, 0.1)' : 'rgba(171, 71, 188, 0.07)',
+      borderWidth: 0.5,
+      borderColor: isDark ? 'rgba(171, 71, 188, 0.25)' : 'rgba(171, 71, 188, 0.18)',
+    },
+    explorerBannerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    explorerIconCircle: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(171, 71, 188, 0.2)' : 'rgba(171, 71, 188, 0.12)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    explorerBannerTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    explorerBannerSubtitle: {
+      fontSize: 11,
+      color: colors.text.tertiary,
     },
 
     // Budget Card

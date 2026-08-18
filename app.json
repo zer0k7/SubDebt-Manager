@@ -2,7 +2,7 @@
   "expo": {
     "name": "SubDebt",
     "slug": "subdebt",
-    "version": "2.7.0",
+    "version": "2.8.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "subdebt",
@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0c0c14"
+      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -18,13 +18,13 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.subdebt.app",
-      "buildNumber": "2.7.0"
+      "buildNumber": "2.8.0"
     },
     "android": {
-      "versionCode": 29,
+      "versionCode": 30,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0c0c14"
+        "backgroundColor": "#ffffff"
       },
       "package": "com.subdebt.app",
       "permissions": [

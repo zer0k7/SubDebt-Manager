@@ -131,6 +131,7 @@ function AppLayout() {
       <Stack.Screen name="modals/tool-reminder-generator" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/tool-debt-payoff" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/tool-currency-converter" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modals/spending-explorer" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
     </Stack>
 
       {showLockOverlay && (
@@ -174,15 +175,15 @@ export default function RootLayout() {
     hydrateStorage();
   }, []);
 
-  if (!splashFinished) {
-    return <CustomSplashScreen onFinish={() => setSplashFinished(true)} />;
-  }
-
   return (
     <ThemeProvider>
       <SettingsProvider>
         <AuthLockProvider>
-          <AppLayout />
+          {!splashFinished ? (
+            <CustomSplashScreen onFinish={() => setSplashFinished(true)} />
+          ) : (
+            <AppLayout />
+          )}
         </AuthLockProvider>
       </SettingsProvider>
     </ThemeProvider>

@@ -14,6 +14,7 @@ export interface SpendingEntry {
   category: string;
   spentAt: string;
   notes?: string;
+  receiptImage?: string;
   createdAt: string;
 }
 
@@ -24,6 +25,7 @@ export interface SpendingInput {
   category: string;
   spentAt: string;
   notes?: string;
+  receiptImage?: string;
 }
 
 export interface WeeklyDayData {

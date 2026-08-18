@@ -251,6 +251,10 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
               }
 
               if (day.isToday) {
+                if (day.level === 'zero') {
+                  bg = isDark ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.12)';
+                  textColor = colors.accent.blue;
+                }
                 borderClr = colors.accent.blue;
               }
 
@@ -260,8 +264,8 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
                   style={[
                     styles.dayCell,
                     { backgroundColor: bg, borderColor: isSelected ? colors.accent.blue : borderClr },
+                    day.isToday && styles.dayCellToday,
                     isSelected && styles.dayCellSelected,
-                    day.isToday && !isSelected && styles.dayCellToday,
                   ]}
                   onPress={() => {
                     setSelectedDayNumber(day.dayNumber);
@@ -273,11 +277,20 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
                     style={[
                       styles.dayNumberText,
                       { color: textColor },
+                      day.isToday && styles.dayNumberToday,
                       isSelected && { color: '#FFFFFF', fontWeight: '800' },
                     ]}
                   >
                     {day.dayNumber}
                   </Text>
+                  {day.isToday && (
+                    <View
+                      style={[
+                        styles.todayDot,
+                        { backgroundColor: isSelected ? '#FFFFFF' : colors.accent.blue },
+                      ]}
+                    />
+                  )}
                 </TouchableOpacity>
               );
             })}
@@ -336,7 +349,7 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
       <View style={styles.legendRow}>
         <View style={styles.legendItem}>
           <View style={[styles.legendSquare, { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)' }]} />
-          <Text style={styles.legendText}>$0 Zero</Text>
+          <Text style={styles.legendText}>{formatCurrency(0, currencyCode)} Zero</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendSquare, { backgroundColor: 'rgba(16, 185, 129, 0.85)' }]} />
@@ -433,17 +446,23 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'center',
     },
     dayCellToday: {
-      borderWidth: 1,
+      borderWidth: 1.8,
       borderColor: colors.accent.blue,
+      shadowColor: colors.accent.blue,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.45,
+      shadowRadius: 3,
+      elevation: 2,
     },
     dayCellSelected: {
       borderWidth: 2,
-      transform: [{ scale: 1.04 }],
+      borderColor: colors.accent.blue,
+      transform: [{ scale: 1.05 }],
       shadowColor: colors.accent.blue,
       shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.3,
-      shadowRadius: 2,
-      elevation: 2,
+      shadowOpacity: 0.5,
+      shadowRadius: 3,
+      elevation: 3,
     },
     dayCellEmpty: {
       flex: 1,
@@ -452,6 +471,17 @@ const getStyles = (colors: any, isDark: boolean) =>
     dayNumberText: {
       fontSize: 10,
       fontWeight: '700',
+    },
+    dayNumberToday: {
+      fontWeight: '900',
+      fontSize: 10.5,
+    },
+    todayDot: {
+      position: 'absolute',
+      bottom: 2.5,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
     },
     detailCard: {
       padding: 10,
