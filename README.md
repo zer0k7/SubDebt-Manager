@@ -5,22 +5,22 @@
 **A privacy-first, offline personal finance manager for tracking recurring subscriptions, personal debt/credit ledgers, and daily expenses on Android.**
 
 [![Latest Release](https://img.shields.io/github/v/release/zer0k7/SubDebt-Manager?style=flat-square&color=3B82F6)](https://github.com/zer0k7/SubDebt-Manager/releases/latest)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/zer0k7/SubDebt-Manager/build.yml?branch=main&style=flat-square)](https://github.com/zer0k7/SubDebt-Manager/actions)
-[![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat-square&logo=android&logoColor=white)](https://github.com/zer0k7/SubDebt-Manager/releases/latest)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20arm64--v8a-3DDC84?style=flat-square&logo=android&logoColor=white)](https://github.com/zer0k7/SubDebt-Manager/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
-[![Privacy](https://img.shields.io/badge/Telemetry-Zero%20%2F%20100%25%20Offline-059669?style=flat-square)](#privacy--data-sovereignty)
+[![Telemetry](https://img.shields.io/badge/Telemetry-Zero%20%2F%20100%25%20Offline-059669?style=flat-square)](#privacy--data-sovereignty)
 
 <br/>
 
-<a href="obtainium://add/https://github.com/zer0k7/SubDebt-Manager">
-  <img src="https://github.com/ImranR98/Obtainium/raw/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="48">
-</a>
-&nbsp;&nbsp;
-<a href="https://github.com/zer0k7/SubDebt-Manager/releases/latest">
-  <img src="https://img.shields.io/badge/Download-Latest%20APK-1E293B?style=for-the-badge&logo=android&logoColor=white" height="48">
-</a>
+<p align="center">
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/zer0k7/SubDebt-Manager">
+    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="70">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://github.com/zer0k7/SubDebt-Manager/releases/latest">
+    <img src="https://raw.githubusercontent.com/zer0k7/SubDebt-Manager/main/assets/badge_github_apk.svg" alt="Get it on GitHub Releases" height="70">
+  </a>
+</p>
 
-<br/>
 <br/>
 
 </div>
@@ -63,18 +63,20 @@ All records are stored locally on your device. The application requires no user 
 
 ## Installation & Updates
 
-### Option 1: Obtainium (Recommended)
+### Option 1: Obtainium (Recommended for Automatic Updates)
 
 [Obtainium](https://github.com/ImranR98/Obtainium) allows you to install and receive automatic release updates directly from this GitHub repository.
 
 1. Install **Obtainium** on your Android device.
-2. Click the button below or manually add `https://github.com/zer0k7/SubDebt-Manager` inside Obtainium:
+2. Click the button below to automatically add this repository:
 
-<div align="left">
-  <a href="obtainium://add/https://github.com/zer0k7/SubDebt-Manager">
-    <img src="https://github.com/ImranR98/Obtainium/raw/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="44">
+<p align="left">
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/zer0k7/SubDebt-Manager">
+    <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60">
   </a>
-</div>
+</p>
+
+*Manual Configuration:* If the link does not open automatically, open Obtainium, tap **Add App**, and enter `https://github.com/zer0k7/SubDebt-Manager`.
 
 ### Option 2: Direct APK Download
 
@@ -84,6 +86,12 @@ Download the signed release package directly from GitHub Releases:
 2. Download `SubDebt-arm64-v8a.apk` under the Assets section.
 3. Open the downloaded APK on your Android device to install.
 
+<p align="left">
+  <a href="https://github.com/zer0k7/SubDebt-Manager/releases/latest">
+    <img src="https://raw.githubusercontent.com/zer0k7/SubDebt-Manager/main/assets/badge_github_apk.svg" alt="Get it on GitHub Releases" height="60">
+  </a>
+</p>
+
 ---
 
 ## Privacy & Data Sovereignty
@@ -92,7 +100,7 @@ Download the signed release package directly from GitHub Releases:
 |---|---|
 | **Network Requests** | None. The application operates entirely offline. |
 | **User Tracking** | Zero analytics, crash reporting SDKs, or advertising identifiers. |
-| **Local Storage** | Encrypted/local key-value persistence on device hardware. |
+| **Local Storage** | High-performance MMKV key-value persistence directly on device storage. |
 | **Authentication** | Handled strictly by Android Keyguard / BiometricPrompt APIs. |
 | **Data Ownership** | Unrestricted JSON and CSV import/export capabilities at any time. |
 
@@ -105,8 +113,8 @@ Download the signed release package directly from GitHub Releases:
 | **Core Framework** | React Native 0.81, Expo SDK 54 |
 | **Language** | TypeScript 5.9 |
 | **Routing** | Expo Router v6 (File-based navigation) |
-| **Persistence** | MMKV / Local Storage Key-Value Engine |
-| **UI & Styling** | Custom Design System, Expo Blur, Linear Gradient |
+| **Persistence** | MMKV / High-Speed Storage Engine |
+| **UI & Styling** | Custom CSS-in-JS Design System, Expo Blur, Linear Gradient |
 | **Animations** | React Native Reanimated 4 |
 | **Biometrics** | Expo Local Authentication (`BiometricPrompt` API) |
 | **CI / CD** | GitHub Actions (Automated Linux ARM64 Native Toolchain) |
@@ -120,7 +128,7 @@ SubDebt-Manager/
 ├── app/                        # Expo Router application routes and modals
 │   ├── (tabs)/                 # Main screen controllers (Home, Subs, Owed, Spending)
 │   └── modals/                 # Modal dialogs (Add/Edit Records, Settings, Export)
-├── assets/                     # Application icons, splash screens, and fonts
+├── assets/                     # Application icons, splash screens, and badges
 ├── components/                 # Reusable UI component library
 ├── constants/                  # Currency tables, themes, and configuration
 ├── hooks/                      # Custom React state and lifecycle hooks
