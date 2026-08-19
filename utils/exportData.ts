@@ -80,7 +80,7 @@ export const exportAllData = async (): Promise<boolean> => {
     const customCategories = customCategoriesRaw ? JSON.parse(customCategoriesRaw) : [];
 
     const exportData: ComprehensiveExportData = {
-      version: '2.8.0',
+      version: '2.9.0',
       schemaVersion: 2,
       exportedAt: new Date().toISOString(),
       platform: Platform.OS,

@@ -16,4 +16,8 @@ export const STORAGE_KEYS = {
   AUTO_ARCHIVE_SETTLED: 'auto_archive_settled',
   CARD_DENSITY_MODE: 'card_density_mode',
   CUSTOM_CATEGORIES: 'custom_categories_v1',
+  AUTO_SNAPSHOT_ENABLED: 'auto_snapshot_enabled',
+  AUTO_SNAPSHOT_FREQUENCY: 'auto_snapshot_frequency',
+  AUTO_SNAPSHOT_TIME: 'auto_snapshot_time',
+  LAST_AUTO_SNAPSHOT_DATE: 'last_auto_snapshot_date',
 } as const;

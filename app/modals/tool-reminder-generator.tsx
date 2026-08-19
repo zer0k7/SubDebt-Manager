@@ -10,6 +10,7 @@ import { useCredits, Credit } from '../../hooks/useCredits';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency, formatDate } from '../../utils/dateHelpers';
 import { GlassButton } from '../../components/GlassButton';
+import { AppPopup } from '../../components/AppPopup';
 
 type Tone = 'friendly' | 'casual' | 'polite' | 'direct' | 'formal';
 
@@ -32,6 +33,10 @@ export default function ToolReminderGeneratorModal() {
   const pendingCredits = useMemo(() => credits.filter((c) => !c.isReturned), [credits]);
   const [selectedCredit, setSelectedCredit] = useState<Credit | null>(() => pendingCredits[0] || null);
   const [selectedTone, setSelectedTone] = useState<Tone>('friendly');
+
+  const [popupConfig, setPopupConfig] = useState<any>(null);
+  const showPopup = (config: any) => setPopupConfig(config);
+  const closePopup = () => setPopupConfig(null);
 
   React.useEffect(() => {
     if (!selectedCredit && pendingCredits.length > 0) {
@@ -73,7 +78,14 @@ export default function ToolReminderGeneratorModal() {
         message: generatedMessage,
       });
     } catch (err) {
-      Alert.alert('Share Failed', 'Unable to share payment reminder text.');
+      showPopup({
+        title: 'Share Failed',
+        message: 'Unable to share payment reminder text.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
     }
   };
 
@@ -172,6 +184,19 @@ export default function ToolReminderGeneratorModal() {
           />
         </View>
       </ScrollView>
+
+      <AppPopup
+        visible={!!popupConfig}
+        title={popupConfig?.title || ''}
+        message={popupConfig?.message || ''}
+        icon={popupConfig?.icon || 'information-circle-outline'}
+        iconColor={popupConfig?.iconColor}
+        cancelText={popupConfig?.cancelText}
+        confirmText={popupConfig?.confirmText || 'OK'}
+        isDestructive={popupConfig?.isDestructive || false}
+        onCancel={popupConfig?.onCancel || closePopup}
+        onConfirm={popupConfig?.onConfirm || closePopup}
+      />
     </SafeAreaView>
   );
 }

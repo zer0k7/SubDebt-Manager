@@ -20,6 +20,7 @@ import { Confetti } from '../../components/Confetti';
 import { SortFilterSheet, SortOption } from '../../components/SortFilterSheet';
 import { SettlementCardModal } from '../../components/SettlementCardModal';
 import { useDebts, Debt } from '../../hooks/useDebts';
+import { useDailySpending } from '../../hooks/useDailySpending';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
 import { FloatingTopHeader } from '../../components/FloatingTopHeader';
@@ -42,7 +43,8 @@ export default function DebtsScreen() {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
   const router = useRouter();
-  const { debts, isLoaded, deleteDebt, markDebtAsPaid, getTotalPendingAmount, refresh } = useDebts();
+  const { debts, isLoaded, deleteDebt, markDebtAsPaid, getTotalPendingAmount, getRemainingAmount, refresh } = useDebts();
+  const { addEntry: addSpendingEntry } = useDailySpending();
   const { currencyCode, convertAmount, refresh: refreshCurrency } = useCurrency();
   const [filter, setFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
@@ -53,6 +55,7 @@ export default function DebtsScreen() {
   const [showSortSheet, setShowSortSheet] = useState(false);
   const [sortBy, setSortBy] = useState('date_desc');
   const [shareItem, setShareItem] = useState<{ item: any; type: 'borrowed' | 'lent' } | null>(null);
+  const [pendingSpendingDebt, setPendingSpendingDebt] = useState<Debt | null>(null);
 
   const filteredDebts = useMemo(() => {
     let result = debts;
@@ -112,8 +115,43 @@ export default function DebtsScreen() {
     const itemToShare = debts.find(d => d.id === id);
     setShowConfetti(true);
     if (itemToShare) {
+      const settledDebt: Debt = {
+        ...itemToShare,
+        isPaid: true,
+        paidDate: new Date().toISOString(),
+      };
+      setPendingSpendingDebt(settledDebt);
+    }
+  };
+
+  const handleConfirmSpendingLog = () => {
+    if (pendingSpendingDebt) {
+      const remainingAmt = getRemainingAmount(pendingSpendingDebt);
+      const logAmount = remainingAmt > 0 ? remainingAmt : pendingSpendingDebt.amount;
+      addSpendingEntry({
+        title: `Repaid debt: ${pendingSpendingDebt.personName}`,
+        amount: logAmount,
+        currency: pendingSpendingDebt.currency,
+        category: 'Debt & EMI',
+        spentAt: new Date().toISOString(),
+        notes: pendingSpendingDebt.purpose ? `Purpose: ${pendingSpendingDebt.purpose}` : undefined,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const itemToShare = pendingSpendingDebt;
+      setPendingSpendingDebt(null);
       setShareItem({
-        item: { ...itemToShare, isPaid: true, paidDate: new Date().toISOString() },
+        item: itemToShare,
+        type: 'borrowed',
+      });
+    }
+  };
+
+  const handleSkipSpendingLog = () => {
+    if (pendingSpendingDebt) {
+      const itemToShare = pendingSpendingDebt;
+      setPendingSpendingDebt(null);
+      setShareItem({
+        item: itemToShare,
         type: 'borrowed',
       });
     }
@@ -340,6 +378,27 @@ export default function DebtsScreen() {
         isDestructive={true}
         onCancel={() => setDeleteId(null)}
         onConfirm={confirmDelete}
+      />
+
+      <AppPopup
+        visible={!!pendingSpendingDebt}
+        title="Log in Daily Spending?"
+        message={
+          pendingSpendingDebt
+            ? `Would you like to record this payment of ${formatCurrency(
+                getRemainingAmount(pendingSpendingDebt) > 0
+                  ? getRemainingAmount(pendingSpendingDebt)
+                  : pendingSpendingDebt.amount,
+                pendingSpendingDebt.currency
+              )} to ${pendingSpendingDebt.personName} as an expense in Daily Spending?`
+            : ''
+        }
+        icon="wallet-outline"
+        iconColor={colors.accent.green}
+        cancelText="Skip"
+        confirmText="Log Expense"
+        onCancel={handleSkipSpendingLog}
+        onConfirm={handleConfirmSpendingLog}
       />
 
       <SortFilterSheet

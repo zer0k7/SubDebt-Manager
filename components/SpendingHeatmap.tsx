@@ -229,17 +229,17 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
               const isSelected = activeDay?.dateStr === day.dateStr;
 
               let bg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)';
-              let textColor = isDark ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.45)';
+              let textColor = isDark ? 'rgba(255, 255, 255, 0.55)' : 'rgba(0, 0, 0, 0.55)';
               let borderClr = isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)';
 
               if (day.isFuture) {
                 bg = 'transparent';
-                textColor = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
+                textColor = isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.18)';
                 borderClr = 'transparent';
               } else if (day.level === 'low') {
-                bg = 'rgba(16, 185, 129, 0.85)';
+                bg = 'rgba(16, 185, 129, 0.9)';
                 textColor = '#FFFFFF';
-                borderClr = 'rgba(16, 185, 129, 0.9)';
+                borderClr = 'rgba(16, 185, 129, 0.95)';
               } else if (day.level === 'med') {
                 bg = 'rgba(245, 158, 11, 0.9)';
                 textColor = '#FFFFFF';
@@ -253,10 +253,25 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
               if (day.isToday) {
                 if (day.level === 'zero') {
                   bg = isDark ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.12)';
-                  textColor = colors.accent.blue;
+                  textColor = isDark ? '#93C5FD' : '#1D4ED8';
                 }
                 borderClr = colors.accent.blue;
               }
+
+              if (isSelected) {
+                borderClr = colors.accent.blue;
+                if (day.level === 'zero') {
+                  textColor = day.isToday
+                    ? (isDark ? '#93C5FD' : '#1D4ED8')
+                    : (isDark ? '#FFFFFF' : '#1E293B');
+                } else {
+                  textColor = '#FFFFFF';
+                }
+              }
+
+              const dotColor = (day.level === 'zero')
+                ? (isDark ? '#93C5FD' : colors.accent.blue)
+                : '#FFFFFF';
 
               return (
                 <TouchableOpacity
@@ -278,7 +293,7 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
                       styles.dayNumberText,
                       { color: textColor },
                       day.isToday && styles.dayNumberToday,
-                      isSelected && { color: '#FFFFFF', fontWeight: '800' },
+                      isSelected && { fontWeight: '900' },
                     ]}
                   >
                     {day.dayNumber}
@@ -287,7 +302,7 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
                     <View
                       style={[
                         styles.todayDot,
-                        { backgroundColor: isSelected ? '#FFFFFF' : colors.accent.blue },
+                        { backgroundColor: dotColor },
                       ]}
                     />
                   )}

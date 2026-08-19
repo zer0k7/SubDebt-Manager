@@ -97,6 +97,10 @@ export default function SpendingExplorerModal() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
 
+  const [popupConfig, setPopupConfig] = useState<any>(null);
+  const showPopup = (config: any) => setPopupConfig(config);
+  const closePopup = () => setPopupConfig(null);
+
   // Helper date calculators
   const dateRangeBounds = useMemo(() => {
     const now = new Date();
@@ -292,7 +296,14 @@ export default function SpendingExplorerModal() {
   // CSV Exporter
   const handleExportCSV = async () => {
     if (filteredEntries.length === 0) {
-      Alert.alert('No Data', 'There are no transactions to export with current filters.');
+      showPopup({
+        title: 'No Transactions',
+        message: 'There are no transactions matching your current filters to export.',
+        icon: 'information-circle-outline',
+        iconColor: colors.accent.amber,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
       return;
     }
 
@@ -333,7 +344,14 @@ export default function SpendingExplorerModal() {
       }
     } catch (err) {
       console.error('CSV Export error:', err);
-      Alert.alert('Export Failed', 'Unable to export transactions CSV.');
+      showPopup({
+        title: 'Export Failed',
+        message: 'Unable to export transactions CSV. Please check file sharing permissions.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
     } finally {
       setIsExporting(false);
     }
@@ -494,9 +512,8 @@ export default function SpendingExplorerModal() {
                       style={[
                         styles.catChip,
                         isActive && {
-                          backgroundColor: `${cat.color}25`,
+                          backgroundColor: cat.color,
                           borderColor: cat.color,
-                          borderWidth: 1.2,
                         },
                       ]}
                       onPress={() => {
@@ -508,12 +525,12 @@ export default function SpendingExplorerModal() {
                       <Ionicons
                         name={cat.icon as any}
                         size={13}
-                        color={isActive ? cat.color : colors.text.secondary}
+                        color={isActive ? '#FFFFFF' : cat.color}
                       />
                       <Text
                         style={[
                           styles.catChipText,
-                          isActive && { color: cat.color, fontWeight: '700' },
+                          isActive && { color: '#FFFFFF', fontWeight: '800' },
                         ]}
                       >
                         {cat.name}
@@ -661,6 +678,19 @@ export default function SpendingExplorerModal() {
         cancelText="Cancel"
         onConfirm={confirmDelete}
         onCancel={() => setDeleteId(null)}
+      />
+
+      <AppPopup
+        visible={!!popupConfig}
+        title={popupConfig?.title || ''}
+        message={popupConfig?.message || ''}
+        icon={popupConfig?.icon || 'information-circle-outline'}
+        iconColor={popupConfig?.iconColor}
+        cancelText={popupConfig?.cancelText}
+        confirmText={popupConfig?.confirmText || 'OK'}
+        isDestructive={popupConfig?.isDestructive || false}
+        onCancel={popupConfig?.onCancel || closePopup}
+        onConfirm={popupConfig?.onConfirm || closePopup}
       />
 
       {/* Sort Option Modal */}
@@ -847,6 +877,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     chipRow: {
       gap: 7,
       paddingVertical: 2,
+      paddingRight: 24,
     },
     presetChip: {
       paddingHorizontal: 13,

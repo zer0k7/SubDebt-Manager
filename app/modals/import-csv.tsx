@@ -16,6 +16,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AmbientBackground } from '../../components/AmbientBackground';
+import { AppPopup } from '../../components/AppPopup';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useSettings } from '../../context/SettingsContext';
 import { parseCsvContent, importCsvToSpending, ParsedCsvRow } from '../../utils/csvImporter';
@@ -31,6 +32,10 @@ export default function ImportCsvModal() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [parsedRows, setParsedRows] = useState<ParsedCsvRow[]>([]);
   const [importing, setImporting] = useState(false);
+
+  const [popupConfig, setPopupConfig] = useState<any>(null);
+  const showPopup = (config: any) => setPopupConfig(config);
+  const closePopup = () => setPopupConfig(null);
 
   const handlePickCsv = async () => {
     try {
@@ -54,13 +59,27 @@ export default function ImportCsvModal() {
         setParsedRows(rows);
 
         if (rows.length === 0) {
-          Alert.alert('No Rows Found', 'Could not detect valid transactions in this CSV file.');
+          showPopup({
+            title: 'No Rows Found',
+            message: 'Could not detect valid transactions in this CSV file.',
+            icon: 'alert-circle-outline',
+            iconColor: colors.accent.amber,
+            confirmText: 'OK',
+            onConfirm: closePopup,
+          });
         } else {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
       }
     } catch (err) {
-      Alert.alert('File Read Error', 'Failed to read the selected CSV file.');
+      showPopup({
+        title: 'File Read Error',
+        message: 'Failed to read the selected CSV file.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
     } finally {
       setLoading(false);
     }
@@ -76,13 +95,26 @@ export default function ImportCsvModal() {
       const count = await importCsvToSpending(parsedRows, currencyCode);
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        'Import Successful! 🎉',
-        `Successfully imported ${count} transactions into your Daily Spending ledger.`,
-        [{ text: 'Great!', onPress: () => router.back() }]
-      );
+      showPopup({
+        title: 'Import Successful! 🎉',
+        message: `Successfully imported ${count} transactions into your Daily Spending ledger.`,
+        icon: 'checkmark-circle-outline',
+        iconColor: colors.accent.green,
+        confirmText: 'Great!',
+        onConfirm: () => {
+          closePopup();
+          router.back();
+        },
+      });
     } catch (err) {
-      Alert.alert('Import Failed', 'An error occurred while saving imported entries.');
+      showPopup({
+        title: 'Import Failed',
+        message: 'An error occurred while saving imported entries.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
     } finally {
       setImporting(false);
     }
@@ -164,6 +196,19 @@ export default function ImportCsvModal() {
           </View>
         )}
       </ScrollView>
+
+      <AppPopup
+        visible={!!popupConfig}
+        title={popupConfig?.title || ''}
+        message={popupConfig?.message || ''}
+        icon={popupConfig?.icon || 'information-circle-outline'}
+        iconColor={popupConfig?.iconColor}
+        cancelText={popupConfig?.cancelText}
+        confirmText={popupConfig?.confirmText || 'OK'}
+        isDestructive={popupConfig?.isDestructive || false}
+        onCancel={popupConfig?.onCancel || closePopup}
+        onConfirm={popupConfig?.onConfirm || closePopup}
+      />
     </SafeAreaView>
   );
 }

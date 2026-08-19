@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,6 +7,14 @@ import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { AmbientBackground } from '../../components/AmbientBackground';
 import { exportDatabaseBackup, importDatabaseBackup, exportSpendingCSV } from '../../utils/backupRestore';
+import {
+  createVaultSnapshot,
+  listVaultSnapshots,
+  restoreVaultSnapshot,
+  deleteVaultSnapshot,
+  shareVaultSnapshot,
+  VaultSnapshotItem,
+} from '../../utils/vaultSnapshots';
 import { storage } from '../../storage/mmkv';
 import { STORAGE_KEYS } from '../../storage/keys';
 import { AppPopup } from '../../components/AppPopup';
@@ -17,36 +25,62 @@ export default function DataVaultToolScreen() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [popupVisible, setPopupVisible] = useState(false);
-  const [popupConfig, setPopupConfig] = useState<any>({});
+  const [autoSnapshotEnabled, setAutoSnapshotEnabled] = useState(true);
+  const [snapshots, setSnapshots] = useState<VaultSnapshotItem[]>([]);
+  const [lastBackupDate, setLastBackupDate] = useState<string | null>(null);
 
-  const showPopup = (config: any) => {
-    setPopupConfig(config);
-    setPopupVisible(true);
+  const [popupConfig, setPopupConfig] = useState<any>(null);
+  const showPopup = (config: any) => setPopupConfig(config);
+  const closePopup = () => setPopupConfig(null);
+
+  // Load initial settings and snapshot list
+  const loadVaultData = useCallback(async () => {
+    try {
+      const enabledRaw = await storage.getString(STORAGE_KEYS.AUTO_SNAPSHOT_ENABLED);
+      setAutoSnapshotEnabled(enabledRaw === null ? true : enabledRaw === 'true');
+
+      const lastDate = await storage.getString(STORAGE_KEYS.LAST_BACKUP);
+      setLastBackupDate(lastDate || null);
+
+      const list = await listVaultSnapshots();
+      setSnapshots(list);
+    } catch (err) {
+      console.warn('Error loading vault data:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadVaultData();
+  }, [loadVaultData]);
+
+  const handleToggleAutoSnapshot = async (value: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setAutoSnapshotEnabled(value);
+    await storage.set(STORAGE_KEYS.AUTO_SNAPSHOT_ENABLED, value ? 'true' : 'false');
   };
 
-  const closePopup = () => setPopupVisible(false);
-
-  const handleExportJSON = async () => {
+  const handleCreateSnapshotNow = async () => {
     setLoading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    const success = await exportDatabaseBackup();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    const result = await createVaultSnapshot('manual');
     setLoading(false);
-    if (success) {
+
+    if (result.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await loadVaultData();
       showPopup({
-        title: 'Backup Created',
-        message: 'Your full encrypted JSON ledger backup has been generated and is ready to share or save.',
+        title: 'Snapshot Created! 🛡️',
+        message: `Your ledger snapshot was safely encrypted and saved to the offline vault folder.\n\nFile: ${result.fileName}`,
         icon: 'checkmark-circle-outline',
-        iconColor: '#66BB6A',
+        iconColor: colors.accent.green,
         confirmText: 'Great',
         onConfirm: closePopup,
       });
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showPopup({
-        title: 'Backup Failed',
-        message: 'Could not create JSON backup file. Please verify file permissions.',
+        title: 'Snapshot Failed',
+        message: result.error || 'Could not create vault snapshot file.',
         icon: 'alert-circle-outline',
         iconColor: colors.accent.red,
         confirmText: 'OK',
@@ -55,14 +89,107 @@ export default function DataVaultToolScreen() {
     }
   };
 
-  const handleImportJSON = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  const handleRestoreSnapshot = (snapshot: VaultSnapshotItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showPopup({
-      title: 'Restore Ledger Backup?',
-      message: 'Restoring from a JSON file will merge backup records with your current offline ledger data. Do you want to proceed?',
+      title: 'Restore Vault Snapshot?',
+      message: `Restore data from snapshot (${snapshot.metadata.totalRecords} records)?\n\nChoose 'Merge' to combine with your current records, or 'Replace' to overwrite.`,
       icon: 'download-outline',
       iconColor: colors.accent.blue,
-      confirmText: 'Select Backup File',
+      confirmText: 'Merge Records',
+      cancelText: 'Cancel',
+      onCancel: closePopup,
+      onConfirm: async () => {
+        closePopup();
+        setLoading(true);
+        const result = await restoreVaultSnapshot(snapshot.filePath, 'merge');
+        setLoading(false);
+        if (result.success) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          const total =
+            result.subscriptionsCount +
+            result.debtsCount +
+            result.creditsCount +
+            result.spendingCount +
+            result.categoriesCount;
+          showPopup({
+            title: 'Vault Restored Successfully 🎉',
+            message: `Restored ${total} entries and app preferences from snapshot ${snapshot.fileName}.`,
+            icon: 'checkmark-circle-outline',
+            iconColor: colors.accent.green,
+            confirmText: 'Done',
+            onConfirm: closePopup,
+          });
+        } else {
+          showPopup({
+            title: 'Restore Failed',
+            message: result.error || 'Could not restore snapshot data.',
+            icon: 'alert-circle-outline',
+            iconColor: colors.accent.red,
+            confirmText: 'OK',
+            onConfirm: closePopup,
+          });
+        }
+      },
+    });
+  };
+
+  const handleShareSnapshot = async (snapshot: VaultSnapshotItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await shareVaultSnapshot(snapshot.filePath, snapshot.fileName);
+  };
+
+  const handleDeleteSnapshot = (snapshot: VaultSnapshotItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    showPopup({
+      title: 'Delete Snapshot?',
+      message: `Are you sure you want to permanently delete this snapshot (${snapshot.fileName})?`,
+      icon: 'trash-outline',
+      iconColor: colors.accent.red,
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
+      onCancel: closePopup,
+      onConfirm: async () => {
+        closePopup();
+        setLoading(true);
+        await deleteVaultSnapshot(snapshot.filePath);
+        await loadVaultData();
+        setLoading(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      },
+    });
+  };
+
+  const handleExportJSON = async () => {
+    setLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const success = await exportDatabaseBackup();
+    setLoading(false);
+    if (success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await loadVaultData();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showPopup({
+        title: 'Export Failed',
+        message: 'Could not export JSON backup file.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
+    }
+  };
+
+  const handleImportExternalJSON = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    showPopup({
+      title: 'Import External Backup?',
+      message: 'Select an external JSON backup file to merge with your current offline ledger data.',
+      icon: 'download-outline',
+      iconColor: colors.accent.blue,
+      confirmText: 'Choose File',
       cancelText: 'Cancel',
       isDestructive: false,
       onCancel: closePopup,
@@ -80,13 +207,14 @@ export default function DataVaultToolScreen() {
             result.spendingCount +
             result.categoriesCount;
           showPopup({
-            title: 'Vault Restored',
-            message: `Successfully imported ${totalRecords} records across all tabs, custom categories, and restored your settings.`,
+            title: 'Vault Restored 🎉',
+            message: `Successfully imported ${totalRecords} records across all tabs and restored your settings.`,
             icon: 'checkmark-circle-outline',
-            iconColor: '#66BB6A',
+            iconColor: colors.accent.green,
             confirmText: 'Done',
             onConfirm: closePopup,
           });
+          await loadVaultData();
         }
       },
     });
@@ -110,14 +238,6 @@ export default function DataVaultToolScreen() {
 
     if (success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showPopup({
-        title: 'CSV Exported',
-        message: 'Your daily spending entries have been compiled into a structured CSV spreadsheet.',
-        icon: 'checkmark-circle-outline',
-        iconColor: '#66BB6A',
-        confirmText: 'Done',
-        onConfirm: closePopup,
-      });
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showPopup({
@@ -131,10 +251,27 @@ export default function DataVaultToolScreen() {
     }
   };
 
+  const formatSnapshotDate = (isoStr: string) => {
+    try {
+      const d = new Date(isoStr);
+      return d.toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch (e) {
+      return isoStr;
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <AmbientBackground />
 
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
@@ -144,43 +281,166 @@ export default function DataVaultToolScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Hero Card */}
         <View style={styles.heroBox}>
           <View style={styles.heroIconBox}>
             <Ionicons name="shield-checkmark" size={32} color={colors.accent.blue} />
           </View>
           <Text style={styles.heroTitle}>Offline Data Vault</Text>
           <Text style={styles.heroSubtitle}>
-            Create instant offline backups of your subscriptions, debts, and daily spending entries, or restore from a previous JSON backup file.
+            100% offline, encrypted JSON snapshots stored safely in your device storage. Automatic daily backups protect all financial records.
           </Text>
         </View>
 
         {loading && (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={colors.accent.blue} />
+            <ActivityIndicator size="small" color={colors.accent.blue} />
             <Text style={styles.loadingText}>Processing vault operation...</Text>
           </View>
         )}
 
-        <Text style={styles.sectionLabel}>BACKUP & RESTORE ACTIONS</Text>
+        {/* Automated Daily Snapshots Schedule Card */}
+        <Text style={styles.sectionLabel}>AUTOMATED VAULT SNAPSHOTS</Text>
+        <View style={styles.scheduledCard}>
+          <View style={styles.scheduledHeader}>
+            <View style={styles.scheduledIconBox}>
+              <Ionicons name="timer-outline" size={22} color={colors.accent.purple} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.scheduledTitle}>Daily Auto-Snapshot</Text>
+              <Text style={styles.scheduledDesc}>
+                Automatically backs up all subscriptions, debts, credits & spending logs daily at 10:00 PM IST.
+              </Text>
+            </View>
+            <Switch
+              value={autoSnapshotEnabled}
+              onValueChange={handleToggleAutoSnapshot}
+              trackColor={{ false: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', true: colors.accent.purple }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={styles.scheduleDivider} />
+
+          <View style={styles.scheduleInfoRow}>
+            <View style={styles.schedulePill}>
+              <Ionicons name="time" size={13} color={colors.accent.purple} />
+              <Text style={styles.schedulePillText}>Schedule: Every Day @ 10:00 PM IST</Text>
+            </View>
+            <View style={styles.schedulePill}>
+              <Ionicons name="folder" size={13} color={colors.accent.blue} />
+              <Text style={styles.schedulePillText}>Folder: SubDebt_Vault_Backups/</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.snapshotNowBtn}
+            onPress={handleCreateSnapshotNow}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="camera-outline" size={18} color="#FFFFFF" />
+            <Text style={styles.snapshotNowText}>Take Vault Snapshot Now</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Snapshots History & Management List */}
+        <View style={styles.historyHeaderRow}>
+          <Text style={styles.sectionLabel}>SAVED VAULT SNAPSHOTS ({snapshots.length})</Text>
+          {snapshots.length > 0 && (
+            <Text style={styles.retentionNotice}>Keeping latest 30</Text>
+          )}
+        </View>
+
+        {snapshots.length === 0 ? (
+          <View style={styles.emptySnapshotCard}>
+            <Ionicons name="archive-outline" size={32} color={colors.text.muted} />
+            <Text style={styles.emptySnapshotTitle}>No Snapshots Created Yet</Text>
+            <Text style={styles.emptySnapshotDesc}>
+              Tap "Take Vault Snapshot Now" or let SubDebt auto-backup your data every night at 10:00 PM.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.snapshotList}>
+            {snapshots.map((item) => (
+              <View key={item.id} style={styles.snapshotItemCard}>
+                <View style={styles.snapshotItemTop}>
+                  <View style={styles.snapshotDateRow}>
+                    <Ionicons
+                      name={item.metadata.triggerType === 'auto' ? 'alarm-outline' : 'shield-checkmark-outline'}
+                      size={16}
+                      color={item.metadata.triggerType === 'auto' ? colors.accent.purple : colors.accent.blue}
+                    />
+                    <Text style={styles.snapshotDateText}>{formatSnapshotDate(item.createdAt)}</Text>
+                    <View style={[styles.triggerBadge, { backgroundColor: item.metadata.triggerType === 'auto' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(59, 130, 246, 0.15)' }]}>
+                      <Text style={[styles.triggerBadgeText, { color: item.metadata.triggerType === 'auto' ? colors.accent.purple : colors.accent.blue }]}>
+                        {item.metadata.triggerType === 'auto' ? 'Auto 10PM' : 'Manual'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={styles.snapshotSizeText}>{item.sizeFormatted}</Text>
+                </View>
+
+                <View style={styles.snapshotStatsRow}>
+                  <Text style={styles.snapshotMetaText}>
+                    {item.metadata.totalRecords} records ({item.metadata.dailySpending} expenses · {item.metadata.debts + item.metadata.credits} debts · {item.metadata.subscriptions} subs)
+                  </Text>
+                </View>
+
+                <View style={styles.snapshotActionsRow}>
+                  <TouchableOpacity
+                    style={styles.snapshotActionBtn}
+                    onPress={() => handleRestoreSnapshot(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="refresh-outline" size={14} color={colors.accent.blue} />
+                    <Text style={[styles.snapshotActionText, { color: colors.accent.blue }]}>Restore</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.snapshotActionBtn}
+                    onPress={() => handleShareSnapshot(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="share-outline" size={14} color={colors.text.secondary} />
+                    <Text style={[styles.snapshotActionText, { color: colors.text.secondary }]}>Share</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.snapshotActionBtn}
+                    onPress={() => handleDeleteSnapshot(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="trash-outline" size={14} color={colors.accent.red} />
+                    <Text style={[styles.snapshotActionText, { color: colors.accent.red }]}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Manual Export / Import Actions */}
+        <Text style={[styles.sectionLabel, { marginTop: 24 }]}>EXTERNAL ACTIONS</Text>
 
         <TouchableOpacity style={styles.actionCard} onPress={handleExportJSON} activeOpacity={0.8} disabled={loading}>
           <View style={[styles.actionIconBox, { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79, 195, 247, 0.15)' }]}>
             <Ionicons name="cloud-upload-outline" size={22} color={colors.accent.blue} />
           </View>
           <View style={styles.actionMeta}>
-            <Text style={styles.actionTitle}>Create JSON Backup</Text>
-            <Text style={styles.actionDesc}>Export your entire ledger (debts, credits, subscriptions, expenses) into a portable JSON backup file.</Text>
+            <Text style={styles.actionTitle}>Share Full Backup File</Text>
+            <Text style={styles.actionDesc}>Export JSON backup file to WhatsApp, Drive, email, or device storage.</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.actionCard} onPress={handleImportJSON} activeOpacity={0.8} disabled={loading}>
+        <TouchableOpacity style={styles.actionCard} onPress={handleImportExternalJSON} activeOpacity={0.8} disabled={loading}>
           <View style={[styles.actionIconBox, { backgroundColor: 'rgba(102, 187, 106, 0.15)' }]}>
             <Ionicons name="cloud-download-outline" size={22} color={colors.accent.green} />
           </View>
           <View style={styles.actionMeta}>
-            <Text style={styles.actionTitle}>Restore from Backup</Text>
-            <Text style={styles.actionDesc}>Import and merge records from an existing SubDebt JSON backup file on your device.</Text>
+            <Text style={styles.actionTitle}>Import External Backup</Text>
+            <Text style={styles.actionDesc}>Select a `.json` backup file from Files / Drive to restore records.</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
         </TouchableOpacity>
@@ -191,7 +451,7 @@ export default function DataVaultToolScreen() {
           </View>
           <View style={styles.actionMeta}>
             <Text style={styles.actionTitle}>Export Spending CSV</Text>
-            <Text style={styles.actionDesc}>Generate a formatted CSV spreadsheet of your daily spending logs for Excel or Google Sheets.</Text>
+            <Text style={styles.actionDesc}>Generate an Excel/Sheets-compatible CSV spreadsheet of daily expenses.</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
         </TouchableOpacity>
@@ -199,118 +459,302 @@ export default function DataVaultToolScreen() {
         <View style={styles.privacyCard}>
           <Ionicons name="lock-closed-outline" size={18} color={colors.accent.blue} />
           <Text style={styles.privacyText}>
-            SubDebt Manager runs 100% offline. All exported files are saved directly to your device storage without external server transfers.
+            SubDebt Manager runs 100% offline. All snapshots are stored locally on your device without any cloud dependency.
           </Text>
         </View>
       </ScrollView>
 
       <AppPopup
-        visible={popupVisible}
-        title={popupConfig.title || ''}
-        message={popupConfig.message || ''}
-        icon={popupConfig.icon}
-        iconColor={popupConfig.iconColor}
-        confirmText={popupConfig.confirmText}
-        cancelText={popupConfig.cancelText}
-        isDestructive={popupConfig.isDestructive}
-        onConfirm={popupConfig.onConfirm || closePopup}
-        onCancel={popupConfig.onCancel || closePopup}
+        visible={!!popupConfig}
+        title={popupConfig?.title || ''}
+        message={popupConfig?.message || ''}
+        icon={popupConfig?.icon}
+        iconColor={popupConfig?.iconColor}
+        confirmText={popupConfig?.confirmText || 'OK'}
+        cancelText={popupConfig?.cancelText}
+        isDestructive={popupConfig?.isDestructive || false}
+        onConfirm={popupConfig?.onConfirm || closePopup}
+        onCancel={popupConfig?.onCancel || closePopup}
       />
     </SafeAreaView>
   );
 }
 
-const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background.primary },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: colors.glass.cardBorder,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.glass.card,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
-  content: { padding: 20 },
-  heroBox: {
-    alignItems: 'center',
-    backgroundColor: colors.glass.card,
-    borderRadius: 20,
-    padding: 24,
-    borderWidth: 0.5,
-    borderColor: colors.glass.cardBorder,
-    marginBottom: 24,
-  },
-  heroIconBox: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(79, 195, 247, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  heroTitle: { fontSize: 20, fontWeight: '800', color: colors.text.primary, marginBottom: 6 },
-  heroSubtitle: { fontSize: 13, color: colors.text.secondary, textAlign: 'center', lineHeight: 18 },
-  loadingBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    padding: 16,
-    backgroundColor: colors.glass.card,
-    borderRadius: 14,
-    marginBottom: 20,
-  },
-  loadingText: { fontSize: 14, fontWeight: '600', color: colors.accent.blue },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: colors.text.muted,
-    letterSpacing: 1,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  actionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.glass.card,
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 0.5,
-    borderColor: colors.glass.cardBorder,
-    marginBottom: 12,
-    gap: 14,
-  },
-  actionIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionMeta: { flex: 1 },
-  actionTitle: { fontSize: 15, fontWeight: '700', color: colors.text.primary, marginBottom: 2 },
-  actionDesc: { fontSize: 12, color: colors.text.secondary, lineHeight: 16 },
-  privacyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.08 : 0.06) : (isDark ? 'rgba(79, 195, 247, 0.08)' : 'rgba(2, 132, 199, 0.06)'),
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 12,
-    borderWidth: 0.5,
-    borderColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.2 : 0.15) : (isDark ? 'rgba(79, 195, 247, 0.2)' : 'rgba(2, 132, 199, 0.15)'),
-  },
-  privacyText: { flex: 1, fontSize: 12, color: colors.text.secondary, lineHeight: 16 },
-});
+const getStyles = (colors: any, isDark: boolean) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background.primary },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 12,
+      borderBottomWidth: 0.5,
+      borderBottomColor: colors.glass.cardBorder,
+    },
+    closeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.glass.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    title: { fontSize: 18, fontWeight: '700', color: colors.text.primary },
+    content: { padding: 20, paddingBottom: 40 },
+    heroBox: {
+      alignItems: 'center',
+      backgroundColor: colors.glass.card,
+      borderRadius: 20,
+      padding: 22,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+      marginBottom: 20,
+    },
+    heroIconBox: {
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: 'rgba(79, 195, 247, 0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 10,
+    },
+    heroTitle: { fontSize: 19, fontWeight: '800', color: colors.text.primary, marginBottom: 5 },
+    heroSubtitle: { fontSize: 12.5, color: colors.text.secondary, textAlign: 'center', lineHeight: 18 },
+    loadingBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 10,
+      padding: 12,
+      backgroundColor: colors.glass.card,
+      borderRadius: 14,
+      marginBottom: 16,
+    },
+    loadingText: { fontSize: 13, fontWeight: '600', color: colors.accent.blue },
+    sectionLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.text.muted,
+      letterSpacing: 0.8,
+      marginBottom: 10,
+      marginLeft: 4,
+    },
+    scheduledCard: {
+      backgroundColor: colors.glass.card,
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+      marginBottom: 20,
+      gap: 12,
+    },
+    scheduledHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    scheduledIconBox: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      backgroundColor: 'rgba(168, 85, 247, 0.15)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scheduledTitle: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.text.primary,
+      marginBottom: 2,
+    },
+    scheduledDesc: {
+      fontSize: 12,
+      color: colors.text.secondary,
+      lineHeight: 16,
+    },
+    scheduleDivider: {
+      height: 0.5,
+      backgroundColor: colors.glass.cardBorder,
+      marginVertical: 2,
+    },
+    scheduleInfoRow: {
+      gap: 6,
+    },
+    schedulePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
+    },
+    schedulePillText: {
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: colors.text.secondary,
+    },
+    snapshotNowBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      backgroundColor: colors.accent.purple,
+      paddingVertical: 12,
+      borderRadius: 12,
+      marginTop: 4,
+    },
+    snapshotNowText: {
+      color: '#FFFFFF',
+      fontSize: 13.5,
+      fontWeight: '700',
+    },
+    historyHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+      paddingRight: 4,
+    },
+    retentionNotice: {
+      fontSize: 10.5,
+      color: colors.text.muted,
+      fontWeight: '600',
+    },
+    emptySnapshotCard: {
+      alignItems: 'center',
+      padding: 24,
+      borderRadius: 16,
+      backgroundColor: colors.glass.card,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+      gap: 6,
+      marginBottom: 16,
+    },
+    emptySnapshotTitle: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text.secondary,
+      marginTop: 4,
+    },
+    emptySnapshotDesc: {
+      fontSize: 12,
+      color: colors.text.muted,
+      textAlign: 'center',
+      lineHeight: 16,
+    },
+    snapshotList: {
+      gap: 10,
+      marginBottom: 16,
+    },
+    snapshotItemCard: {
+      backgroundColor: colors.glass.card,
+      borderRadius: 16,
+      padding: 14,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+      gap: 8,
+    },
+    snapshotItemTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    snapshotDateRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    snapshotDateText: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    triggerBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    triggerBadgeText: {
+      fontSize: 9.5,
+      fontWeight: '800',
+    },
+    snapshotSizeText: {
+      fontSize: 11.5,
+      fontWeight: '600',
+      color: colors.text.muted,
+    },
+    snapshotStatsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    snapshotMetaText: {
+      fontSize: 11.5,
+      color: colors.text.secondary,
+    },
+    snapshotActionsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 2,
+      paddingTop: 8,
+      borderTopWidth: 0.5,
+      borderTopColor: colors.glass.cardBorder,
+    },
+    snapshotActionBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+    },
+    snapshotActionText: {
+      fontSize: 11.5,
+      fontWeight: '700',
+    },
+    actionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.glass.card,
+      borderRadius: 16,
+      padding: 15,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+      marginBottom: 10,
+      gap: 12,
+    },
+    actionIconBox: {
+      width: 42,
+      height: 42,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    actionMeta: { flex: 1 },
+    actionTitle: { fontSize: 14.5, fontWeight: '700', color: colors.text.primary, marginBottom: 2 },
+    actionDesc: { fontSize: 11.5, color: colors.text.secondary, lineHeight: 15 },
+    privacyCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: colors.accent.alpha
+        ? colors.accent.alpha(isDark ? 0.08 : 0.06)
+        : isDark
+        ? 'rgba(79, 195, 247, 0.08)'
+        : 'rgba(2, 132, 199, 0.06)',
+      borderRadius: 14,
+      padding: 14,
+      marginTop: 8,
+      borderWidth: 0.5,
+      borderColor: colors.accent.alpha
+        ? colors.accent.alpha(isDark ? 0.2 : 0.15)
+        : isDark
+        ? 'rgba(79, 195, 247, 0.2)'
+        : 'rgba(2, 132, 199, 0.15)',
+    },
+    privacyText: { flex: 1, fontSize: 11.5, color: colors.text.secondary, lineHeight: 16 },
+  });

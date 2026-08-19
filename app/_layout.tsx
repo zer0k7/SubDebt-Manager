@@ -15,6 +15,7 @@ import { AuthLockProvider } from '../context/AuthLockContext';
 import { registerForPushNotificationsAsync } from '../utils/notificationHelpers';
 import { authenticate } from '../utils/authHelpers';
 import { checkForUpdate, UpdateInfo } from '../utils/updateChecker';
+import { checkAndRunScheduledSnapshot } from '../utils/vaultSnapshots';
 import { UpdatePrompt } from '../components/UpdatePrompt';
 
 function AppLayout() {
@@ -41,10 +42,12 @@ function AppLayout() {
   useEffect(() => {
     registerForPushNotificationsAsync();
     handleAuth(false);
+    checkAndRunScheduledSnapshot();
 
     const subscription = AppState.addEventListener('change', nextAppState => {
       if (nextAppState === 'active') {
         handleAuth(true);
+        checkAndRunScheduledSnapshot();
       }
     });
 

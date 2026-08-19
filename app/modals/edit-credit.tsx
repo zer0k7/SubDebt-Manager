@@ -38,7 +38,10 @@ export default function EditCreditModal() {
   const [showReturnPicker, setShowReturnPicker] = useState(false);
   const [hasReturnDate, setHasReturnDate] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [popupVisible, setPopupVisible] = useState(false);
+  const [popupConfig, setPopupConfig] = useState<any>(null);
+  const showPopup = (config: any) => setPopupConfig(config);
+  const closePopup = () => setPopupConfig(null);
+
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
 
   const [installmentAmount, setInstallmentAmount] = useState('');
@@ -52,7 +55,14 @@ export default function EditCreditModal() {
     const amt = Number(installmentAmount);
     if (amt > remaining) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Overpayment', 'Installment amount cannot exceed the remaining balance.');
+      showPopup({
+        title: 'Overpayment',
+        message: 'Installment amount cannot exceed the remaining balance.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.amber,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
       return;
     }
     
@@ -63,21 +73,22 @@ export default function EditCreditModal() {
   };
 
   const handleDeletePayment = (paymentId: string) => {
-    Alert.alert(
-      'Delete Payment',
-      'Are you sure you want to delete this installment?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => {
-            deletePayment(id, paymentId);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          } 
-        }
-      ]
-    );
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    showPopup({
+      title: 'Delete Installment',
+      message: 'Are you sure you want to delete this installment payment record?',
+      icon: 'trash-outline',
+      iconColor: colors.accent.red,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      isDestructive: true,
+      onCancel: closePopup,
+      onConfirm: () => {
+        closePopup();
+        deletePayment(id, paymentId);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      },
+    });
   };
 
   useEffect(() => {
@@ -138,11 +149,24 @@ export default function EditCreditModal() {
     router.back();
   };
 
-  const confirmDelete = () => {
-    setPopupVisible(false);
+  const handleDelete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    deleteCredit(id);
-    router.back();
+    showPopup({
+      title: 'Delete Lent Money Record',
+      message: `Are you sure you want to delete this record for ${credit.personName}?`,
+      icon: 'trash-outline',
+      iconColor: colors.accent.red,
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
+      onCancel: closePopup,
+      onConfirm: () => {
+        closePopup();
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        deleteCredit(id);
+        router.back();
+      },
+    });
   };
 
   return (
@@ -153,7 +177,7 @@ export default function EditCreditModal() {
           <Ionicons name="close" size={26} color={colors.text.secondary} />
         </TouchableOpacity>
         <Text style={styles.title}>Edit Lent Money</Text>
-        <TouchableOpacity onPress={() => setPopupVisible(true)} style={styles.deleteBtn}>
+        <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn}>
           <Ionicons name="trash-outline" size={22} color={colors.accent.red} />
         </TouchableOpacity>
       </View>
@@ -276,16 +300,16 @@ export default function EditCreditModal() {
       <AppDatePicker visible={showLentPicker} date={lentDate} onConfirm={(d) => { setShowLentPicker(false); setLentDate(d); }} onCancel={() => setShowLentPicker(false)} />
       <AppDatePicker visible={showReturnPicker} date={expectedReturnDate || new Date()} minimumDate={lentDate} onConfirm={(d) => { setShowReturnPicker(false); setExpectedReturnDate(d); }} onCancel={() => setShowReturnPicker(false)} />
       <AppPopup
-        visible={popupVisible}
-        title="Delete Lent Money Record"
-        message={`Are you sure you want to delete this record for ${credit.personName}?`}
-        icon="trash-outline"
-        iconColor={colors.accent.red}
-        cancelText="Cancel"
-        confirmText="Delete"
-        isDestructive={true}
-        onCancel={() => setPopupVisible(false)}
-        onConfirm={confirmDelete}
+        visible={!!popupConfig}
+        title={popupConfig?.title || ''}
+        message={popupConfig?.message || ''}
+        icon={popupConfig?.icon || 'information-circle-outline'}
+        iconColor={popupConfig?.iconColor}
+        cancelText={popupConfig?.cancelText}
+        confirmText={popupConfig?.confirmText || 'OK'}
+        isDestructive={popupConfig?.isDestructive || false}
+        onCancel={popupConfig?.onCancel || closePopup}
+        onConfirm={popupConfig?.onConfirm || closePopup}
       />
       <CurrencyPicker visible={showCurrencyPicker} selectedCode={currency} onSelect={setCurrency} onClose={() => setShowCurrencyPicker(false)} />
     </SafeAreaView>

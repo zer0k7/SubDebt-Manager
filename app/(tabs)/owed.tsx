@@ -21,6 +21,7 @@ import { SortFilterSheet, SortOption } from '../../components/SortFilterSheet';
 import { SettlementCardModal } from '../../components/SettlementCardModal';
 import { useDebts, Debt } from '../../hooks/useDebts';
 import { useCredits, Credit } from '../../hooks/useCredits';
+import { useDailySpending } from '../../hooks/useDailySpending';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
 import { FloatingTopHeader } from '../../components/FloatingTopHeader';
@@ -47,8 +48,9 @@ export default function OwedScreen() {
   // View mode: 'borrowed' (Debts) or 'lent' (Credits)
   const [viewMode, setViewMode] = useState<'borrowed' | 'lent'>('borrowed');
 
-  const { debts, isLoaded: debtsLoaded, deleteDebt, markDebtAsPaid, getTotalPendingAmount: getDebtPending, refresh: refreshDebts } = useDebts();
+  const { debts, isLoaded: debtsLoaded, deleteDebt, markDebtAsPaid, getTotalPendingAmount: getDebtPending, getRemainingAmount: getDebtRemaining, refresh: refreshDebts } = useDebts();
   const { credits, isLoaded: creditsLoaded, deleteCredit, markCreditAsReturned, getTotalPendingAmount: getCreditPending, refresh: refreshCredits } = useCredits();
+  const { addEntry: addSpendingEntry } = useDailySpending();
   const { currencyCode, convertAmount, refresh: refreshCurrency } = useCurrency();
 
   const isLoaded = debtsLoaded && creditsLoaded;
@@ -60,6 +62,7 @@ export default function OwedScreen() {
   const [showSortSheet, setShowSortSheet] = useState(false);
   const [sortBy, setSortBy] = useState('date_desc');
   const [shareItem, setShareItem] = useState<{ item: any; type: 'borrowed' | 'lent' } | null>(null);
+  const [pendingSpendingDebt, setPendingSpendingDebt] = useState<Debt | null>(null);
 
   const data = viewMode === 'borrowed' ? debts : credits;
   const accentColor = viewMode === 'borrowed' 
@@ -135,26 +138,64 @@ export default function OwedScreen() {
 
   const handleTogglePaid = (id: string) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    let itemToShare = null;
     if (viewMode === 'borrowed') {
+      const itemToShare = debts.find(d => d.id === id);
       markDebtAsPaid(id);
-      itemToShare = debts.find(d => d.id === id);
-    } else {
-      markCreditAsReturned(id);
-      itemToShare = credits.find(c => c.id === id);
-    }
-    setShowConfetti(true);
-
-    if (itemToShare) {
-      setShareItem({
-        item: {
+      setShowConfetti(true);
+      if (itemToShare) {
+        const settledDebt: Debt = {
           ...itemToShare,
           isPaid: true,
           paidDate: new Date().toISOString(),
-          isReturned: true,
-          returnedDate: new Date().toISOString(),
-        },
-        type: viewMode
+        };
+        setPendingSpendingDebt(settledDebt);
+      }
+    } else {
+      markCreditAsReturned(id);
+      const itemToShare = credits.find(c => c.id === id);
+      setShowConfetti(true);
+      if (itemToShare) {
+        setShareItem({
+          item: {
+            ...itemToShare,
+            isReturned: true,
+            returnedDate: new Date().toISOString(),
+          },
+          type: 'lent',
+        });
+      }
+    }
+  };
+
+  const handleConfirmSpendingLog = () => {
+    if (pendingSpendingDebt) {
+      const remainingAmt = getDebtRemaining(pendingSpendingDebt);
+      const logAmount = remainingAmt > 0 ? remainingAmt : pendingSpendingDebt.amount;
+      addSpendingEntry({
+        title: `Repaid debt: ${pendingSpendingDebt.personName}`,
+        amount: logAmount,
+        currency: pendingSpendingDebt.currency,
+        category: 'Debt & EMI',
+        spentAt: new Date().toISOString(),
+        notes: pendingSpendingDebt.purpose ? `Purpose: ${pendingSpendingDebt.purpose}` : undefined,
+      });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const itemToShare = pendingSpendingDebt;
+      setPendingSpendingDebt(null);
+      setShareItem({
+        item: itemToShare,
+        type: 'borrowed',
+      });
+    }
+  };
+
+  const handleSkipSpendingLog = () => {
+    if (pendingSpendingDebt) {
+      const itemToShare = pendingSpendingDebt;
+      setPendingSpendingDebt(null);
+      setShareItem({
+        item: itemToShare,
+        type: 'borrowed',
       });
     }
   };
@@ -372,6 +413,27 @@ export default function OwedScreen() {
         isDestructive={true}
         onCancel={() => setDeleteId(null)}
         onConfirm={confirmDelete}
+      />
+
+      <AppPopup
+        visible={!!pendingSpendingDebt}
+        title="Log in Daily Spending?"
+        message={
+          pendingSpendingDebt
+            ? `Would you like to record this payment of ${formatCurrency(
+                getDebtRemaining(pendingSpendingDebt) > 0
+                  ? getDebtRemaining(pendingSpendingDebt)
+                  : pendingSpendingDebt.amount,
+                pendingSpendingDebt.currency
+              )} to ${pendingSpendingDebt.personName} as an expense in Daily Spending?`
+            : ''
+        }
+        icon="wallet-outline"
+        iconColor={colors.accent.green}
+        cancelText="Skip"
+        confirmText="Log Expense"
+        onCancel={handleSkipSpendingLog}
+        onConfirm={handleConfirmSpendingLog}
       />
 
       <SortFilterSheet

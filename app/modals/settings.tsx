@@ -137,14 +137,28 @@ export default function SettingsModal() {
 
   const handleSavePin = async () => {
     if (pinCode.length !== 4 || isNaN(Number(pinCode))) {
-      Alert.alert('Invalid PIN', 'Please enter a 4-digit numeric PIN code.');
+      showPopup({
+        title: 'Invalid PIN',
+        message: 'Please enter a 4-digit numeric PIN code.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
       return;
     }
     await enableLock(pinCode);
     setBiometricEnabled(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setShowPinInput(false);
-    Alert.alert('PIN Saved', 'Your 4-digit security PIN has been updated and App Lock is enabled.');
+    showPopup({
+      title: 'PIN Saved',
+      message: 'Your 4-digit security PIN has been updated and App Lock is enabled.',
+      icon: 'shield-checkmark-outline',
+      iconColor: colors.accent.green,
+      confirmText: 'Done',
+      onConfirm: closePopup,
+    });
   };
 
   const handleRemovePin = async () => {
@@ -152,7 +166,14 @@ export default function SettingsModal() {
     await removePin();
     setPinCode('');
     setShowPinInput(false);
-    Alert.alert('PIN Removed', 'Your 4-digit security PIN code has been removed.');
+    showPopup({
+      title: 'PIN Removed',
+      message: 'Your 4-digit security PIN code has been removed.',
+      icon: 'checkmark-circle-outline',
+      iconColor: colors.accent.purple,
+      confirmText: 'Done',
+      onConfirm: closePopup,
+    });
   };
 
   const handleToggleReminders = async () => {
@@ -167,7 +188,14 @@ export default function SettingsModal() {
     if (!isNaN(amount) && amount >= 0) {
       setBudget(amount);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Budget Saved', 'Monthly budget limit updated successfully.');
+      showPopup({
+        title: 'Budget Saved',
+        message: 'Monthly budget limit updated successfully.',
+        icon: 'checkmark-circle-outline',
+        iconColor: colors.accent.green,
+        confirmText: 'Done',
+        onConfirm: closePopup,
+      });
     }
   };
 
@@ -216,7 +244,24 @@ export default function SettingsModal() {
     setExporting(false);
     if (success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Export Complete', 'Ledger backup exported successfully.');
+      showPopup({
+        title: 'Export Complete',
+        message: 'Your full encrypted JSON ledger backup has been generated and exported successfully.',
+        icon: 'checkmark-circle-outline',
+        iconColor: colors.accent.green,
+        confirmText: 'Done',
+        onConfirm: closePopup,
+      });
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showPopup({
+        title: 'Export Failed',
+        message: 'Could not export the ledger backup. Please check file permissions.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
     }
   };
 
@@ -385,56 +430,82 @@ export default function SettingsModal() {
           <View style={styles.sectionHeaderRow}>
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.accent.blue} />
             <Text style={styles.sectionTitle}>SECURITY & PRIVACY LOCK</Text>
+            <View style={styles.betaHeaderBadge}>
+              <Ionicons name="flask-outline" size={11} color="#F59E0B" />
+              <Text style={styles.betaHeaderBadgeText}>BETA</Text>
+            </View>
           </View>
 
-          {/* Biometric / PIN Lock Toggle */}
-          <View style={styles.settingRow}>
+          {/* Beta Notice Banner */}
+          <View style={styles.betaBannerBox}>
+            <Ionicons name="information-circle-outline" size={16} color="#F59E0B" />
+            <Text style={styles.betaBannerText}>
+              Security Lock and PIN protection are currently in beta optimization and temporarily disabled.
+            </Text>
+          </View>
+
+          {/* Biometric / PIN Lock Toggle (Disabled in Beta) */}
+          <TouchableOpacity
+            style={[styles.settingRow, styles.disabledSettingRow]}
+            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              showPopup({
+                title: 'Feature in Beta',
+                message: 'Biometric & PIN authentication is currently under testing and temporarily disabled for this release.',
+                icon: 'flask-outline',
+                iconColor: '#F59E0B',
+                confirmText: 'Got It',
+                onConfirm: closePopup,
+              });
+            }}
+          >
             <View style={styles.settingMeta}>
-              <Text style={styles.settingTitle}>App Lock (Biometric & PIN)</Text>
-              <Text style={styles.settingSub}>Require authentication upon launch</Text>
+              <View style={styles.settingTitleRow}>
+                <Text style={[styles.settingTitle, styles.disabledText]}>App Lock (Biometric & PIN)</Text>
+                <View style={styles.inlineBetaPill}>
+                  <Text style={styles.inlineBetaPillText}>Beta</Text>
+                </View>
+              </View>
+              <Text style={[styles.settingSub, styles.disabledSubText]}>Require authentication upon launch · Currently disabled</Text>
             </View>
             <Switch
-              value={biometricEnabled}
-              onValueChange={handleToggleBiometrics}
+              value={false}
+              disabled={true}
               trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.purple }}
-              thumbColor="#FFFFFF"
+              thumbColor={isDark ? '#4B5563' : '#9CA3AF'}
             />
-          </View>
-
-          {/* 4-Digit PIN Configuration */}
-          <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={() => setShowPinInput(!showPinInput)} activeOpacity={0.8}>
-            <View style={styles.settingMeta}>
-              <Text style={styles.settingTitle}>4-Digit Security PIN</Text>
-              <Text style={styles.settingSub}>{pinCode ? 'PIN Enabled (Tap to edit)' : 'Set 4-Digit Security PIN'}</Text>
-            </View>
-            <Ionicons name={showPinInput ? 'chevron-up' : 'chevron-forward'} size={18} color={colors.text.muted} />
           </TouchableOpacity>
 
-          {showPinInput && (
-            <View style={styles.pinFormBox}>
-              <Text style={styles.pinFormLabel}>Set Secret 4-Digit PIN</Text>
-              <View style={styles.pinInputRow}>
-                <TextInput
-                  style={styles.pinInput}
-                  value={pinCode}
-                  onChangeText={setPinCode}
-                  keyboardType="numeric"
-                  maxLength={4}
-                  secureTextEntry
-                  placeholder="0000"
-                  placeholderTextColor={colors.text.muted}
-                />
-                <TouchableOpacity style={styles.savePinBtn} onPress={handleSavePin} activeOpacity={0.8}>
-                  <Text style={styles.savePinBtnText}>Save</Text>
-                </TouchableOpacity>
-                {Boolean(pinCode) && (
-                  <TouchableOpacity style={styles.removePinBtn} onPress={handleRemovePin} activeOpacity={0.8}>
-                    <Text style={styles.removePinBtnText}>Remove</Text>
-                  </TouchableOpacity>
-                )}
+          {/* 4-Digit PIN Configuration (Disabled in Beta) */}
+          <TouchableOpacity
+            style={[styles.settingRow, styles.disabledSettingRow, { borderBottomWidth: 0 }]}
+            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              showPopup({
+                title: 'Feature in Beta',
+                message: '4-Digit Security PIN configuration is currently under testing and temporarily disabled.',
+                icon: 'flask-outline',
+                iconColor: '#F59E0B',
+                confirmText: 'Got It',
+                onConfirm: closePopup,
+              });
+            }}
+          >
+            <View style={styles.settingMeta}>
+              <View style={styles.settingTitleRow}>
+                <Text style={[styles.settingTitle, styles.disabledText]}>4-Digit Security PIN</Text>
+                <View style={styles.inlineBetaPill}>
+                  <Text style={styles.inlineBetaPillText}>Beta</Text>
+                </View>
               </View>
+              <Text style={[styles.settingSub, styles.disabledSubText]}>Unavailable in Beta · Coming soon</Text>
             </View>
-          )}
+            <View style={styles.disabledLockBadge}>
+              <Ionicons name="lock-closed-outline" size={16} color={colors.text.muted} />
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* SECTION 3: NOTIFICATIONS */}
@@ -520,8 +591,13 @@ export default function SettingsModal() {
             activeOpacity={0.8}
           >
             <View style={styles.settingMeta}>
-              <Text style={styles.settingTitle}>Data Vault & JSON Backup</Text>
-              <Text style={styles.settingSub}>Full offline backup and device restore tool</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.settingTitle}>Data Vault & Auto-Snapshots</Text>
+                <View style={{ backgroundColor: 'rgba(168, 85, 247, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: colors.accent.purple, fontSize: 10, fontWeight: '800' }}>10PM Auto</Text>
+                </View>
+              </View>
+              <Text style={styles.settingSub}>Scheduled daily offline snapshots & restore management</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
           </TouchableOpacity>
@@ -784,6 +860,75 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'center',
     },
     removePinBtnText: { color: colors.accent.red, fontSize: 12, fontWeight: '700' },
+    betaHeaderBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginLeft: 'auto',
+      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.12)',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 8,
+      borderWidth: 0.5,
+      borderColor: isDark ? 'rgba(245, 158, 11, 0.35)' : 'rgba(245, 158, 11, 0.25)',
+    },
+    betaHeaderBadgeText: {
+      color: isDark ? '#FBBF24' : '#D97706',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+    },
+    betaBannerBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      padding: 10,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.06)',
+      borderWidth: 0.5,
+      borderColor: isDark ? 'rgba(245, 158, 11, 0.2)' : 'rgba(245, 158, 11, 0.15)',
+      marginVertical: 2,
+    },
+    betaBannerText: {
+      flex: 1,
+      color: isDark ? '#FCD34D' : '#B45309',
+      fontSize: 11,
+      lineHeight: 15,
+      fontWeight: '600',
+    },
+    settingTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    inlineBetaPill: {
+      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : 'rgba(245, 158, 11, 0.1)',
+      paddingHorizontal: 6,
+      paddingVertical: 1.5,
+      borderRadius: 6,
+    },
+    inlineBetaPillText: {
+      color: isDark ? '#FBBF24' : '#D97706',
+      fontSize: 9,
+      fontWeight: '700',
+    },
+    disabledSettingRow: {
+      opacity: 0.65,
+    },
+    disabledText: {
+      color: colors.text.secondary,
+    },
+    disabledSubText: {
+      color: colors.text.muted,
+    },
+    disabledLockBadge: {
+      width: 32,
+      height: 32,
+      borderRadius: 8,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
     budgetInputWrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     budgetTextInput: {
       width: 80,

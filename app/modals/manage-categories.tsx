@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AmbientBackground } from '../../components/AmbientBackground';
+import { AppPopup } from '../../components/AppPopup';
 import { useCategoryManager } from '../../hooks/useCategoryManager';
 import { CATEGORY_GROUPS } from '../../constants/categories';
 
@@ -45,6 +46,10 @@ export default function ManageCategoriesModal() {
   const router = useRouter();
   const { allCategories, customCategories, addCategory, deleteCategory } = useCategoryManager();
 
+  const [popupConfig, setPopupConfig] = useState<any>(null);
+  const showPopup = (config: any) => setPopupConfig(config);
+  const closePopup = () => setPopupConfig(null);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [name, setName] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('General');
@@ -60,7 +65,14 @@ export default function ManageCategoriesModal() {
   const handleSaveCategory = () => {
     const trimmed = name.trim();
     if (!trimmed) {
-      Alert.alert('Category Name Required', 'Please enter a name for your custom category.');
+      showPopup({
+        title: 'Category Name Required',
+        message: 'Please enter a name for your custom category.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.amber,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
       return;
     }
 
@@ -77,27 +89,34 @@ export default function ManageCategoriesModal() {
       setShowAddForm(false);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Duplicate Category', 'A category with this name already exists.');
+      showPopup({
+        title: 'Duplicate Category',
+        message: 'A category with this name already exists.',
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
     }
   };
 
   const handleDelete = (catName: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(
-      'Delete Custom Category',
-      `Are you sure you want to delete "${catName}"? Existing transactions will keep their logged category.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            deleteCategory(catName);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          },
-        },
-      ]
-    );
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    showPopup({
+      title: 'Delete Custom Category',
+      message: `Are you sure you want to delete "${catName}"? Existing logged transactions will keep their category.`,
+      icon: 'trash-outline',
+      iconColor: colors.accent.red,
+      cancelText: 'Cancel',
+      confirmText: 'Delete',
+      isDestructive: true,
+      onCancel: closePopup,
+      onConfirm: () => {
+        closePopup();
+        deleteCategory(catName);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      },
+    });
   };
 
   return (
@@ -257,6 +276,19 @@ export default function ManageCategoriesModal() {
           })}
         </View>
       </ScrollView>
+
+      <AppPopup
+        visible={!!popupConfig}
+        title={popupConfig?.title || ''}
+        message={popupConfig?.message || ''}
+        icon={popupConfig?.icon || 'information-circle-outline'}
+        iconColor={popupConfig?.iconColor}
+        cancelText={popupConfig?.cancelText}
+        confirmText={popupConfig?.confirmText || 'OK'}
+        isDestructive={popupConfig?.isDestructive || false}
+        onCancel={popupConfig?.onCancel || closePopup}
+        onConfirm={popupConfig?.onConfirm || closePopup}
+      />
     </SafeAreaView>
   );
 }
