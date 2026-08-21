@@ -252,7 +252,7 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
 
               if (day.isToday) {
                 if (day.level === 'zero') {
-                  bg = isDark ? 'rgba(59, 130, 246, 0.18)' : 'rgba(59, 130, 246, 0.12)';
+                  bg = isDark ? 'rgba(59, 130, 246, 0.16)' : 'rgba(59, 130, 246, 0.1)';
                   textColor = isDark ? '#93C5FD' : '#1D4ED8';
                 }
                 borderClr = colors.accent.blue;
@@ -261,9 +261,8 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
               if (isSelected) {
                 borderClr = colors.accent.blue;
                 if (day.level === 'zero') {
-                  textColor = day.isToday
-                    ? (isDark ? '#93C5FD' : '#1D4ED8')
-                    : (isDark ? '#FFFFFF' : '#1E293B');
+                  bg = isDark ? 'rgba(59, 130, 246, 0.22)' : 'rgba(59, 130, 246, 0.14)';
+                  textColor = isDark ? '#93C5FD' : '#1D4ED8';
                 } else {
                   textColor = '#FFFFFF';
                 }
@@ -455,41 +454,34 @@ const getStyles = (colors: any, isDark: boolean) =>
     dayCell: {
       flex: 1,
       height: 32,
-      borderRadius: 7,
-      borderWidth: 0.5,
+      borderRadius: 8,
+      borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
+      overflow: 'hidden',
     },
     dayCellToday: {
       borderWidth: 1.8,
       borderColor: colors.accent.blue,
-      shadowColor: colors.accent.blue,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.45,
-      shadowRadius: 3,
-      elevation: 2,
     },
     dayCellSelected: {
       borderWidth: 2,
       borderColor: colors.accent.blue,
-      transform: [{ scale: 1.05 }],
-      shadowColor: colors.accent.blue,
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.5,
-      shadowRadius: 3,
-      elevation: 3,
     },
     dayCellEmpty: {
       flex: 1,
       height: 32,
     },
     dayNumberText: {
-      fontSize: 10,
+      fontSize: 10.5,
       fontWeight: '700',
+      backgroundColor: 'transparent',
+      textAlign: 'center',
+      includeFontPadding: false,
     },
     dayNumberToday: {
       fontWeight: '900',
-      fontSize: 10.5,
+      fontSize: 11,
     },
     todayDot: {
       position: 'absolute',

@@ -3,7 +3,7 @@ import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
 import * as Crypto from 'expo-crypto';
 import { getIconKeyFromName } from '../utils/subscriptionIcons';
-import { scheduleSubscriptionReminder, cancelNotification } from '../utils/notificationHelpers';
+import { scheduleSubscriptionReminder, cancelNotification, rescheduleDailyReminder } from '../utils/notificationHelpers';
 
 export type ConvertFn = (amount: number, fromCurrency: string) => number;
 
@@ -115,6 +115,7 @@ export const useSubscriptions = () => {
   const saveSubscriptions = useCallback((subs: Subscription[]) => {
     storage.set(STORAGE_KEYS.SUBSCRIPTIONS, JSON.stringify(subs));
     setSubscriptions(subs);
+    rescheduleDailyReminder().catch(() => {});
   }, []);
 
   const addSubscription = useCallback(async (input: SubscriptionInput) => {

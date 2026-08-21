@@ -55,11 +55,133 @@ const formatBytes = (bytes: number): string => {
 };
 
 /**
+ * Allows the user on Android to pick a public folder in their phone's File Manager
+ * (such as Documents or Downloads) where backups will be directly visible.
+ */
+export const pickPublicBackupFolder = async (): Promise<{
+  granted: boolean;
+  folderUri?: string;
+  folderName?: string;
+  error?: string;
+}> => {
+  try {
+    if (Platform.OS !== 'android') {
+      return { granted: false, error: 'Custom folder selection is supported on Android.' };
+    }
+
+    const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+    if (!permissions.granted || !permissions.directoryUri) {
+      return { granted: false, error: 'Folder selection was cancelled or permission was denied.' };
+    }
+
+    const folderUri = permissions.directoryUri;
+    // Extract a human-readable folder name from decoded URI
+    const decoded = decodeURIComponent(folderUri);
+    const parts = decoded.split(':');
+    const folderName = parts.length > 1 ? parts[parts.length - 1] : 'Selected Storage Folder';
+
+    await storage.set(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI, folderUri);
+    await storage.set(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_NAME, folderName);
+
+    return {
+      granted: true,
+      folderUri,
+      folderName,
+    };
+  } catch (err) {
+    console.error('Error selecting public backup folder:', err);
+    return {
+      granted: false,
+      error: err instanceof Error ? err.message : 'Failed to select folder.',
+    };
+  }
+};
+
+/**
+ * Retrieves the currently configured public phone folder name, if any.
+ */
+export const getPublicBackupFolderInfo = async (): Promise<{ uri: string | null; name: string | null }> => {
+  try {
+    const uri = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
+    const name = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_NAME);
+    return { uri: uri || null, name: name || null };
+  } catch {
+    return { uri: null, name: null };
+  }
+};
+
+/**
+ * Clears the custom public backup folder configuration.
+ */
+export const clearPublicBackupFolder = async (): Promise<void> => {
+  try {
+    await storage.delete(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
+    await storage.delete(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_NAME);
+  } catch (err) {
+    console.warn('Error clearing backup folder:', err);
+  }
+};
+
+/**
+ * Exports a specific snapshot to an Android public folder or native document location.
+ */
+export const exportSnapshotToPhoneFolder = async (
+  filePath: string,
+  fileName: string
+): Promise<{ success: boolean; targetUri?: string; error?: string }> => {
+  try {
+    if (Platform.OS === 'android') {
+      let folderUri = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
+
+      if (!folderUri) {
+        const pickRes = await pickPublicBackupFolder();
+        if (!pickRes.granted || !pickRes.folderUri) {
+          return { success: false, error: 'No folder selected.' };
+        }
+        folderUri = pickRes.folderUri;
+      }
+
+      const fileContent = await FileSystem.readAsStringAsync(filePath);
+      const cleanFileName = fileName.replace('.json', '');
+      const createdFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+        folderUri,
+        cleanFileName,
+        'application/json'
+      );
+
+      await FileSystem.writeAsStringAsync(createdFileUri, fileContent, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+
+      return { success: true, targetUri: createdFileUri };
+    } else {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'application/json',
+          dialogTitle: `Save Snapshot: ${fileName}`,
+          UTI: 'public.json',
+        });
+        return { success: true };
+      }
+      return { success: false, error: 'Sharing not available.' };
+    }
+  } catch (err) {
+    console.error('Failed to export snapshot to phone folder:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Could not export file.',
+    };
+  }
+};
+
+/**
  * Creates an encrypted JSON snapshot backup of all local ledger records and user preferences.
+ * Writes to app document sandbox AND to the user's chosen public folder (if configured on Android).
  */
 export const createVaultSnapshot = async (
   triggerType: 'auto' | 'manual' = 'manual'
-): Promise<{ success: boolean; filePath?: string; fileName?: string; error?: string }> => {
+): Promise<{ success: boolean; filePath?: string; fileName?: string; publicSaved?: boolean; error?: string }> => {
   try {
     await ensureVaultDirectoryExists();
 
@@ -98,7 +220,7 @@ export const createVaultSnapshot = async (
 
     const now = new Date();
     const exportData: ComprehensiveExportData & { triggerType: string } = {
-      version: '2.9.0',
+      version: '2.10.0',
       schemaVersion: 2,
       exportedAt: now.toISOString(),
       platform: Platform.OS,
@@ -146,12 +268,34 @@ export const createVaultSnapshot = async (
 
     const fileName = `SubDebt_Snapshot_${yyyy}-${mm}-${dd}_${hh}${min}${ss}.json`;
     const filePath = `${VAULT_BACKUPS_DIR}${fileName}`;
+    const jsonString = JSON.stringify(exportData, null, 2);
 
-    await FileSystem.writeAsStringAsync(
-      filePath,
-      JSON.stringify(exportData, null, 2),
-      { encoding: FileSystem.EncodingType.UTF8 }
-    );
+    // 1. Write to internal app sandbox
+    await FileSystem.writeAsStringAsync(filePath, jsonString, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    // 2. Also write directly to user's selected public folder if configured on Android
+    let publicSaved = false;
+    if (Platform.OS === 'android') {
+      try {
+        const publicFolderUri = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
+        if (publicFolderUri) {
+          const cleanName = fileName.replace('.json', '');
+          const createdUri = await FileSystem.StorageAccessFramework.createFileAsync(
+            publicFolderUri,
+            cleanName,
+            'application/json'
+          );
+          await FileSystem.writeAsStringAsync(createdUri, jsonString, {
+            encoding: FileSystem.EncodingType.UTF8,
+          });
+          publicSaved = true;
+        }
+      } catch (pubErr) {
+        console.warn('Could not write snapshot to public folder:', pubErr);
+      }
+    }
 
     // Update MMKV tracking
     const todayStr = `${yyyy}-${mm}-${dd}`;
@@ -167,6 +311,7 @@ export const createVaultSnapshot = async (
       success: true,
       filePath,
       fileName,
+      publicSaved,
     };
   } catch (error) {
     console.error('Failed to create vault snapshot:', error);
@@ -315,13 +460,13 @@ const enforceSnapshotRetention = async (): Promise<void> => {
 };
 
 /**
- * Checks if automated daily snapshot is due (at or after 10:00 PM IST / 22:00)
- * and generates it automatically without blocking the user.
+ * Checks if automated daily snapshot is due:
+ * 1. If current time is 10:00 PM (22:00) or later, and today hasn't been backed up -> Run today's snapshot.
+ * 2. If yesterday's 10:00 PM backup was missed (app was closed), run catch-up backup immediately upon launch/resume!
  */
 export const checkAndRunScheduledSnapshot = async (): Promise<boolean> => {
   try {
     const enabledRaw = await storage.getString(STORAGE_KEYS.AUTO_SNAPSHOT_ENABLED);
-    // Default to true if not explicitly disabled
     const isEnabled = enabledRaw === null ? true : enabledRaw === 'true';
     if (!isEnabled) return false;
 
@@ -333,28 +478,30 @@ export const checkAndRunScheduledSnapshot = async (): Promise<boolean> => {
 
     const lastDate = await storage.getString(STORAGE_KEYS.LAST_AUTO_SNAPSHOT_DATE);
 
-    // If already backed up today, skip
+    // Already backed up today
     if (lastDate === todayStr) {
       return false;
     }
 
-    // Check if current hour is at or past 22 (10:00 PM)
     const currentHour = now.getHours();
-    if (currentHour >= 22) {
+    const isPastNightTime = currentHour >= 22; // 10:00 PM or later
+    const isMissedPreviousDay = !lastDate || lastDate < todayStr;
+
+    // Trigger if 10 PM arrived today, or if a previous day was missed
+    if (isPastNightTime || isMissedPreviousDay) {
       const result = await createVaultSnapshot('auto');
       if (result.success) {
-        // Send a silent / local notification confirming snapshot
         try {
           await Notifications.scheduleNotificationAsync({
             content: {
-              title: '🛡️ Vault Snapshot Secured',
-              body: `Your daily offline ledger backup was created at 10:00 PM. (${result.fileName})`,
+              title: 'Vault Snapshot Secured',
+              body: `Your daily offline ledger backup was created. (${result.fileName})`,
               sound: false,
             },
-            trigger: null, // deliver immediately
+            trigger: null, // send confirmation notification immediately
           });
         } catch (notifErr) {
-          // Notification errors should not fail backup
+          // Notifications should not prevent backup completion
         }
         return true;
       }

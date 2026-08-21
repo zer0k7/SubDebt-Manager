@@ -90,8 +90,6 @@ export async function scheduleSubscriptionReminder(
   for (const daysBefore of daysList) {
     const triggerDate = new Date(expiry.getTime());
     triggerDate.setDate(triggerDate.getDate() - daysBefore);
-    // If daysBefore === 0 (day of renewal), set to 9:00 AM
-    // Else set to 10:00 AM
     triggerDate.setHours(daysBefore === 0 ? 9 : 10, 0, 0, 0);
 
     if (triggerDate.getTime() <= now) {
@@ -130,7 +128,7 @@ export async function scheduleSubscriptionReminder(
       });
       if (nid) scheduledIds.push(nid);
     } catch (err) {
-      // Ignore scheduling errors on unsupported platforms
+      // Ignore scheduling errors
     }
   }
 
@@ -150,19 +148,19 @@ export async function cancelNotification(notificationId?: string | null) {
   }
 }
 
-export async function scheduleDebtReminder(id: string, personName: string, dueDate: string) {
+export async function scheduleDebtReminder(id: string, personName: string, dueDate: string, amount?: number, currency?: string) {
   const triggerDate = new Date(dueDate);
-  // Remind on the due date morning
   triggerDate.setHours(9, 0, 0, 0); // 9 AM
 
   if (triggerDate.getTime() <= Date.now()) {
     return null;
   }
 
+  const amtStr = amount && currency ? ` of ${currency} ${amount}` : '';
   const notificationId = await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Debt Due Today',
-      body: `You have a debt to pay back to ${personName} today.`,
+      title: 'Debt Due Today 💳',
+      body: `You have to pay ${personName}${amtStr} today.`,
       data: { type: 'debt', id },
     },
     trigger: { type: 'date', date: triggerDate } as any,
@@ -171,16 +169,19 @@ export async function scheduleDebtReminder(id: string, personName: string, dueDa
   return notificationId;
 }
 
-
 export async function cancelAllNotifications() {
   await Notifications.cancelAllScheduledNotificationsAsync();
 }
 
+/**
+ * Reschedules all smart notifications dynamically based on active debts, subscriptions,
+ * spending logs, and user preference switches.
+ */
 export async function rescheduleDailyReminder() {
-  let isEnabled = false;
+  let isMasterEnabled = true;
   try {
     const val = await storage.getString('daily_reminder_enabled');
-    isEnabled = val !== 'false';
+    isMasterEnabled = val !== 'false';
   } catch (err) {}
 
   // Cancel existing scheduled daily notifications
@@ -201,17 +202,115 @@ export async function rescheduleDailyReminder() {
     } catch (err) {}
   }
 
-  if (!isEnabled) {
+  if (!isMasterEnabled) {
     return null;
   }
 
-  // Compute live financial data for meaningful notification content
+  // Read granular switches (all default to true)
+  const debtsEnabledRaw = await storage.getString(STORAGE_KEYS.NOTIF_DEBTS_ENABLED);
+  const subsEnabledRaw = await storage.getString(STORAGE_KEYS.NOTIF_SUBSCRIPTIONS_ENABLED);
+  const spendingEnabledRaw = await storage.getString(STORAGE_KEYS.NOTIF_SPENDING_ENABLED);
+  const creditsEnabledRaw = await storage.getString(STORAGE_KEYS.NOTIF_CREDITS_ENABLED);
+
+  const debtsEnabled = debtsEnabledRaw !== 'false';
+  const subsEnabled = subsEnabledRaw !== 'false';
+  const spendingEnabled = spendingEnabledRaw !== 'false';
+  const creditsEnabled = creditsEnabledRaw !== 'false';
+
+  // Read currency
   let currencyCode = 'INR';
   try {
     const savedCurrency = await storage.getString(STORAGE_KEYS.CURRENCY);
     if (savedCurrency) currencyCode = savedCurrency;
   } catch (err) {}
 
+  // 1. Fetch Debts Data
+  let topUnpaidDebt: { personName: string; remainingAmount: number; currency: string } | null = null;
+  let unpaidDebtsCount = 0;
+  try {
+    const rawDebts = await storage.getString(STORAGE_KEYS.DEBTS);
+    if (rawDebts) {
+      const debts = JSON.parse(rawDebts) as any[];
+      const unpaid = debts.filter((d) => !d.isPaid);
+      unpaidDebtsCount = unpaid.length;
+
+      if (unpaid.length > 0) {
+        // Find most urgent debt
+        const sorted = unpaid.map((d) => {
+          const totalPaid = Array.isArray(d.payments)
+            ? d.payments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0)
+            : 0;
+          const remaining = Math.max(0, (d.amount || 0) - totalPaid);
+          return {
+            personName: d.personName,
+            remainingAmount: remaining,
+            currency: d.currency || currencyCode,
+            dueDate: d.dueDate ? new Date(d.dueDate).getTime() : Infinity,
+          };
+        }).sort((a, b) => a.dueDate - b.dueDate || b.remainingAmount - a.remainingAmount);
+
+        if (sorted.length > 0 && sorted[0].remainingAmount > 0) {
+          topUnpaidDebt = sorted[0];
+        }
+      }
+    }
+  } catch (err) {}
+
+  // 2. Fetch Subscriptions Data (Upcoming Expiring)
+  let urgentSub: { name: string; amount: number; currency: string; daysLeft: number; isTrial: boolean } | null = null;
+  let activeSubsCount = 0;
+  try {
+    const rawSubs = await storage.getString(STORAGE_KEYS.SUBSCRIPTIONS);
+    if (rawSubs) {
+      const subs = JSON.parse(rawSubs) as any[];
+      const active = subs.filter((s) => s.isActive !== false);
+      activeSubsCount = active.length;
+
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+
+      const expiringList = active.map((s) => {
+        const expStr = s.expiryDate || s.nextBillingDate || s.trialEndDate;
+        if (!expStr) return null;
+        const expDate = new Date(expStr);
+        expDate.setHours(0, 0, 0, 0);
+        const diffDays = Math.round((expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return {
+          name: s.name,
+          amount: s.amount || 0,
+          currency: s.currency || currencyCode,
+          daysLeft: diffDays,
+          isTrial: !!s.isTrial,
+        };
+      }).filter((s) => s !== null && s.daysLeft >= 0 && s.daysLeft <= 3) as any[];
+
+      expiringList.sort((a, b) => a.daysLeft - b.daysLeft);
+      if (expiringList.length > 0) {
+        urgentSub = expiringList[0];
+      }
+    }
+  } catch (err) {}
+
+  // 3. Fetch Credits Data (Unreturned)
+  let topCredit: { personName: string; amount: number; currency: string } | null = null;
+  let pendingCreditsCount = 0;
+  try {
+    const rawCredits = await storage.getString(STORAGE_KEYS.CREDITS);
+    if (rawCredits) {
+      const credits = JSON.parse(rawCredits) as any[];
+      const pending = credits.filter((c) => !c.isReturned);
+      pendingCreditsCount = pending.length;
+      if (pending.length > 0) {
+        topCredit = {
+          personName: pending[0].personName,
+          amount: pending[0].amount,
+          currency: pending[0].currency || currencyCode,
+        };
+      }
+    }
+  } catch (err) {}
+
+  // 4. Fetch Spending & Budget Data
   let budgetAmount = 0;
   try {
     const rawBudget = await storage.getString(STORAGE_KEYS.MONTHLY_BUDGET);
@@ -224,7 +323,6 @@ export async function rescheduleDailyReminder() {
   let monthlySpending = 0;
   let todaySpent = 0;
   let todayCount = 0;
-
   try {
     const rawSpending = await storage.getString(STORAGE_KEYS.DAILY_SPENDING);
     if (rawSpending) {
@@ -232,31 +330,14 @@ export async function rescheduleDailyReminder() {
       const now = new Date();
       const todayStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
 
-      let rates: Record<string, number> = {};
-      try {
-        const storedRates = await storage.getString('exchange_rates_v1');
-        if (storedRates) rates = JSON.parse(storedRates);
-      } catch (err) {}
-
-      const convertAmount = (amount: number, fromCode: string) => {
-        if (fromCode === currencyCode) return amount;
-        if (!rates || Object.keys(rates).length === 0) return amount;
-        const fromRate = rates[fromCode] || 1;
-        const toRate = rates[currencyCode] || 1;
-        return (amount / fromRate) * toRate;
-      };
-
       entries.forEach((e) => {
         const spent = new Date(e.spentAt);
-        const converted = convertAmount(e.amount, e.currency);
-
         if (spent.getMonth() === now.getMonth() && spent.getFullYear() === now.getFullYear()) {
-          monthlySpending += converted;
+          monthlySpending += e.amount || 0;
         }
-
         const entryDayStr = `${spent.getFullYear()}-${spent.getMonth() + 1}-${spent.getDate()}`;
         if (entryDayStr === todayStr) {
-          todaySpent += converted;
+          todaySpent += e.amount || 0;
           todayCount += 1;
         }
       });
@@ -267,6 +348,7 @@ export async function rescheduleDailyReminder() {
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const daysRemaining = Math.max(1, daysInMonth - now.getDate() + 1);
 
+  // Time Slots
   let morningHour = 9;
   let morningMinute = 0;
   try {
@@ -289,18 +371,42 @@ export async function rescheduleDailyReminder() {
     }
   } catch (err) {}
 
-  // 1. Morning Kickoff Notification
+  let customHour = 20;
+  let customMinute = 0;
+  try {
+    const timeStr = await storage.getString('daily_reminder_time');
+    if (timeStr && timeStr.includes(':')) {
+      const parts = timeStr.split(':');
+      customHour = parseInt(parts[0], 10);
+      customMinute = parseInt(parts[1], 10);
+    }
+  } catch (err) {}
+
+  // -------------------------------------------------------------
+  // SLOT 1: MORNING NOTIFICATION (09:00 AM)
+  // -------------------------------------------------------------
   let morningTitle = 'Good Morning! ☀️ Daily Allowance';
   let morningBody = 'Keep your financial goals on track today! Tap to check your balance.';
 
-  if (budgetAmount > 0) {
+  if (subsEnabled && urgentSub) {
+    if (urgentSub.daysLeft === 0) {
+      morningTitle = urgentSub.isTrial ? '⏳ Free Trial Ends Today!' : '🔔 Subscription Renewal Today!';
+      morningBody = `Your ${urgentSub.name} subscription renews today (${formatCurrency(urgentSub.amount, urgentSub.currency)}).`;
+    } else if (urgentSub.daysLeft === 1) {
+      morningTitle = urgentSub.isTrial ? '⏳ Free Trial Ending Tomorrow' : '🔔 Subscription Renewal Tomorrow';
+      morningBody = `Your ${urgentSub.name} subscription renews tomorrow (${formatCurrency(urgentSub.amount, urgentSub.currency)}).`;
+    } else {
+      morningTitle = 'Upcoming Subscription Renewal 🔔';
+      morningBody = `${urgentSub.name} is due in ${urgentSub.daysLeft} days (${formatCurrency(urgentSub.amount, urgentSub.currency)}).`;
+    }
+  } else if (spendingEnabled && budgetAmount > 0) {
     const remaining = budgetAmount - monthlySpending;
     if (remaining > 0) {
       const dailyAllowance = Math.round(remaining / daysRemaining);
       morningBody = `Monthly Budget: ${formatCurrency(remaining, currencyCode)} remaining (~${formatCurrency(dailyAllowance, currencyCode)}/day for ${daysRemaining} days).`;
     } else {
       morningTitle = 'Morning Budget Warning ⚠️';
-      morningBody = `You are ${formatCurrency(Math.abs(remaining), currencyCode)} over your monthly budget. Stay mindful of expenses today!`;
+      morningBody = `You are ${formatCurrency(Math.abs(remaining), currencyCode)} over your monthly budget limit.`;
     }
   }
 
@@ -317,32 +423,24 @@ export async function rescheduleDailyReminder() {
     } as any,
   });
 
-  // 2. Midday Pulse Notification
-  let afternoonTitle = 'Midday Pulse 📊 Financial Snapshot';
-  let afternoonBody = 'Take a quick look at your recurring bills and pending debt settlements.';
+  // -------------------------------------------------------------
+  // SLOT 2: MIDDAY NOTIFICATION (14:00 PM) - Prioritizes DEBT reminders
+  // -------------------------------------------------------------
+  let afternoonTitle = 'Midday Ledger Pulse 📊';
+  let afternoonBody = 'Take a quick moment to review your open debt balances and credit logs.';
 
-  try {
-    const rawSubs = await storage.getString(STORAGE_KEYS.SUBSCRIPTIONS);
-    let activeSubsCount = 0;
-    if (rawSubs) {
-      const subs = JSON.parse(rawSubs) as any[];
-      activeSubsCount = subs.filter((s) => s.isActive).length;
-    }
-
-    const rawCredits = await storage.getString(STORAGE_KEYS.CREDITS);
-    let pendingCreditsCount = 0;
-    if (rawCredits) {
-      const credits = JSON.parse(rawCredits) as any[];
-      pendingCreditsCount = credits.filter((c) => !c.isReturned).length;
-    }
-
-    if (pendingCreditsCount > 0) {
-      afternoonTitle = 'Midday Credit Reminder 🤝';
-      afternoonBody = `You have ${pendingCreditsCount} unreturned credit items. Tap to generate 1-tap reminders.`;
-    } else if (activeSubsCount > 0) {
-      afternoonBody = `You have ${activeSubsCount} active subscriptions running. Check them in the Subscriptions tab.`;
-    }
-  } catch (err) {}
+  if (debtsEnabled && topUnpaidDebt) {
+    afternoonTitle = 'Pending Debt Reminder 💳';
+    const extraCount = unpaidDebtsCount > 1 ? ` (+${unpaidDebtsCount - 1} other debt${unpaidDebtsCount > 2 ? 's' : ''})` : '';
+    afternoonBody = `You have to pay ${topUnpaidDebt.personName} ${formatCurrency(topUnpaidDebt.remainingAmount, topUnpaidDebt.currency)}${extraCount}.`;
+  } else if (creditsEnabled && topCredit) {
+    afternoonTitle = 'Credit Item Reminder 🤝';
+    const extraCreditCount = pendingCreditsCount > 1 ? ` (+${pendingCreditsCount - 1} more)` : '';
+    afternoonBody = `${topCredit.personName} owes you ${formatCurrency(topCredit.amount, topCredit.currency)}${extraCreditCount}. Tap to view or send reminder.`;
+  } else if (subsEnabled && activeSubsCount > 0) {
+    afternoonTitle = 'Active Subscriptions 🔄';
+    afternoonBody = `You have ${activeSubsCount} active subscription plans currently tracking.`;
+  }
 
   const afternoonId = await Notifications.scheduleNotificationAsync({
     content: {
@@ -357,23 +455,18 @@ export async function rescheduleDailyReminder() {
     } as any,
   });
 
-  // Read custom reminder time set by user in Settings (e.g. "20:00")
-  let customHour = 20;
-  let customMinute = 0;
-  try {
-    const timeStr = await storage.getString('daily_reminder_time');
-    if (timeStr && timeStr.includes(':')) {
-      const parts = timeStr.split(':');
-      customHour = parseInt(parts[0], 10);
-      customMinute = parseInt(parts[1], 10);
-    }
-  } catch (err) {}
-
-  // 1. User Scheduled Daily Check-in Notification
-  let eveningTitle = 'Daily Ledger Check-in 📝';
+  // -------------------------------------------------------------
+  // SLOT 3: EVENING NOTIFICATION (20:00 PM) - SPENDING & TOTALS
+  // -------------------------------------------------------------
+  let eveningTitle = 'Daily Spending Check-in 📝';
   let eveningBody = todayCount > 0
-    ? `Great job! You logged ${formatCurrency(todaySpent, currencyCode)} across ${todayCount} entries today.`
+    ? `You logged ${formatCurrency(todaySpent, currencyCode)} across ${todayCount} entries today. Tap to see breakdown.`
     : "Did you spend anything today? Take 10 seconds to log today's transactions!";
+
+  if (!spendingEnabled && debtsEnabled && topUnpaidDebt) {
+    eveningTitle = 'Evening Debt Check 💳';
+    eveningBody = `Reminder: You have to pay ${topUnpaidDebt.personName} ${formatCurrency(topUnpaidDebt.remainingAmount, topUnpaidDebt.currency)}.`;
+  }
 
   const eveningId = await Notifications.scheduleNotificationAsync({
     content: {
@@ -426,29 +519,13 @@ export async function checkAndTriggerBudgetAlerts() {
     const entries = JSON.parse(rawSpending) as any[];
     const now = new Date();
 
-    let rates: Record<string, number> = {};
-    try {
-      const storedRates = await storage.getString('exchange_rates_v1');
-      if (storedRates) {
-        rates = JSON.parse(storedRates);
-      }
-    } catch (err) {}
-
-    const convertAmount = (amount: number, fromCode: string) => {
-      if (fromCode === currencyCode) return amount;
-      if (!rates || Object.keys(rates).length === 0) return amount;
-      const fromRate = rates[fromCode] || 1;
-      const toRate = rates[currencyCode] || 1;
-      return (amount / fromRate) * toRate;
-    };
-
     const thisMonthEntries = entries.filter((e) => {
       const spent = new Date(e.spentAt);
       return spent.getMonth() === now.getMonth() && spent.getFullYear() === now.getFullYear();
     });
 
     const thisMonthSpent = thisMonthEntries.reduce((sum, e) => {
-      return sum + convertAmount(e.amount, e.currency);
+      return sum + (e.amount || 0);
     }, 0);
 
     const percentage = budgetAmount > 0 ? (thisMonthSpent / budgetAmount) * 100 : 0;

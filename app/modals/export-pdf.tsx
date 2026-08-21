@@ -16,6 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AmbientBackground } from '../../components/AmbientBackground';
 import { GlassButton } from '../../components/GlassButton';
 import { useDailySpending, SpendingEntry, TimeRange } from '../../hooks/useDailySpending';
+import { useSubscriptions } from '../../hooks/useSubscriptions';
+import { useDebts } from '../../hooks/useDebts';
+import { useCredits } from '../../hooks/useCredits';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
 import { exportSpendingToPDF } from '../../utils/pdfExporter';
@@ -44,6 +47,9 @@ export default function ExportPDFModal() {
   const router = useRouter();
 
   const { entries, getEntriesForRange } = useDailySpending();
+  const { subscriptions } = useSubscriptions();
+  const { debts } = useDebts();
+  const { credits } = useCredits();
   const { currencyCode, convertAmount } = useCurrency();
 
   const [selectedRange, setSelectedRange] = useState<ExportRange>('30d');
@@ -147,6 +153,43 @@ export default function ExportPDFModal() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setExporting(true);
 
+    const mappedSubs = subscriptions.map((s) => ({
+      name: s.name,
+      amount: s.amount,
+      currency: s.currency,
+      billingCycle: s.billingCycle,
+      nextRenewalDate: s.expiryDate,
+      isActive: s.isActive,
+    }));
+
+    const mappedDebts = debts.map((d) => {
+      const totalPaid = Array.isArray(d.payments)
+        ? d.payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+        : 0;
+      return {
+        personName: d.personName,
+        amount: d.amount,
+        currency: d.currency,
+        dueDate: d.dueDate,
+        isPaid: d.isPaid,
+        remainingAmount: Math.max(0, d.amount - totalPaid),
+      };
+    });
+
+    const mappedCredits = credits.map((c) => {
+      const totalReturned = Array.isArray(c.payments)
+        ? c.payments.reduce((sum, p) => sum + (p.amount || 0), 0)
+        : 0;
+      return {
+        personName: c.personName,
+        amount: c.amount,
+        currency: c.currency,
+        expectedReturnDate: c.expectedReturnDate,
+        isReturned: c.isReturned,
+        remainingAmount: Math.max(0, c.amount - totalReturned),
+      };
+    });
+
     const result = await exportSpendingToPDF({
       entries: stats.entries,
       timeRangeLabel: stats.label,
@@ -156,6 +199,10 @@ export default function ExportPDFModal() {
       categoryTotals: stats.categoryTotals,
       highestDay: stats.highestDay,
       pdfTheme,
+      subscriptions: mappedSubs,
+      debts: mappedDebts,
+      credits: mappedCredits,
+      includeAllSections: true,
     });
 
     setExporting(false);

@@ -32,6 +32,7 @@ import { exportAllData } from '../../utils/exportData';
 import { exportSpendingCSV } from '../../utils/backupRestore';
 import { SPENDING_CATEGORIES, getCategoryIcon } from '../../constants/categories';
 import { hasBiometrics, toggleBiometricAuth } from '../../utils/authHelpers';
+import { rescheduleDailyReminder } from '../../utils/notificationHelpers';
 import Constants from 'expo-constants';
 
 export default function SettingsModal() {
@@ -58,6 +59,10 @@ export default function SettingsModal() {
   const [showPinInput, setShowPinInput] = useState(false);
 
   const [dailyRemindersEnabled, setDailyRemindersEnabled] = useState(true);
+  const [debtsNotifEnabled, setDebtsNotifEnabled] = useState(true);
+  const [subsNotifEnabled, setSubsNotifEnabled] = useState(true);
+  const [spendingNotifEnabled, setSpendingNotifEnabled] = useState(true);
+  const [creditsNotifEnabled, setCreditsNotifEnabled] = useState(true);
   const [morningTime, setMorningTime] = useState('09:00');
   const [middayTime, setMiddayTime] = useState('14:00');
 
@@ -94,6 +99,18 @@ export default function SettingsModal() {
 
         const notiVal = await storage.getString('daily_reminder_enabled');
         setDailyRemindersEnabled(notiVal !== 'false');
+
+        const dNotif = await storage.getString(STORAGE_KEYS.NOTIF_DEBTS_ENABLED);
+        setDebtsNotifEnabled(dNotif !== 'false');
+
+        const sNotif = await storage.getString(STORAGE_KEYS.NOTIF_SUBSCRIPTIONS_ENABLED);
+        setSubsNotifEnabled(sNotif !== 'false');
+
+        const spNotif = await storage.getString(STORAGE_KEYS.NOTIF_SPENDING_ENABLED);
+        setSpendingNotifEnabled(spNotif !== 'false');
+
+        const cNotif = await storage.getString(STORAGE_KEYS.NOTIF_CREDITS_ENABLED);
+        setCreditsNotifEnabled(cNotif !== 'false');
 
         const mTime = await storage.getString('morning_reminder_time');
         if (mTime) setMorningTime(mTime);
@@ -181,6 +198,35 @@ export default function SettingsModal() {
     const newVal = !dailyRemindersEnabled;
     setDailyRemindersEnabled(newVal);
     await storage.set('daily_reminder_enabled', newVal ? 'true' : 'false');
+    await rescheduleDailyReminder();
+  };
+
+  const handleToggleDebtsNotif = async (val: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDebtsNotifEnabled(val);
+    await storage.set(STORAGE_KEYS.NOTIF_DEBTS_ENABLED, val ? 'true' : 'false');
+    await rescheduleDailyReminder();
+  };
+
+  const handleToggleSubsNotif = async (val: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSubsNotifEnabled(val);
+    await storage.set(STORAGE_KEYS.NOTIF_SUBSCRIPTIONS_ENABLED, val ? 'true' : 'false');
+    await rescheduleDailyReminder();
+  };
+
+  const handleToggleSpendingNotif = async (val: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSpendingNotifEnabled(val);
+    await storage.set(STORAGE_KEYS.NOTIF_SPENDING_ENABLED, val ? 'true' : 'false');
+    await rescheduleDailyReminder();
+  };
+
+  const handleToggleCreditsNotif = async (val: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setCreditsNotifEnabled(val);
+    await storage.set(STORAGE_KEYS.NOTIF_CREDITS_ENABLED, val ? 'true' : 'false');
+    await rescheduleDailyReminder();
   };
 
   const handleSaveBudget = () => {
@@ -515,10 +561,11 @@ export default function SettingsModal() {
             <Text style={styles.sectionTitle}>SMART NOTIFICATION SCHEDULE</Text>
           </View>
 
-          <View style={[styles.settingRow, { borderBottomWidth: 0 }]}>
+          {/* Master Switch */}
+          <View style={[styles.settingRow, !dailyRemindersEnabled && { borderBottomWidth: 0 }]}>
             <View style={styles.settingMeta}>
               <Text style={styles.settingTitle}>Daily Reminders</Text>
-              <Text style={styles.settingSub}>Receive daily allowance & debt notifications</Text>
+              <Text style={styles.settingSub}>Receive dynamic daily alerts for debts, bills & spending</Text>
             </View>
             <Switch
               value={dailyRemindersEnabled}
@@ -527,6 +574,79 @@ export default function SettingsModal() {
               thumbColor="#FFFFFF"
             />
           </View>
+
+          {/* Granular Notification Channels */}
+          {dailyRemindersEnabled && (
+            <View style={styles.subNotificationContainer}>
+              {/* Debts */}
+              <View style={styles.subNotifRow}>
+                <View style={[styles.subNotifIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+                  <Ionicons name="card-outline" size={15} color={colors.accent.red} />
+                </View>
+                <View style={styles.settingMeta}>
+                  <Text style={styles.subNotifTitle}>Pending Debt Reminders</Text>
+                  <Text style={styles.subNotifSub}>Daily reminder of open debts to pay (e.g. "You have to pay Nazakat ₹200")</Text>
+                </View>
+                <Switch
+                  value={debtsNotifEnabled}
+                  onValueChange={handleToggleDebtsNotif}
+                  trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.red }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* Subscriptions */}
+              <View style={styles.subNotifRow}>
+                <View style={[styles.subNotifIconBox, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
+                  <Ionicons name="timer-outline" size={15} color={colors.accent.purple} />
+                </View>
+                <View style={styles.settingMeta}>
+                  <Text style={styles.subNotifTitle}>Subscription Renewals</Text>
+                  <Text style={styles.subNotifSub}>Alerts for upcoming renewals & expiring free trials</Text>
+                </View>
+                <Switch
+                  value={subsNotifEnabled}
+                  onValueChange={handleToggleSubsNotif}
+                  trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.purple }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* Daily Spending & Allowance */}
+              <View style={styles.subNotifRow}>
+                <View style={[styles.subNotifIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <Ionicons name="receipt-outline" size={15} color={colors.accent.green} />
+                </View>
+                <View style={styles.settingMeta}>
+                  <Text style={styles.subNotifTitle}>Daily Spending & Allowance</Text>
+                  <Text style={styles.subNotifSub}>Morning budget allowance & evening total spending summary</Text>
+                </View>
+                <Switch
+                  value={spendingNotifEnabled}
+                  onValueChange={handleToggleSpendingNotif}
+                  trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.green }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* Credit Returns */}
+              <View style={[styles.subNotifRow, { borderBottomWidth: 0 }]}>
+                <View style={[styles.subNotifIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+                  <Ionicons name="people-outline" size={15} color={colors.accent.blue} />
+                </View>
+                <View style={styles.settingMeta}>
+                  <Text style={styles.subNotifTitle}>Credit Item Returns</Text>
+                  <Text style={styles.subNotifSub}>Reminders for money or items owed to you by others</Text>
+                </View>
+                <Switch
+                  value={creditsNotifEnabled}
+                  onValueChange={handleToggleCreditsNotif}
+                  trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.blue }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+            </View>
+          )}
         </View>
 
         {/* SECTION 4: BUDGET & CATEGORY MANAGER */}
@@ -966,6 +1086,39 @@ const getStyles = (colors: any, isDark: boolean) =>
     accentSwatchSelected: {
       borderColor: '#FFFFFF',
       transform: [{ scale: 1.15 }],
+    },
+    subNotificationContainer: {
+      marginTop: 4,
+      paddingTop: 4,
+      borderTopWidth: 0.5,
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+      gap: 2,
+    },
+    subNotifRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderBottomWidth: 0.5,
+      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
+      gap: 10,
+    },
+    subNotifIconBox: {
+      width: 32,
+      height: 32,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    subNotifTitle: {
+      color: colors.text.primary,
+      fontSize: 12.5,
+      fontWeight: '700',
+    },
+    subNotifSub: {
+      color: colors.text.secondary,
+      fontSize: 10.5,
+      marginTop: 2,
+      lineHeight: 14,
     },
     aboutFooter: {
       alignItems: 'center',

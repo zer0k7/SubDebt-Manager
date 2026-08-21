@@ -1,8 +1,8 @@
-# Release Notes — v2.9.0
+# Release Notes — v2.10.0
 
 ## TL;DR
 
-SubDebt v2.9.0 introduces **Automated 10:00 PM Daily Vault Snapshots**, full **Unified Themed Dialog System (AppPopup)** replacing legacy native OS alerts, **Debt-to-Daily Spending Auto-Settlement Logging**, and **Dual-Theme High-Contrast Heatmap & Explorer Calibration**.
+SubDebt v2.10.0 delivers **Dynamic Smart Notification Schedules with Granular Channel Controls**, **Data Vault Android Storage Access Framework (SAF) Public Folder Sync**, **Embedded Receipt Photo Integration in Digital Receipts**, and an **Executive Multi-Section PDF Financial Statement Generator** with official vector branding and dynamic page counters.
 
 ---
 
@@ -10,40 +10,43 @@ SubDebt v2.9.0 introduces **Automated 10:00 PM Daily Vault Snapshots**, full **U
 
 | Module | Change Summary | Impact |
 | :--- | :--- | :--- |
-| **Data Vault** | Automated nightly snapshots at 10:00 PM IST with full local retention (30 backups). | Automated data security & one-tap restore |
-| **Design System** | Complete migration from native `Alert.alert` to themed glass `AppPopup`. | 100% visual and interactive consistency |
-| **Debt & Settle** | Auto-prompt to record settled debt payments directly into Daily Spending. | Zero manual duplicate entry |
-| **Spending Heatmap** | High-contrast present-day cell rendering and blue focal status indicators. | Legibility in light & dark modes |
-| **Spending Explorer** | Solid category filter badges with 24px right scroll clearance. | Clean horizontal navigation |
-| **Security & Privacy** | Security PIN & App Lock tagged with Beta indicator and safety guards. | Transparent feature readiness |
+| **Notifications** | Dynamic debt, subscription, and spending alerts with individual channel toggles. | Real-time context-aware daily reminders |
+| **Data Vault** | Android SAF folder selection and automatic missed-backup catch-up. | Backups directly visible in File Manager |
+| **PDF Statements** | Multi-section statement (Spending, Subscriptions, Debts) with vector logo & page numbers. | Professional exportable financial records |
+| **Digital Receipts** | Embedded attached receipt photos directly inside digital receipt cards. | Complete shareable receipt slips |
+| **Heatmap UI** | Eliminated hardware layer elevation artifact on calendar cells. | High-contrast visual clarity across themes |
 
 ---
 
 ## Key Features & Improvements
 
-### 1. Automated Vault Snapshots & Scheduled Backups
-- **Nightly Automated Execution**: Automated background trigger creates daily offline backups at 10:00 PM IST (`22:00`).
-- **Standardized File Structure**: Timestamped schema files named `SubDebt_Snapshot_YYYY-MM-DD_HHmmss.json`.
-- **Full-State Preservation**: Captures Subscriptions, Debts, Credits, Daily Spending entries, Custom Categories, Monthly Budgets, Category Limits, and all user settings.
-- **Snapshot Management Console**: Dedicated management view in Data Vault with one-tap Restore (Merge / Replace), Share, Delete, and manual "Snapshot Now" actions.
-- **Retention Control**: Automatically manages the latest 30 snapshots in local sandbox storage (`SubDebt_Vault_Backups/`).
+### 1. Dynamic Smart Notification Schedule & Granular Controls
+- **Individual Channel Switches**: Added granular toggles in Settings for Pending Debts, Subscription Renewals, Daily Spending & Budget Allowance, and Credit Returns.
+- **Dynamic Debt Reminders**: Generates contextual debt reminders with counterparty name and exact remaining balance (e.g., *"You have to pay [Name] [Amount]"*).
+- **Subscription Expiry Countdown**: Automated detection for subscriptions renewing today, tomorrow, or ending trial periods.
+- **Auto-Sync Across Ledger Actions**: Modifying debts, subscriptions, or spending logs immediately reschedules pending notifications.
 
-### 2. Full Themed Glass Popups Migration
-- Replaced all legacy OS native dialogs across modals (`settings.tsx`, `edit-debt.tsx`, `edit-credit.tsx`, `manage-categories.tsx`, `spending-explorer.tsx`, `import-csv.tsx`, `tool-reminder-generator.tsx`, `tool-data-vault.tsx`).
-- Standardized on glassmorphic `AppPopup` component with custom icons, haptics, and destructive action protections.
+### 2. Data Vault Android File Manager Integration & Catch-Up
+- **Storage Access Framework (SAF)**: Users can link a public device folder (such as `Documents` or `Downloads`) so backups are directly visible and accessible in Android File Manager apps.
+- **Missed Snapshot Catch-Up**: If the device was powered off or the app was closed at 10:00 PM, the scheduler automatically runs the missed snapshot upon opening the app.
+- **One-Tap Export**: Added individual snapshot "Save to Phone" and "Export All to Storage" buttons.
 
-### 3. Debt Settlement to Daily Spending Pipeline
-- Marking any debt as paid now prompts to automatically log the transaction into Daily Spending under category `Debt & EMI`.
-- Sequential modal flow ensures receipt sharing card (`SettlementCardModal`) captures clean images without overlay interference.
+### 3. Executive Multi-Section PDF Financial Statement
+- **Dynamic Page Numbering**: Resolved duplicate page numbering issues using standard CSS paged media rules (`@page` counters).
+- **Official Vector Branding**: Embedded high-resolution SubDebt Manager vector logo, report ID, generation timestamp, and offline verification badges.
+- **Multi-Section Ledger**: Captures Spending Category Share Bars, Active Subscriptions Schedule, and Open Debts & Liabilities matrix.
+- **Theme Palette Calibration**: Available in Classic Light, Deep Slate Dark, and Luxury Emerald themes.
 
-### 4. Heatmap & Category Filter Visual Calibration
-- **Calendar Heatmap**: Fixed light mode text contrast on current day (19th) zero-spend cells and status indicators.
-- **Category Filter Chips**: Standardized active badges to solid backgrounds with white typography and generous 24px right padding to prevent clipping.
+### 4. Digital Receipts & Visual Fixes
+- **Embedded Receipt Photos**: Attached receipts now render directly inside the shareable `DigitalReceiptModal`.
+- **Heatmap Cell Glitch Resolved**: Removed hardware elevation artifacts on Android calendar cells for seamless selected-day styling.
 
 ---
 
 ## Build & Validation
 
+- **App Version**: `2.10.0`
+- **Android Version Code**: `32`
 - **TypeScript Validation**: 0 errors (`tsc --noEmit` exit code 0).
 - **Target Platforms**: Android (APK / AAB) and iOS.
 - **Schema Version**: 2.

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Switch, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -13,6 +13,10 @@ import {
   restoreVaultSnapshot,
   deleteVaultSnapshot,
   shareVaultSnapshot,
+  pickPublicBackupFolder,
+  getPublicBackupFolderInfo,
+  clearPublicBackupFolder,
+  exportSnapshotToPhoneFolder,
   VaultSnapshotItem,
 } from '../../utils/vaultSnapshots';
 import { storage } from '../../storage/mmkv';
@@ -27,20 +31,20 @@ export default function DataVaultToolScreen() {
   const [loading, setLoading] = useState(false);
   const [autoSnapshotEnabled, setAutoSnapshotEnabled] = useState(true);
   const [snapshots, setSnapshots] = useState<VaultSnapshotItem[]>([]);
-  const [lastBackupDate, setLastBackupDate] = useState<string | null>(null);
+  const [publicFolder, setPublicFolder] = useState<{ uri: string | null; name: string | null }>({ uri: null, name: null });
 
   const [popupConfig, setPopupConfig] = useState<any>(null);
   const showPopup = (config: any) => setPopupConfig(config);
   const closePopup = () => setPopupConfig(null);
 
-  // Load initial settings and snapshot list
+  // Load initial settings, custom folder, and snapshot list
   const loadVaultData = useCallback(async () => {
     try {
       const enabledRaw = await storage.getString(STORAGE_KEYS.AUTO_SNAPSHOT_ENABLED);
       setAutoSnapshotEnabled(enabledRaw === null ? true : enabledRaw === 'true');
 
-      const lastDate = await storage.getString(STORAGE_KEYS.LAST_BACKUP);
-      setLastBackupDate(lastDate || null);
+      const folderInfo = await getPublicBackupFolderInfo();
+      setPublicFolder(folderInfo);
 
       const list = await listVaultSnapshots();
       setSnapshots(list);
@@ -59,6 +63,50 @@ export default function DataVaultToolScreen() {
     await storage.set(STORAGE_KEYS.AUTO_SNAPSHOT_ENABLED, value ? 'true' : 'false');
   };
 
+  const handlePickFolder = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (Platform.OS !== 'android') {
+      showPopup({
+        title: 'File Manager Storage',
+        message: 'On iOS, backup files can be saved directly via the Share button into the Files app or iCloud.',
+        icon: 'information-circle-outline',
+        iconColor: colors.accent.blue,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
+      return;
+    }
+
+    const result = await pickPublicBackupFolder();
+    if (result.granted && result.folderName) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await loadVaultData();
+      showPopup({
+        title: 'Backup Folder Linked',
+        message: `Linked folder: "${result.folderName}". All future snapshots will be saved directly into this folder so they appear in your phone's File Manager.`,
+        icon: 'folder-outline',
+        iconColor: colors.accent.green,
+        confirmText: 'Done',
+        onConfirm: closePopup,
+      });
+    } else if (result.error && result.error !== 'Folder selection was cancelled or permission was denied.') {
+      showPopup({
+        title: 'Folder Selection Failed',
+        message: result.error,
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
+    }
+  };
+
+  const handleClearFolder = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    await clearPublicBackupFolder();
+    await loadVaultData();
+  };
+
   const handleCreateSnapshotNow = async () => {
     setLoading(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -68,9 +116,13 @@ export default function DataVaultToolScreen() {
     if (result.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       await loadVaultData();
+      const folderNote = result.publicSaved
+        ? `\n\nAlso saved directly to your phone's linked folder: ${publicFolder.name || 'File Manager'}.`
+        : `\n\nSaved to offline vault. (Tip: Link a File Manager folder below to save public copies automatically).`;
+
       showPopup({
-        title: 'Snapshot Created! 🛡️',
-        message: `Your ledger snapshot was safely encrypted and saved to the offline vault folder.\n\nFile: ${result.fileName}`,
+        title: 'Snapshot Created',
+        message: `Your ledger snapshot was safely encrypted and saved.\n\nFile: ${result.fileName}${folderNote}`,
         icon: 'checkmark-circle-outline',
         iconColor: colors.accent.green,
         confirmText: 'Great',
@@ -89,11 +141,65 @@ export default function DataVaultToolScreen() {
     }
   };
 
+  const handleSaveSnapshotToPhone = async (snapshot: VaultSnapshotItem) => {
+    setLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const result = await exportSnapshotToPhoneFolder(snapshot.filePath, snapshot.fileName);
+    setLoading(false);
+
+    if (result.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await loadVaultData();
+      showPopup({
+        title: 'Saved to Phone Storage',
+        message: `Snapshot "${snapshot.fileName}" is now available in your phone's File Manager.`,
+        icon: 'checkmark-circle-outline',
+        iconColor: colors.accent.green,
+        confirmText: 'Done',
+        onConfirm: closePopup,
+      });
+    } else if (result.error && result.error !== 'No folder selected.') {
+      showPopup({
+        title: 'Export Failed',
+        message: result.error,
+        icon: 'alert-circle-outline',
+        iconColor: colors.accent.red,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
+    }
+  };
+
+  const handleSaveAllToPhone = async () => {
+    if (snapshots.length === 0) return;
+    setLoading(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    let savedCount = 0;
+    for (const snap of snapshots) {
+      const res = await exportSnapshotToPhoneFolder(snap.filePath, snap.fileName);
+      if (res.success) savedCount++;
+    }
+    setLoading(false);
+
+    if (savedCount > 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showPopup({
+        title: 'Export Complete',
+        message: `Successfully copied ${savedCount} snapshot(s) to your phone's storage folder.`,
+        icon: 'checkmark-circle-outline',
+        iconColor: colors.accent.green,
+        confirmText: 'Great',
+        onConfirm: closePopup,
+      });
+    }
+  };
+
   const handleRestoreSnapshot = (snapshot: VaultSnapshotItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showPopup({
       title: 'Restore Vault Snapshot?',
-      message: `Restore data from snapshot (${snapshot.metadata.totalRecords} records)?\n\nChoose 'Merge' to combine with your current records, or 'Replace' to overwrite.`,
+      message: `Restore data from snapshot (${snapshot.metadata.totalRecords} records)?\n\nChoose 'Merge' to combine with current ledger records, or 'Cancel' to exit.`,
       icon: 'download-outline',
       iconColor: colors.accent.blue,
       confirmText: 'Merge Records',
@@ -113,7 +219,7 @@ export default function DataVaultToolScreen() {
             result.spendingCount +
             result.categoriesCount;
           showPopup({
-            title: 'Vault Restored Successfully 🎉',
+            title: 'Vault Restored Successfully',
             message: `Restored ${total} entries and app preferences from snapshot ${snapshot.fileName}.`,
             icon: 'checkmark-circle-outline',
             iconColor: colors.accent.green,
@@ -207,7 +313,7 @@ export default function DataVaultToolScreen() {
             result.spendingCount +
             result.categoriesCount;
           showPopup({
-            title: 'Vault Restored 🎉',
+            title: 'Vault Restored',
             message: `Successfully imported ${totalRecords} records across all tabs and restored your settings.`,
             icon: 'checkmark-circle-outline',
             iconColor: colors.accent.green,
@@ -288,7 +394,7 @@ export default function DataVaultToolScreen() {
           </View>
           <Text style={styles.heroTitle}>Offline Data Vault</Text>
           <Text style={styles.heroSubtitle}>
-            100% offline, encrypted JSON snapshots stored safely in your device storage. Automatic daily backups protect all financial records.
+            Encrypted JSON backups of your financial ledger. Automatic backups run daily at 10:00 PM IST, and can be saved directly to your phone's File Manager.
           </Text>
         </View>
 
@@ -309,7 +415,7 @@ export default function DataVaultToolScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.scheduledTitle}>Daily Auto-Snapshot</Text>
               <Text style={styles.scheduledDesc}>
-                Automatically backs up all subscriptions, debts, credits & spending logs daily at 10:00 PM IST.
+                Automatically backs up all subscriptions, debts, credits & spending logs daily at 10:00 PM IST (with missed catch-up upon opening).
               </Text>
             </View>
             <Switch
@@ -325,11 +431,50 @@ export default function DataVaultToolScreen() {
           <View style={styles.scheduleInfoRow}>
             <View style={styles.schedulePill}>
               <Ionicons name="time" size={13} color={colors.accent.purple} />
-              <Text style={styles.schedulePillText}>Schedule: Every Day @ 10:00 PM IST</Text>
+              <Text style={styles.schedulePillText}>Schedule: Daily @ 10:00 PM IST</Text>
             </View>
             <View style={styles.schedulePill}>
               <Ionicons name="folder" size={13} color={colors.accent.blue} />
-              <Text style={styles.schedulePillText}>Folder: SubDebt_Vault_Backups/</Text>
+              <Text style={styles.schedulePillText} numberOfLines={1}>
+                {publicFolder.name ? `Folder: ${publicFolder.name}` : 'Storage: App Sandbox (Hidden by Android)'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Folder Selection for File Manager Visibility */}
+          <View style={styles.folderPickerCard}>
+            <View style={styles.folderPickerHeader}>
+              <Ionicons name="phone-portrait-outline" size={18} color={colors.accent.blue} />
+              <Text style={styles.folderPickerTitle}>File Manager Visibility (Android)</Text>
+            </View>
+            <Text style={styles.folderPickerDesc}>
+              {publicFolder.name
+                ? `Linked to "${publicFolder.name}". Backups are directly saved and visible in your phone's File Manager app.`
+                : `Android restricts private app folders from appearing in File Manager. Select a folder (like Documents or Downloads) so backups are directly visible in your phone's File Manager.`}
+            </Text>
+
+            <View style={styles.folderBtnRow}>
+              <TouchableOpacity
+                style={styles.folderPickerBtn}
+                onPress={handlePickFolder}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="folder-open-outline" size={16} color={colors.accent.blue} />
+                <Text style={styles.folderPickerBtnText}>
+                  {publicFolder.name ? 'Change Folder' : 'Choose File Manager Folder'}
+                </Text>
+              </TouchableOpacity>
+
+              {publicFolder.name && (
+                <TouchableOpacity
+                  style={styles.clearFolderBtn}
+                  onPress={handleClearFolder}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="close-circle-outline" size={16} color={colors.text.muted} />
+                  <Text style={styles.clearFolderBtnText}>Reset</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -348,7 +493,9 @@ export default function DataVaultToolScreen() {
         <View style={styles.historyHeaderRow}>
           <Text style={styles.sectionLabel}>SAVED VAULT SNAPSHOTS ({snapshots.length})</Text>
           {snapshots.length > 0 && (
-            <Text style={styles.retentionNotice}>Keeping latest 30</Text>
+            <TouchableOpacity onPress={handleSaveAllToPhone} activeOpacity={0.7}>
+              <Text style={styles.exportAllLink}>Export All to Storage</Text>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -395,6 +542,15 @@ export default function DataVaultToolScreen() {
                   >
                     <Ionicons name="refresh-outline" size={14} color={colors.accent.blue} />
                     <Text style={[styles.snapshotActionText, { color: colors.accent.blue }]}>Restore</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.snapshotActionBtn}
+                    onPress={() => handleSaveSnapshotToPhone(item)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="save-outline" size={14} color={colors.accent.green} />
+                    <Text style={[styles.snapshotActionText, { color: colors.accent.green }]}>Save to Phone</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -596,6 +752,63 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '600',
       color: colors.text.secondary,
     },
+    folderPickerCard: {
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.08)' : 'rgba(59, 130, 246, 0.05)',
+      borderRadius: 12,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.15)',
+      gap: 6,
+    },
+    folderPickerHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    folderPickerTitle: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    folderPickerDesc: {
+      fontSize: 11.5,
+      color: colors.text.secondary,
+      lineHeight: 16,
+    },
+    folderBtnRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 4,
+    },
+    folderPickerBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.12)',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      borderWidth: 0.5,
+      borderColor: colors.accent.blue,
+    },
+    folderPickerBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.accent.blue,
+    },
+    clearFolderBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    clearFolderBtnText: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.text.muted,
+    },
     snapshotNowBtn: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -618,10 +831,10 @@ const getStyles = (colors: any, isDark: boolean) =>
       marginBottom: 6,
       paddingRight: 4,
     },
-    retentionNotice: {
-      fontSize: 10.5,
-      color: colors.text.muted,
-      fontWeight: '600',
+    exportAllLink: {
+      fontSize: 11.5,
+      color: colors.accent.blue,
+      fontWeight: '700',
     },
     emptySnapshotCard: {
       alignItems: 'center',
@@ -697,23 +910,24 @@ const getStyles = (colors: any, isDark: boolean) =>
     snapshotActionsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 6,
       marginTop: 2,
       paddingTop: 8,
       borderTopWidth: 0.5,
       borderTopColor: colors.glass.cardBorder,
+      flexWrap: 'wrap',
     },
     snapshotActionBtn: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      paddingHorizontal: 10,
+      paddingHorizontal: 8,
       paddingVertical: 5,
       borderRadius: 8,
       backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
     },
     snapshotActionText: {
-      fontSize: 11.5,
+      fontSize: 11,
       fontWeight: '700',
     },
     actionCard: {

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Platform,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ViewShot, { captureRef } from 'react-native-view-shot';
@@ -27,6 +28,7 @@ interface DigitalReceiptModalProps {
   notes?: string;
   type: 'spending' | 'debt' | 'credit' | 'subscription';
   statusText?: string;
+  receiptImage?: string | null;
 }
 
 export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
@@ -40,6 +42,7 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
   notes,
   type,
   statusText,
+  receiptImage,
 }) => {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
@@ -146,6 +149,20 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
                   <Text style={styles.notesHeading}>NOTES & REMARKS</Text>
                 </View>
                 <Text style={styles.notesContent}>{notes}</Text>
+              </View>
+            ) : null}
+
+            {receiptImage ? (
+              <View style={styles.imageContainer}>
+                <View style={styles.imageHeaderRow}>
+                  <Ionicons name="camera-outline" size={13} color={colors.accent.blue} />
+                  <Text style={styles.imageHeading}>ATTACHED RECEIPT PHOTO</Text>
+                </View>
+                <Image
+                  source={{ uri: receiptImage }}
+                  style={styles.attachedImage}
+                  resizeMode="cover"
+                />
               </View>
             ) : null}
 
@@ -319,6 +336,31 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '500',
       lineHeight: 18,
       fontStyle: 'italic',
+    },
+    imageContainer: {
+      padding: 10,
+      borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+      gap: 8,
+    },
+    imageHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    imageHeading: {
+      color: colors.accent.blue,
+      fontSize: 9.5,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+    },
+    attachedImage: {
+      width: '100%',
+      height: 120,
+      borderRadius: 10,
+      backgroundColor: isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.05)',
     },
     footerNote: {
       flexDirection: 'row',

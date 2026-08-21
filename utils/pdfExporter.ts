@@ -3,10 +3,36 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { SpendingEntry } from '../hooks/useDailySpending';
 import { formatCurrency } from './dateHelpers';
-
 import { getCategoryColor } from '../constants/categories';
 
-interface PDFExportData {
+export interface PDFSubscriptionItem {
+  name: string;
+  amount: number;
+  currency: string;
+  billingCycle: string;
+  nextRenewalDate?: string;
+  isActive: boolean;
+}
+
+export interface PDFDebtItem {
+  personName: string;
+  amount: number;
+  currency: string;
+  dueDate?: string;
+  isPaid: boolean;
+  remainingAmount: number;
+}
+
+export interface PDFCreditItem {
+  personName: string;
+  amount: number;
+  currency: string;
+  expectedReturnDate?: string;
+  isReturned: boolean;
+  remainingAmount: number;
+}
+
+export interface PDFExportData {
   entries: SpendingEntry[];
   timeRangeLabel: string;
   totalAmount: number;
@@ -15,6 +41,10 @@ interface PDFExportData {
   categoryTotals: { category: string; total: number }[];
   highestDay: { date: string; total: number };
   pdfTheme?: 'light' | 'dark' | 'emerald';
+  subscriptions?: PDFSubscriptionItem[];
+  debts?: PDFDebtItem[];
+  credits?: PDFCreditItem[];
+  includeAllSections?: boolean;
 }
 
 export const exportSpendingToPDF = async (data: PDFExportData): Promise<string | null> => {
@@ -27,90 +57,157 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
     categoryTotals,
     highestDay,
     pdfTheme = 'light',
+    subscriptions = [],
+    debts = [],
+    credits = [],
+    includeAllSections = true,
   } = data;
 
-  const formattedDate = new Date().toLocaleDateString('en-IN', {
-    day: 'numeric',
+  const now = new Date();
+  const formattedDate = now.toLocaleDateString('en-IN', {
+    day: '2-digit',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
 
-  // Calculate percentages and styling colors for categories
+  const reportId = `SBD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  // Financial aggregates
+  const activeSubs = subscriptions.filter((s) => s.isActive);
+  const monthlySubsTotal = activeSubs.reduce((sum, s) => {
+    let monthly = s.amount;
+    if (s.billingCycle === 'yearly') monthly = s.amount / 12;
+    else if (s.billingCycle === 'weekly') monthly = s.amount * 4.33;
+    return sum + monthly;
+  }, 0);
+
+  const openDebts = debts.filter((d) => !d.isPaid);
+  const totalOpenDebts = openDebts.reduce((sum, d) => sum + (d.remainingAmount || d.amount || 0), 0);
+
+  const openCredits = credits.filter((c) => !c.isReturned);
+  const totalOpenCredits = openCredits.reduce((sum, c) => sum + (c.remainingAmount || c.amount || 0), 0);
+
+  // Category breakdown calculation
   const maxCategoryTotal = categoryTotals.length > 0 ? categoryTotals[0].total : 1;
 
   const categoryRowsHTML = categoryTotals
-     .map((cat) => {
-       const percentage = totalAmount > 0 ? Math.round((cat.total / totalAmount) * 100) : 0;
-       const barWidth = Math.max(2, Math.min(100, Math.round((cat.total / maxCategoryTotal) * 100)));
-       const color = getCategoryColor(cat.category);
+    .map((cat) => {
+      const percentage = totalAmount > 0 ? Math.round((cat.total / totalAmount) * 100) : 0;
+      const barWidth = Math.max(3, Math.min(100, Math.round((cat.total / maxCategoryTotal) * 100)));
+      const color = getCategoryColor(cat.category);
 
-       return `
-         <div class="category-row">
-           <div class="category-info">
-             <div class="category-name-wrap">
-               <span class="category-dot" style="background-color: ${color};"></span>
-               <span class="category-name">${cat.category}</span>
-             </div>
-             <div class="category-value-wrap">
-               <span class="category-amount">${formatCurrency(cat.total, currencyCode)}</span>
-               <span class="category-percent">${percentage}%</span>
-             </div>
-           </div>
-           <div class="progress-bar-bg">
-             <div class="progress-bar-fill" style="width: ${barWidth}%; background: linear-gradient(90deg, ${color}d0, ${color});"></div>
-           </div>
-         </div>
-       `;
-     })
-     .join('');
+      return `
+        <div class="category-row">
+          <div class="category-info">
+            <div class="category-name-wrap">
+              <span class="category-dot" style="background-color: ${color};"></span>
+              <span class="category-name">${cat.category}</span>
+            </div>
+            <div class="category-value-wrap">
+              <span class="category-amount">${formatCurrency(cat.total, currencyCode)}</span>
+              <span class="category-percent">${percentage}%</span>
+            </div>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: ${barWidth}%; background: linear-gradient(90deg, ${color}cc, ${color});"></div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
 
-  // Spending rows table generator
+  // Transaction rows table generator
   const entryRowsHTML = entries
-     .map((entry) => {
-       const entryDate = new Date(entry.spentAt).toLocaleDateString('en-IN', {
-         day: '2-digit',
-         month: 'short',
-         year: 'numeric',
-       });
- 
-       return `
-         <tr>
-           <td>
-             <div class="entry-date">${entryDate}</div>
-           </td>
-           <td>
-             <div class="entry-title">${entry.title}</div>
-             ${entry.notes ? `<div class="entry-notes">${entry.notes}</div>` : ''}
-           </td>
-           <td>
-             <span class="entry-category-badge">${entry.category}</span>
-           </td>
-           <td class="text-right font-semibold">
-             ${formatCurrency(entry.amount, entry.currency)}
-           </td>
-         </tr>
-       `;
-     })
-     .join('');
+    .map((entry) => {
+      const entryDate = new Date(entry.spentAt).toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+      const catColor = getCategoryColor(entry.category);
+
+      return `
+        <tr>
+          <td><div class="entry-date">${entryDate}</div></td>
+          <td>
+            <div class="entry-title">${entry.title}</div>
+            ${entry.notes ? `<div class="entry-notes">${entry.notes}</div>` : ''}
+          </td>
+          <td>
+            <span class="entry-category-badge" style="background: ${catColor}15; color: ${catColor}; border: 1px solid ${catColor}30;">
+              ${entry.category}
+            </span>
+          </td>
+          <td class="text-right font-semibold">
+            ${formatCurrency(entry.amount, entry.currency || currencyCode)}
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  // Subscriptions rows HTML
+  const subsRowsHTML = activeSubs
+    .map((sub) => {
+      const renewalStr = sub.nextRenewalDate
+        ? new Date(sub.nextRenewalDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'Active';
+
+      return `
+        <tr>
+          <td><div class="entry-title">${sub.name}</div></td>
+          <td><span class="cycle-badge">${sub.billingCycle.toUpperCase()}</span></td>
+          <td><div class="entry-date">${renewalStr}</div></td>
+          <td class="text-right font-semibold">${formatCurrency(sub.amount, sub.currency || currencyCode)}</td>
+        </tr>
+      `;
+    })
+    .join('');
+
+  // Debts rows HTML
+  const debtsRowsHTML = openDebts
+    .map((debt) => {
+      const dueStr = debt.dueDate
+        ? new Date(debt.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : 'No due date';
+
+      return `
+        <tr>
+          <td>
+            <div class="entry-title">${debt.personName}</div>
+            <div class="entry-notes">Liability to pay back</div>
+          </td>
+          <td><span class="status-badge-debt">PENDING DEBT</span></td>
+          <td><div class="entry-date">${dueStr}</div></td>
+          <td class="text-right font-semibold" style="color: var(--accent-debt);">
+            ${formatCurrency(debt.remainingAmount || debt.amount, debt.currency || currencyCode)}
+          </td>
+        </tr>
+      `;
+    })
+    .join('');
 
   // Theme-specific CSS variables
   let themeCss = '';
   if (pdfTheme === 'dark') {
     themeCss = `
       :root {
-        --bg-primary: #0B0F19;
+        --bg-primary: #0A0E1A;
         --bg-panel: #111827;
-        --bg-stat: #1F2937;
+        --bg-stat: #182234;
         --text-primary: #F9FAFB;
         --text-secondary: #9CA3AF;
         --text-muted: #6B7280;
-        --border-color: #374151;
+        --border-color: #2D3748;
         --accent-primary: #6366F1;
         --accent-primary-light: rgba(99, 102, 241, 0.15);
+        --accent-debt: #F87171;
+        --accent-credit: #34D399;
         --table-row-border: #1F2937;
-        --table-header-bg: #1F2937;
+        --table-row-alt: #131C2E;
+        --table-header-bg: #1A2438;
       }
     `;
   } else if (pdfTheme === 'emerald') {
@@ -125,41 +222,63 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         --border-color: #065F46;
         --accent-primary: #10B981;
         --accent-primary-light: rgba(16, 185, 129, 0.15);
+        --accent-debt: #F87171;
+        --accent-credit: #34D399;
         --table-row-border: #065F46;
-        --table-header-bg: #042F2E;
+        --table-row-alt: #04382A;
+        --table-header-bg: #03392B;
       }
     `;
   } else {
     // Light
     themeCss = `
       :root {
-        --bg-primary: #FFFFFF;
+        --bg-primary: #F8FAFC;
         --bg-panel: #FFFFFF;
-        --bg-stat: #FAFAFB;
-        --text-primary: #1F2937;
-        --text-secondary: #6B7280;
-        --text-muted: #9CA3AF;
-        --border-color: #E5E7EB;
+        --bg-stat: #F1F5F9;
+        --text-primary: #0F172A;
+        --text-secondary: #475569;
+        --text-muted: #64748B;
+        --border-color: #E2E8F0;
         --accent-primary: #7C3AED;
         --accent-primary-light: rgba(124, 58, 237, 0.08);
-        --table-row-border: #F3F4F6;
-        --table-header-bg: #FAFAFB;
+        --accent-debt: #DC2626;
+        --accent-credit: #059669;
+        --table-row-border: #E2E8F0;
+        --table-row-alt: #F8FAFC;
+        --table-header-bg: #F1F5F9;
       }
     `;
   }
 
-  // Premium High-Fidelity CSS & Layout
   const htmlContent = `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>SubDebt Ledger - Daily Spending Report</title>
+      <title>SubDebt Financial Statement - ${timeRangeLabel}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
         ${themeCss}
+
+        @page {
+          margin: 14mm 12mm 16mm 12mm;
+          size: A4 portrait;
+          @bottom-right {
+            content: "Page " counter(page);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 8pt;
+            font-weight: 600;
+            color: #64748B;
+          }
+          @bottom-left {
+            content: "SubDebt Ledger • 100% Offline Verified";
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 8pt;
+            font-weight: 500;
+            color: #64748B;
+          }
+        }
 
         * {
           box-sizing: border-box;
@@ -168,157 +287,143 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         }
 
         body {
-          font-family: 'Inter', system-ui, -apple-system, sans-serif;
-          color: var(--text-primary);
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
           background-color: var(--bg-primary);
-          line-height: 1.5;
-          padding: 40px;
-          font-size: 14px;
+          color: var(--text-primary);
+          font-size: 11pt;
+          line-height: 1.45;
+          padding: 0;
           -webkit-print-color-adjust: exact;
           print-color-adjust: exact;
         }
 
-        @page {
-          size: A4;
-          margin: 20mm 15mm 20mm 15mm;
-        }
-
-        /* Header Premium Design */
-        .report-header {
+        .header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          border-bottom: 2px solid var(--border-color);
-          padding-bottom: 24px;
-          margin-bottom: 30px;
+          align-items: center;
+          padding: 16px 20px;
+          background-color: var(--bg-panel);
+          border: 1px solid var(--border-color);
+          border-radius: 16px;
+          margin-bottom: 16px;
         }
 
-        .brand-section h1 {
-          font-size: 24px;
+        .brand-section {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .app-logo {
+          width: 44px;
+          height: 44px;
+        }
+
+        .brand-text h1 {
+          font-size: 18pt;
           font-weight: 800;
-          color: var(--accent-primary);
-          letter-spacing: -0.5px;
-          text-transform: uppercase;
+          color: var(--text-primary);
+          letter-spacing: -0.4px;
+          line-height: 1.1;
         }
 
-        .brand-section p {
-          font-size: 12px;
+        .brand-text p {
+          font-size: 9pt;
           color: var(--text-secondary);
-          font-weight: 500;
-          margin-top: 4px;
+          font-weight: 600;
+          margin-top: 2px;
         }
 
-        .meta-section {
+        .report-meta {
           text-align: right;
         }
 
-        .meta-section h2 {
-          font-size: 16px;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .meta-section .range-badge {
+        .meta-badge {
           display: inline-block;
-          background-color: var(--accent-primary-light);
+          background: var(--accent-primary-light);
           color: var(--accent-primary);
           padding: 4px 10px;
-          border-radius: 9999px;
-          font-size: 12px;
-          font-weight: 600;
-          margin-top: 6px;
-          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          font-size: 8.5pt;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
+          border: 1px solid var(--accent-primary);
         }
 
-        .meta-section .timestamp {
-          font-size: 11px;
+        .meta-time {
+          font-size: 8.5pt;
           color: var(--text-muted);
-          margin-top: 6px;
+          font-weight: 500;
         }
 
-        /* Executive Stats Cards */
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 16px;
-          margin-bottom: 32px;
+          gap: 10px;
+          margin-bottom: 16px;
         }
 
         .stat-card {
-          background: var(--bg-stat);
+          background-color: var(--bg-panel);
           border: 1px solid var(--border-color);
           border-radius: 12px;
-          padding: 16px;
-          position: relative;
-          overflow: hidden;
+          padding: 12px 14px;
+          break-inside: avoid;
         }
 
-        .stat-card::before {
-          content: "";
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 4px;
-          background-color: var(--border-color);
-        }
-
-        .stat-card.purple::before { background-color: var(--accent-primary); }
-        .stat-card.blue::before { background-color: #3B82F6; }
-        .stat-card.emerald::before { background-color: #10B981; }
-        .stat-card.amber::before { background-color: #F59E0B; }
-
-        .stat-label {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--text-secondary);
+        .stat-title {
+          font-size: 8pt;
+          font-weight: 700;
+          color: var(--text-muted);
           text-transform: uppercase;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.6px;
+          margin-bottom: 4px;
         }
 
         .stat-value {
-          font-size: 18px;
-          font-weight: 700;
+          font-size: 14pt;
+          font-weight: 800;
           color: var(--text-primary);
-          margin-top: 6px;
+          line-height: 1.2;
         }
 
-        .stat-desc {
-          font-size: 11px;
-          color: var(--text-muted);
-          margin-top: 4px;
+        .stat-sub {
+          font-size: 8pt;
+          color: var(--text-secondary);
+          margin-top: 3px;
+          font-weight: 500;
         }
 
-        /* Two Column Layout for Breakdown & Insights */
-        .content-split {
+        .section-grid {
           display: grid;
-          grid-template-columns: 1.2fr 0.8fr;
-          gap: 24px;
-          margin-bottom: 32px;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 16px;
         }
 
         .panel {
-          border: 1px solid var(--border-color);
-          border-radius: 16px;
-          padding: 20px;
           background-color: var(--bg-panel);
+          border: 1px solid var(--border-color);
+          border-radius: 14px;
+          padding: 14px 16px;
+          break-inside: avoid;
         }
 
         .panel-title {
-          font-size: 14px;
-          font-weight: 700;
+          font-size: 11pt;
+          font-weight: 800;
           color: var(--text-primary);
-          margin-bottom: 16px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
+          margin-bottom: 12px;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
+          border-bottom: 1px solid var(--border-color);
+          padding-bottom: 6px;
         }
 
-        /* Category progress designs */
         .category-row {
-          margin-bottom: 14px;
+          margin-bottom: 10px;
         }
 
         .category-row:last-child {
@@ -329,23 +434,24 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 6px;
+          margin-bottom: 3px;
+          font-size: 9.5pt;
         }
 
         .category-name-wrap {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
         }
 
         .category-dot {
           width: 8px;
           height: 8px;
-          border-radius: 50%;
+          border-radius: 4px;
         }
 
         .category-name {
-          font-weight: 600;
+          font-weight: 700;
           color: var(--text-primary);
         }
 
@@ -361,33 +467,31 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         }
 
         .category-percent {
-          font-size: 11px;
-          color: var(--text-secondary);
-          background-color: var(--bg-stat);
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: 500;
+          color: var(--text-muted);
+          font-size: 8pt;
+          font-weight: 600;
+          min-width: 26px;
+          text-align: right;
         }
 
         .progress-bar-bg {
           height: 6px;
           background-color: var(--bg-stat);
-          border-radius: 9999px;
+          border-radius: 3px;
           overflow: hidden;
         }
 
         .progress-bar-fill {
           height: 100%;
-          border-radius: 9999px;
+          border-radius: 3px;
         }
 
-        /* Insights panel */
         .insight-box {
           background-color: var(--bg-stat);
-          border: 1px dashed var(--border-color);
-          border-radius: 12px;
-          padding: 14px;
-          margin-bottom: 12px;
+          border-radius: 10px;
+          padding: 10px 12px;
+          margin-bottom: 8px;
+          border: 1px solid var(--border-color);
         }
 
         .insight-box:last-child {
@@ -395,81 +499,106 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         }
 
         .insight-title {
-          font-size: 12px;
-          font-weight: 700;
-          color: var(--text-secondary);
-          margin-bottom: 4px;
+          font-size: 8.5pt;
+          font-weight: 800;
+          color: var(--accent-primary);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 2px;
         }
 
         .insight-body {
-          font-size: 12px;
+          font-size: 9pt;
           color: var(--text-secondary);
+          line-height: 1.35;
         }
 
-        /* Ledger Table styles */
         .table-panel {
-          border: 1px solid var(--border-color);
-          border-radius: 16px;
-          padding: 20px;
           background-color: var(--bg-panel);
-          margin-top: 10px;
-          page-break-before: auto;
+          border: 1px solid var(--border-color);
+          border-radius: 14px;
+          padding: 14px 16px;
+          margin-bottom: 16px;
+          break-inside: avoid;
         }
 
         .ledger-table {
           width: 100%;
           border-collapse: collapse;
-          text-align: left;
+          font-size: 9pt;
         }
 
         .ledger-table th {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          padding: 12px 16px;
-          border-bottom: 2px solid var(--border-color);
           background-color: var(--table-header-bg);
+          color: var(--text-muted);
+          font-weight: 700;
+          font-size: 8pt;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          padding: 8px 10px;
+          text-align: left;
+          border-bottom: 1px solid var(--border-color);
         }
 
         .ledger-table td {
-          padding: 14px 16px;
+          padding: 8px 10px;
           border-bottom: 1px solid var(--table-row-border);
           vertical-align: middle;
         }
 
-        .ledger-table tr:last-child td {
-          border-bottom: none;
+        .ledger-table tbody tr:nth-child(even) {
+          background-color: var(--table-row-alt);
+        }
+
+        .ledger-table tbody tr {
+          page-break-inside: avoid;
+          break-inside: avoid;
         }
 
         .entry-date {
-          font-size: 12px;
-          color: var(--text-secondary);
-          font-weight: 500;
+          font-weight: 600;
+          color: var(--text-muted);
+          font-size: 8.5pt;
         }
 
         .entry-title {
-          font-weight: 600;
+          font-weight: 700;
           color: var(--text-primary);
         }
 
         .entry-notes {
-          font-size: 11px;
+          font-size: 7.5pt;
           color: var(--text-muted);
-          margin-top: 2px;
+          margin-top: 1px;
           font-style: italic;
         }
 
         .entry-category-badge {
           display: inline-block;
-          font-size: 11px;
-          font-weight: 500;
-          color: var(--text-secondary);
-          background-color: var(--bg-stat);
-          padding: 2px 8px;
+          padding: 2px 7px;
           border-radius: 6px;
-          border: 1px solid var(--border-color);
+          font-size: 7.5pt;
+          font-weight: 700;
+        }
+
+        .cycle-badge {
+          display: inline-block;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: rgba(99, 102, 241, 0.15);
+          color: var(--accent-primary);
+          font-size: 7.5pt;
+          font-weight: 800;
+        }
+
+        .status-badge-debt {
+          display: inline-block;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: rgba(239, 68, 68, 0.15);
+          color: var(--accent-debt);
+          font-size: 7.5pt;
+          font-weight: 800;
         }
 
         .text-right {
@@ -477,106 +606,166 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         }
 
         .font-semibold {
-          font-weight: 600;
-          color: var(--text-primary);
+          font-weight: 700;
         }
 
-        /* Footer watermark */
-        .report-footer {
-          margin-top: 40px;
-          border-top: 1px solid var(--border-color);
-          padding-top: 16px;
+        .footer-watermark {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 11px;
+          padding: 12px 16px;
+          background-color: var(--bg-panel);
+          border: 1px solid var(--border-color);
+          border-radius: 12px;
+          font-size: 8pt;
           color: var(--text-muted);
-        }
-
-        .brand-stamp {
-          font-weight: 600;
-          color: var(--accent-primary);
+          margin-top: 8px;
+          break-inside: avoid;
         }
       </style>
     </head>
     <body>
-      <!-- Header -->
-      <div class="report-header">
+      <!-- Header with Official Logo & Document Info -->
+      <div class="header">
         <div class="brand-section">
-          <h1>SubDebt Ledger</h1>
-          <p>Personal Financial Safe-Guards & Spending Ledger</p>
+          <svg class="app-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="22" fill="#7C3AED" />
+            <path d="M25 35C25 29.4772 29.4772 25 35 25H65C70.5228 25 75 29.4772 75 35V65C75 70.5228 70.5228 75 65 75H35C29.4772 75 25 70.5228 25 65V35Z" fill="#1E1B4B" />
+            <path d="M32 44C32 39.5817 35.5817 36 40 36H68C72.4183 36 76 39.5817 76 44V64C76 68.4183 72.4183 72 68 72H40C35.5817 72 32 68.4183 32 64V44Z" fill="url(#paint0_linear)" />
+            <circle cx="62" cy="54" r="5" fill="#FFFFFF" />
+            <defs>
+              <linearGradient id="paint0_linear" x1="32" y1="36" x2="76" y2="72" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4FC3F7" />
+                <stop offset="1" stop-color="#8B5CF6" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="brand-text">
+            <h1>SubDebt Manager</h1>
+            <p>Financial Statement & Audit Ledger</p>
+          </div>
         </div>
-        <div class="meta-section">
-          <h2>Spending Report</h2>
-          <span class="range-badge">${timeRangeLabel}</span>
-          <div class="timestamp">Generated on ${formattedDate}</div>
+
+        <div class="report-meta">
+          <div class="meta-badge">${timeRangeLabel.toUpperCase()}</div>
+          <div class="meta-time">ID: ${reportId}</div>
+          <div class="meta-time">${formattedDate}</div>
         </div>
       </div>
 
-      <!-- Executive Overview -->
+      <!-- Key Metric Stats Grid -->
       <div class="stats-grid">
-        <div class="stat-card purple">
-          <div class="stat-label">Total Outflow</div>
-          <div class="stat-value" style="color: var(--accent-primary);">${formatCurrency(totalAmount, currencyCode)}</div>
-          <div class="stat-desc">Accumulated outflow</div>
+        <div class="stat-card">
+          <div class="stat-title">Total Spending</div>
+          <div class="stat-value">${formatCurrency(totalAmount, currencyCode)}</div>
+          <div class="stat-sub">${entries.length} expenses logged</div>
         </div>
-        <div class="stat-card blue">
-          <div class="stat-label">Daily Average</div>
+        <div class="stat-card">
+          <div class="stat-title">Daily Average</div>
           <div class="stat-value">${formatCurrency(dailyAvg, currencyCode)}</div>
-          <div class="stat-desc">Avg per active day</div>
+          <div class="stat-sub">Across active days</div>
         </div>
-        <div class="stat-card emerald">
-          <div class="stat-label">Transactions</div>
-          <div class="stat-value">${entries.length}</div>
-          <div class="stat-desc">Total expense items</div>
+        <div class="stat-card">
+          <div class="stat-title">Subs Run-Rate</div>
+          <div class="stat-value">${formatCurrency(monthlySubsTotal, currencyCode)}</div>
+          <div class="stat-sub">${activeSubs.length} active plans/mo</div>
         </div>
-        <div class="stat-card amber">
-          <div class="stat-label">Peak Spend Day</div>
-          <div class="stat-value">${highestDay.total > 0 ? formatCurrency(highestDay.total, currencyCode) : 'N/A'}</div>
-          <div class="stat-desc">${
-            highestDay.date
-              ? new Date(highestDay.date + 'T00:00:00').toLocaleDateString('en-IN', {
-                  day: 'numeric',
-                  month: 'short',
-                })
-              : 'No transactions'
-          }</div>
+        <div class="stat-card">
+          <div class="stat-title">Open Debts</div>
+          <div class="stat-value" style="color: var(--accent-debt);">${formatCurrency(totalOpenDebts, currencyCode)}</div>
+          <div class="stat-sub">${openDebts.length} pending to pay</div>
         </div>
       </div>
 
-      <!-- Two Column Layout: Categories & Insights -->
-      <div class="content-split">
-        <!-- Categories breakdown panel -->
+      <!-- Visual Breakdown & Insights -->
+      <div class="section-grid">
         <div class="panel">
-          <div class="panel-title">Category Breakdown</div>
+          <div class="panel-title">Spending by Category</div>
           ${categoryTotals.length > 0 ? categoryRowsHTML : '<p style="color: var(--text-muted); text-align: center; padding: 20px 0;">No spending records in this range.</p>'}
         </div>
 
-        <!-- Insights panel -->
         <div class="panel">
-          <div class="panel-title">Report Insights</div>
+          <div class="panel-title">Ledger Audit & Insights</div>
           <div class="insight-box">
-            <div class="insight-title">Principal Category</div>
+            <div class="insight-title">Principal Expense Category</div>
             <div class="insight-body">
               ${
                 categoryTotals.length > 0
-                  ? `Your primary spending category is <strong>${categoryTotals[0].category}</strong>, constituting <strong>${Math.round((categoryTotals[0].total / (totalAmount || 1)) * 100)}%</strong> of your total expenses.`
-                  : 'Insufficient data to compute primary spending category.'
+                  ? `Your primary spending category is <strong>${categoryTotals[0].category}</strong> (${formatCurrency(categoryTotals[0].total, currencyCode)}), making up <strong>${Math.round((categoryTotals[0].total / (totalAmount || 1)) * 100)}%</strong> of your total outflow.`
+                  : 'Insufficient transaction data.'
               }
             </div>
           </div>
           <div class="insight-box">
-            <div class="insight-title">Audit Health</div>
+            <div class="insight-title">Peak Outflow Day</div>
             <div class="insight-body">
-              This financial ledger compiled ${entries.length} transaction${entries.length === 1 ? '' : 's'} completely offline. No external cloud systems have accessed this ledger.
+              ${
+                highestDay && highestDay.total > 0
+                  ? `Highest single-day expenditure was <strong>${formatCurrency(highestDay.total, currencyCode)}</strong> on ${new Date(highestDay.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}.`
+                  : 'No peak single-day expense recorded.'
+              }
+            </div>
+          </div>
+          <div class="insight-box">
+            <div class="insight-title">Privacy Verification</div>
+            <div class="insight-body">
+              This statement was generated 100% offline on-device with zero cloud telemetry.
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Active Subscriptions Overview (if enabled and present) -->
+      ${
+        includeAllSections && activeSubs.length > 0
+          ? `
+        <div class="table-panel">
+          <div class="panel-title">Active Recurring Subscriptions (${activeSubs.length})</div>
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th style="width: 40%;">Subscription</th>
+                <th style="width: 20%;">Billing Cycle</th>
+                <th style="width: 20%;">Next Renewal</th>
+                <th style="width: 20%; text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${subsRowsHTML}
+            </tbody>
+          </table>
+        </div>
+      `
+          : ''
+      }
+
+      <!-- Open Debts Overview (if enabled and present) -->
+      ${
+        includeAllSections && openDebts.length > 0
+          ? `
+        <div class="table-panel">
+          <div class="panel-title">Open Debts & Liabilities (${openDebts.length})</div>
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th style="width: 40%;">Counterparty</th>
+                <th style="width: 20%;">Status</th>
+                <th style="width: 20%;">Due Date</th>
+                <th style="width: 20%; text-align: right;">Balance Due</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${debtsRowsHTML}
+            </tbody>
+          </table>
+        </div>
+      `
+          : ''
+      }
+
       <!-- Detailed Transaction Ledger -->
       <div class="table-panel">
-        <div class="panel-title" style="margin-bottom: 20px;">Detailed Ledger Ledger</div>
+        <div class="panel-title">Daily Expense Transactions (${entries.length})</div>
         <table class="ledger-table">
           <thead>
             <tr>
@@ -592,10 +781,10 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         </table>
       </div>
 
-      <!-- Footer Watermark -->
-      <div class="report-footer">
-        <div>SubDebt Ledger offline document. Verified secure.</div>
-        <div>Page 1 of 1 · <span class="brand-stamp">SubDebt Manager</span></div>
+      <!-- Verification Footer -->
+      <div class="footer-watermark">
+        <div>SubDebt Manager • Encrypted On-Device Statement</div>
+        <div>Report ID: ${reportId} • ${formattedDate}</div>
       </div>
     </body>
     </html>
@@ -607,11 +796,10 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
       base64: false,
     });
 
-    const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
     const safeRangeLabel = timeRangeLabel.replace(/[^a-zA-Z0-9]/g, '_').replace(/__+/g, '_');
-    const customFileName = `SubDebt_Spending_${safeRangeLabel}_${dateStr}_${timeStr}.pdf`;
+    const customFileName = `SubDebt_Statement_${safeRangeLabel}_${dateStr}_${timeStr}.pdf`;
     const customFilePath = `${FileSystem.cacheDirectory}${customFileName}`;
 
     await FileSystem.copyAsync({
@@ -622,12 +810,11 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(customFilePath, {
         mimeType: 'application/pdf',
-        dialogTitle: `Export Spending Details - ${timeRangeLabel}`,
+        dialogTitle: `SubDebt Financial Statement - ${timeRangeLabel}`,
         UTI: 'com.adobe.pdf',
       });
     }
 
-    // Proactively clean up the temporary print file
     try {
       await FileSystem.deleteAsync(uri, { idempotent: true });
     } catch (cleanupError) {

@@ -20,4 +20,10 @@ export const STORAGE_KEYS = {
   AUTO_SNAPSHOT_FREQUENCY: 'auto_snapshot_frequency',
   AUTO_SNAPSHOT_TIME: 'auto_snapshot_time',
   LAST_AUTO_SNAPSHOT_DATE: 'last_auto_snapshot_date',
+  CUSTOM_BACKUP_FOLDER_URI: 'custom_backup_folder_uri',
+  CUSTOM_BACKUP_FOLDER_NAME: 'custom_backup_folder_name',
+  NOTIF_DEBTS_ENABLED: 'notif_debts_enabled',
+  NOTIF_SUBSCRIPTIONS_ENABLED: 'notif_subscriptions_enabled',
+  NOTIF_SPENDING_ENABLED: 'notif_spending_enabled',
+  NOTIF_CREDITS_ENABLED: 'notif_credits_enabled',
 } as const;

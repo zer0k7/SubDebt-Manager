@@ -58,18 +58,14 @@ export const SpendingEntryCard: React.FC<SpendingEntryCardProps> = ({ entry, onP
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                if (entry.receiptImage) {
-                  setShowPhotoVault(true);
-                } else {
-                  setShowReceipt(true);
-                }
+                setShowReceipt(true);
               }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
-                name={entry.receiptImage ? 'images' : 'receipt-outline'}
+                name="receipt-outline"
                 size={isCompact ? 14 : 16}
-                color={entry.receiptImage ? colors.accent.blue : colors.text.secondary}
+                color={colors.text.secondary}
               />
             </TouchableOpacity>
             {onDelete && (
@@ -97,6 +93,7 @@ export const SpendingEntryCard: React.FC<SpendingEntryCardProps> = ({ entry, onP
         date={entry.spentAt}
         notes={entry.notes}
         type="spending"
+        receiptImage={entry.receiptImage}
       />
 
       <ReceiptVaultModal

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
 import * as Crypto from 'expo-crypto';
-import { scheduleDebtReminder, cancelNotification } from '../utils/notificationHelpers';
+import { scheduleDebtReminder, cancelNotification, rescheduleDailyReminder } from '../utils/notificationHelpers';
 
 export type ConvertFn = (amount: number, fromCurrency: string) => number;
 
@@ -68,6 +68,7 @@ export const useDebts = () => {
   const saveDebts = useCallback((debtsList: Debt[]) => {
     storage.set(STORAGE_KEYS.DEBTS, JSON.stringify(debtsList));
     setDebts(debtsList);
+    rescheduleDailyReminder().catch(() => {});
   }, []);
 
   const addDebt = useCallback(async (input: DebtInput) => {
