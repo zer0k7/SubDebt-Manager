@@ -1,8 +1,8 @@
-# Release Notes — v2.10.0
+# Release Notes — v2.11.0
 
 ## TL;DR
 
-SubDebt v2.10.0 delivers **Dynamic Smart Notification Schedules with Granular Channel Controls**, **Data Vault Android Storage Access Framework (SAF) Public Folder Sync**, **Embedded Receipt Photo Integration in Digital Receipts**, and an **Executive Multi-Section PDF Financial Statement Generator** with official vector branding and dynamic page counters.
+SubDebt v2.11.0 is a milestone release introducing **5 Major Financial Superpowers**: **Split Bills with Friends** (with automated debt/credit logging), **Income Tracking & Real Net Cashflow Analytics** (with Savings Rate %), **30-Day Cashflow Runway Forecast & Subscription Price-Hike Detection**, **Pattern-Based Smart Receipt Scanner & Full Visual Gallery**, and **Complete Category Customization** with reordering, default category deletion/restoration, and a library of 120+ categorized icons.
 
 ---
 
@@ -10,43 +10,54 @@ SubDebt v2.10.0 delivers **Dynamic Smart Notification Schedules with Granular Ch
 
 | Module | Change Summary | Impact |
 | :--- | :--- | :--- |
-| **Notifications** | Dynamic debt, subscription, and spending alerts with individual channel toggles. | Real-time context-aware daily reminders |
-| **Data Vault** | Android SAF folder selection and automatic missed-backup catch-up. | Backups directly visible in File Manager |
-| **PDF Statements** | Multi-section statement (Spending, Subscriptions, Debts) with vector logo & page numbers. | Professional exportable financial records |
-| **Digital Receipts** | Embedded attached receipt photos directly inside digital receipt cards. | Complete shareable receipt slips |
-| **Heatmap UI** | Eliminated hardware layer elevation artifact on calendar cells. | High-contrast visual clarity across themes |
+| **Category Customization** | Reordering (up/down), remove/hide defaults, edit colors & names, restore defaults. | Complete personalization over spending taxonomy |
+| **Icon & Color Library** | 120+ searchable categorized vector icons and 24 curated palette swatches. | Rich visual cues for any lifestyle spending |
+| **Smart Auto-Categorizer** | Keyword & merchant dictionary with self-learning prediction on expense entry. | Instant zero-effort categorization while typing |
+| **Category Budget Alerts** | Automated push notification triggers at 80% and 100% of per-category monthly limits. | Prevents accidental overspending in specific silos |
+| **Receipt Scanner & Gallery** | Pattern-based receipt data extraction and full-screen visual grid gallery modal. | Digitize receipts and browse past purchase proofs |
+| **Split Bills with Friends** | Equal and custom split calculator with instant 1-tap Credit entry creation. | Eliminates manual double-entry when paying for groups |
+| **Income Tracking & Cashflow** | Income ledger (salary, freelance, investments) with Monthly Net Cashflow and Savings Rate %. | Complete view of net monthly liquidity & wealth generation |
+| **30-Day Cashflow Runway** | Average daily burn rate, projected fixed outflows, and subscription price-hike detection. | Proactive financial forecasting and runaway inflation defense |
 
 ---
 
-## Key Features & Improvements
+## Key Features & Superpowers
 
-### 1. Dynamic Smart Notification Schedule & Granular Controls
-- **Individual Channel Switches**: Added granular toggles in Settings for Pending Debts, Subscription Renewals, Daily Spending & Budget Allowance, and Credit Returns.
-- **Dynamic Debt Reminders**: Generates contextual debt reminders with counterparty name and exact remaining balance (e.g., *"You have to pay [Name] [Amount]"*).
-- **Subscription Expiry Countdown**: Automated detection for subscriptions renewing today, tomorrow, or ending trial periods.
-- **Auto-Sync Across Ledger Actions**: Modifying debts, subscriptions, or spending logs immediately reschedules pending notifications.
+### 1. Full Category Customization & 120+ Icon Library
+- **Order & Hierarchy Control**: Reorder categories up and down to match your spending frequency.
+- **Default Category Removal & Restoration**: Hide or remove default categories you don't need, with a 1-tap "Restore Removed Defaults" safeguard.
+- **120+ Searchable Icons**: Broad coverage across Food, Transit, Housing, Shopping, Tech, Wellness, Entertainment, Office, Pets, and Travel.
+- **Zero-Latency Performance**: Backed by a synchronous in-memory category cache to eliminate rendering delay or badge flickers.
 
-### 2. Data Vault Android File Manager Integration & Catch-Up
-- **Storage Access Framework (SAF)**: Users can link a public device folder (such as `Documents` or `Downloads`) so backups are directly visible and accessible in Android File Manager apps.
-- **Missed Snapshot Catch-Up**: If the device was powered off or the app was closed at 10:00 PM, the scheduler automatically runs the missed snapshot upon opening the app.
-- **One-Tap Export**: Added individual snapshot "Save to Phone" and "Export All to Storage" buttons.
+### 2. Smart Auto-Categorization & Category Budget Warnings
+- **Merchant Matcher**: Typing "Uber", "Starbucks", "Netflix", or "Pharmacy" instantly switches to the appropriate category.
+- **Per-Category Threshold Alerts**: When reaching 80% or 100% of a specific category's allocated budget, high-priority alerts notify you proactively.
 
-### 3. Executive Multi-Section PDF Financial Statement
-- **Dynamic Page Numbering**: Resolved duplicate page numbering issues using standard CSS paged media rules (`@page` counters).
-- **Official Vector Branding**: Embedded high-resolution SubDebt Manager vector logo, report ID, generation timestamp, and offline verification badges.
-- **Multi-Section Ledger**: Captures Spending Category Share Bars, Active Subscriptions Schedule, and Open Debts & Liabilities matrix.
-- **Theme Palette Calibration**: Available in Classic Light, Deep Slate Dark, and Luxury Emerald themes.
+### 3. Split Bills with Friends
+- **Integrated in Add Expense**: Toggle "Split this expense with friends?" during spending logging.
+- **Flexible Splitting**: Split equally across $N$ people or assign precise custom amounts.
+- **Automated Ledger Generation**: Your share is added to Daily Spending, and individual Credit items ("Owed to You") are automatically generated for each friend with counterparty names and notes.
 
-### 4. Digital Receipts & Visual Fixes
-- **Embedded Receipt Photos**: Attached receipts now render directly inside the shareable `DigitalReceiptModal`.
-- **Heatmap Cell Glitch Resolved**: Removed hardware elevation artifacts on Android calendar cells for seamless selected-day styling.
+### 4. Smart Receipt Scanner & Visual Photo Gallery
+- **Pattern-Based Extractor**: Analyzes receipt text patterns to automatically fill merchant name, total price, and transaction date.
+- **Visual Receipt Gallery**: A dedicated high-performance image grid allowing you to browse all captured receipts with full-screen zoom and metadata inspect.
+
+### 5. Income Tracking & Real Net Cashflow Dashboard
+- **Comprehensive Income Logging**: Track Salary, Freelance, Dividends, Reimbursements, and Gifts with recurring toggles.
+- **Net Cashflow Hero Card**: Real-time calculation of Monthly Net Cashflow (Income - Spending - Subscriptions).
+- **Savings Rate %**: Live percentage of income saved each month with dynamic color grading.
+
+### 6. 30-Day Cashflow Runway & Subscription Price-Hike Detection
+- **Cash Runway Forecast**: Computes your daily burn rate over the trailing 30 days and projects fixed recurring outflows (debts + subscriptions).
+- **Price-Hike Detection Engine**: Flags subscriptions whose renewal price exceeds previous charges, guarding against silent fee increases.
 
 ---
 
 ## Build & Validation
 
-- **App Version**: `2.10.0`
-- **Android Version Code**: `32`
-- **TypeScript Validation**: 0 errors (`tsc --noEmit` exit code 0).
+- **App Version**: `2.11.0`
+- **Android Version Code**: `33`
+- **iOS Build Number**: `2.11.0`
+- **TypeScript Verification**: 0 errors (`tsc --noEmit` exit code 0).
 - **Target Platforms**: Android (APK / AAB) and iOS.
-- **Schema Version**: 2.
+- **Schema & Persistence**: Fully backwards-compatible with automatic migration for customized categories.

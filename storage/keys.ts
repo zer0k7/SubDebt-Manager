@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   AUTO_ARCHIVE_SETTLED: 'auto_archive_settled',
   CARD_DENSITY_MODE: 'card_density_mode',
   CUSTOM_CATEGORIES: 'custom_categories_v1',
+  CATEGORIES_CUSTOMIZED: 'categories_customized_v2',
   AUTO_SNAPSHOT_ENABLED: 'auto_snapshot_enabled',
   AUTO_SNAPSHOT_FREQUENCY: 'auto_snapshot_frequency',
   AUTO_SNAPSHOT_TIME: 'auto_snapshot_time',
@@ -26,4 +27,5 @@ export const STORAGE_KEYS = {
   NOTIF_SUBSCRIPTIONS_ENABLED: 'notif_subscriptions_enabled',
   NOTIF_SPENDING_ENABLED: 'notif_spending_enabled',
   NOTIF_CREDITS_ENABLED: 'notif_credits_enabled',
+  INCOME_ENTRIES: 'income_entries_v1',
 } as const;

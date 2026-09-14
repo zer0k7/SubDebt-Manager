@@ -23,6 +23,7 @@ export interface ComprehensiveExportData {
   dailySpending: any[];
   monthlyBudget: any;
   customCategories: any[];
+  customizedCategories?: any[];
   // App & User Settings
   settings: {
     currency?: string;
@@ -53,6 +54,7 @@ export const exportAllData = async (): Promise<boolean> => {
     const dailySpendingRaw = await storage.getString(STORAGE_KEYS.DAILY_SPENDING);
     const monthlyBudgetRaw = await storage.getString(STORAGE_KEYS.MONTHLY_BUDGET);
     const customCategoriesRaw = await storage.getString(STORAGE_KEYS.CUSTOM_CATEGORIES);
+    const customizedCategoriesRaw = await storage.getString(STORAGE_KEYS.CATEGORIES_CUSTOMIZED);
 
     // 2. Fetch all app settings & preferences
     const currency = await storage.getString(STORAGE_KEYS.CURRENCY);
@@ -78,6 +80,7 @@ export const exportAllData = async (): Promise<boolean> => {
     const dailySpending = dailySpendingRaw ? JSON.parse(dailySpendingRaw) : [];
     const monthlyBudget = monthlyBudgetRaw ? JSON.parse(monthlyBudgetRaw) : null;
     const customCategories = customCategoriesRaw ? JSON.parse(customCategoriesRaw) : [];
+    const customizedCategories = customizedCategoriesRaw ? JSON.parse(customizedCategoriesRaw) : undefined;
 
     const exportData: ComprehensiveExportData = {
       version: '2.10.0',
@@ -97,6 +100,7 @@ export const exportAllData = async (): Promise<boolean> => {
       dailySpending,
       monthlyBudget,
       customCategories,
+      customizedCategories,
       settings: {
         currency: currency || undefined,
         weekStartDay: weekStartDay || undefined,

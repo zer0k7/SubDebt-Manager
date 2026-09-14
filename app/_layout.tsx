@@ -135,6 +135,7 @@ function AppLayout() {
       <Stack.Screen name="modals/tool-debt-payoff" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/tool-currency-converter" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/spending-explorer" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modals/add-income" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
     </Stack>
 
       {showLockOverlay && (
@@ -169,6 +170,7 @@ function AppLayout() {
 import { CustomSplashScreen } from '../components/CustomSplashScreen';
 
 import { SettingsProvider } from '../context/SettingsContext';
+import { CategoryProvider } from '../context/CategoryContext';
 
 export default function RootLayout() {
   const [splashFinished, setSplashFinished] = useState(false);
@@ -181,13 +183,15 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <SettingsProvider>
-        <AuthLockProvider>
-          {!splashFinished ? (
-            <CustomSplashScreen onFinish={() => setSplashFinished(true)} />
-          ) : (
-            <AppLayout />
-          )}
-        </AuthLockProvider>
+        <CategoryProvider>
+          <AuthLockProvider>
+            {!splashFinished ? (
+              <CustomSplashScreen onFinish={() => setSplashFinished(true)} />
+            ) : (
+              <AppLayout />
+            )}
+          </AuthLockProvider>
+        </CategoryProvider>
       </SettingsProvider>
     </ThemeProvider>
   );

@@ -1,5 +1,5 @@
 import { useTheme } from '../../hooks/useTheme';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   LayoutAnimation,
   Platform,
   UIManager,
@@ -19,47 +18,127 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AmbientBackground } from '../../components/AmbientBackground';
 import { AppPopup } from '../../components/AppPopup';
 import { useCategoryManager } from '../../hooks/useCategoryManager';
-import { CATEGORY_GROUPS } from '../../constants/categories';
+import {
+  CATEGORY_GROUPS,
+  EXTENDED_CATEGORY_ICONS,
+  COLOR_PALETTE,
+  CategoryDefinition,
+} from '../../constants/categories';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const ICON_PALETTE = [
-  'restaurant-outline', 'fast-food-outline', 'cart-outline', 'cafe-outline', 'beer-outline',
-  'car-outline', 'flame-outline', 'subway-outline', 'build-outline', 'navigate-outline',
-  'bag-handle-outline', 'shirt-outline', 'laptop-outline', 'sparkles-outline', 'flower-outline',
-  'document-text-outline', 'flash-outline', 'home-outline', 'hammer-outline', 'card-outline',
-  'heart-outline', 'medkit-outline', 'barbell-outline', 'book-outline', 'briefcase-outline',
-  'film-outline', 'game-controller-outline', 'ticket-outline', 'gift-outline', 'paw-outline',
-  'people-outline', 'trending-up-outline', 'shield-checkmark-outline', 'cash-outline', 'shapes-outline',
-];
-
-const COLOR_PALETTE = [
-  '#EF5350', '#FF7043', '#66BB6A', '#FFA726', '#AB47BC', '#4FC3F7',
-  '#EC407A', '#5C6BC0', '#9CCC65', '#26A69A', '#8D6E63', '#7E57C2',
-];
+type FilterTab = 'all' | 'custom' | 'system' | 'removed';
 
 export default function ManageCategoriesModal() {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
   const router = useRouter();
-  const { allCategories, customCategories, addCategory, deleteCategory } = useCategoryManager();
+  const {
+    allCategories,
+    customCategories,
+    defaultCategories,
+    deletedDefaultCategories,
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    restoreDefaultCategory,
+    moveCategoryUp,
+    moveCategoryDown,
+    resetToDefaults,
+  } = useCategoryManager();
 
   const [popupConfig, setPopupConfig] = useState<any>(null);
   const showPopup = (config: any) => setPopupConfig(config);
   const closePopup = () => setPopupConfig(null);
 
+  // Form State
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryDefinition | null>(null);
   const [name, setName] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('General');
   const [selectedIcon, setSelectedIcon] = useState('shapes-outline');
   const [selectedColor, setSelectedColor] = useState('#8B5CF6');
 
+  // Search & Filter state
+  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [iconSearch, setIconSearch] = useState('');
+  const [iconGroupFilter, setIconGroupFilter] = useState<string>('All');
+
+  // Filtered icons for picker
+  const filteredIcons = useMemo(() => {
+    const q = iconSearch.toLowerCase().trim();
+    return EXTENDED_CATEGORY_ICONS.filter((item) => {
+      const matchesGroup = iconGroupFilter === 'All' || item.group === iconGroupFilter;
+      const matchesQuery =
+        !q ||
+        item.name.toLowerCase().includes(q) ||
+        item.keywords.some((k) => k.toLowerCase().includes(q));
+      return matchesGroup && matchesQuery;
+    });
+  }, [iconSearch, iconGroupFilter]);
+
+  // Distinct groups for icon filter
+  const iconFilterGroups = useMemo(() => {
+    const groups = new Set<string>();
+    EXTENDED_CATEGORY_ICONS.forEach((i) => groups.add(i.group));
+    return ['All', ...Array.from(groups)];
+  }, []);
+
+  // Filtered category list
+  const filteredCategories = useMemo(() => {
+    let list = allCategories;
+    if (activeTab === 'custom') {
+      list = customCategories;
+    } else if (activeTab === 'system') {
+      list = defaultCategories;
+    }
+
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return list;
+
+    return list.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.group && c.group.toLowerCase().includes(q))
+    );
+  }, [allCategories, customCategories, defaultCategories, activeTab, searchQuery]);
+
   const toggleAddForm = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setShowAddForm(!showAddForm);
+    if (showAddForm) {
+      setShowAddForm(false);
+      setEditingCategory(null);
+      setName('');
+    } else {
+      setEditingCategory(null);
+      setName('');
+      setSelectedGroup('General');
+      setSelectedIcon('shapes-outline');
+      setSelectedColor('#8B5CF6');
+      setShowAddForm(true);
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const startEditCategory = (cat: CategoryDefinition) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setEditingCategory(cat);
+    setName(cat.name);
+    setSelectedGroup(cat.group || 'General');
+    setSelectedIcon(cat.icon || 'shapes-outline');
+    setSelectedColor(cat.color || '#8B5CF6');
+    setShowAddForm(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const cancelForm = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowAddForm(false);
+    setEditingCategory(null);
+    setName('');
   };
 
   const handleSaveCategory = () => {
@@ -67,7 +146,7 @@ export default function ManageCategoriesModal() {
     if (!trimmed) {
       showPopup({
         title: 'Category Name Required',
-        message: 'Please enter a name for your custom category.',
+        message: 'Please enter a name for the category.',
         icon: 'alert-circle-outline',
         iconColor: colors.accent.amber,
         confirmText: 'OK',
@@ -76,44 +155,96 @@ export default function ManageCategoriesModal() {
       return;
     }
 
-    const success = addCategory({
-      name: trimmed,
-      icon: selectedIcon,
-      color: selectedColor,
-      group: selectedGroup,
-    });
-
-    if (success) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setName('');
-      setShowAddForm(false);
-    } else {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      showPopup({
-        title: 'Duplicate Category',
-        message: 'A category with this name already exists.',
-        icon: 'alert-circle-outline',
-        iconColor: colors.accent.red,
-        confirmText: 'OK',
-        onConfirm: closePopup,
+    if (editingCategory) {
+      // Update existing category
+      const success = updateCategory(editingCategory.name, {
+        name: trimmed,
+        icon: selectedIcon,
+        color: selectedColor,
+        group: selectedGroup,
       });
+
+      if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        cancelForm();
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showPopup({
+          title: 'Duplicate Category',
+          message: 'Another category with this name already exists.',
+          icon: 'alert-circle-outline',
+          iconColor: colors.accent.red,
+          confirmText: 'OK',
+          onConfirm: closePopup,
+        });
+      }
+    } else {
+      // Create new custom category
+      const success = addCategory({
+        name: trimmed,
+        icon: selectedIcon,
+        color: selectedColor,
+        group: selectedGroup,
+      });
+
+      if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        cancelForm();
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showPopup({
+          title: 'Duplicate Category',
+          message: 'A category with this name already exists.',
+          icon: 'alert-circle-outline',
+          iconColor: colors.accent.red,
+          confirmText: 'OK',
+          onConfirm: closePopup,
+        });
+      }
     }
   };
 
-  const handleDelete = (catName: string) => {
+  const handleDelete = (cat: CategoryDefinition) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    const isCustom = cat.isCustom;
     showPopup({
-      title: 'Delete Custom Category',
-      message: `Are you sure you want to delete "${catName}"? Existing logged transactions will keep their category.`,
+      title: isCustom ? 'Delete Custom Category' : 'Remove Default Category',
+      message: isCustom
+        ? `Are you sure you want to delete "${cat.name}"? Existing transactions will keep this category.`
+        : `Are you sure you want to remove "${cat.name}" from your categories list? You can restore it anytime.`,
       icon: 'trash-outline',
       iconColor: colors.accent.red,
       cancelText: 'Cancel',
-      confirmText: 'Delete',
+      confirmText: isCustom ? 'Delete' : 'Remove',
       isDestructive: true,
       onCancel: closePopup,
       onConfirm: () => {
         closePopup();
-        deleteCategory(catName);
+        deleteCategory(cat.name);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      },
+    });
+  };
+
+  const handleRestore = (catName: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    restoreDefaultCategory(catName);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handleResetDefaults = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    showPopup({
+      title: 'Reset to Default Categories',
+      message: 'Restore all built-in default categories and their standard order? Your custom categories will be preserved.',
+      icon: 'refresh-outline',
+      iconColor: colors.accent.blue,
+      cancelText: 'Cancel',
+      confirmText: 'Reset Defaults',
+      onCancel: closePopup,
+      onConfirm: () => {
+        closePopup();
+        resetToDefaults(false);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       },
     });
@@ -129,37 +260,69 @@ export default function ManageCategoriesModal() {
           <Ionicons name="close" size={24} color={colors.text.secondary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>MANAGE CATEGORIES</Text>
-        <TouchableOpacity onPress={toggleAddForm} style={styles.addHeaderBtn}>
-          <Ionicons name={showAddForm ? 'chevron-up' : 'add'} size={24} color={colors.accent.purple} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={handleResetDefaults}
+            style={styles.resetHeaderBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="refresh-outline" size={20} color={colors.text.secondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={toggleAddForm} style={styles.addHeaderBtn}>
+            <Ionicons
+              name={showAddForm ? 'close' : 'add'}
+              size={24}
+              color={colors.accent.purple}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Add Category Drawer Form */}
+        {/* Add / Edit Category Drawer Form */}
         {showAddForm && (
           <View style={styles.addCard}>
-            <Text style={styles.cardSectionTitle}>CREATE CUSTOM CATEGORY</Text>
+            <View style={styles.formTitleRow}>
+              <Text style={styles.cardSectionTitle}>
+                {editingCategory ? `EDIT: ${editingCategory.name.toUpperCase()}` : 'CREATE CUSTOM CATEGORY'}
+              </Text>
+              {editingCategory && (
+                <TouchableOpacity onPress={cancelForm} style={styles.cancelLinkBtn}>
+                  <Text style={styles.cancelLinkText}>Cancel</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-            {/* Preview Box */}
+            {/* Live Preview Box */}
             <View style={styles.previewWrap}>
-              <View style={[styles.previewIconBox, { backgroundColor: `${selectedColor}20`, borderColor: `${selectedColor}50` }]}>
-                <Ionicons name={selectedIcon as any} size={24} color={selectedColor} />
+              <View
+                style={[
+                  styles.previewIconBox,
+                  { backgroundColor: `${selectedColor}20`, borderColor: `${selectedColor}55` },
+                ]}
+              >
+                <Ionicons name={selectedIcon as any} size={26} color={selectedColor} />
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.previewName}>{name.trim() || 'Category Name'}</Text>
                 <Text style={styles.previewGroup}>{selectedGroup}</Text>
+              </View>
+              <View style={[styles.badgePill, { backgroundColor: `${selectedColor}22` }]}>
+                <Text style={[styles.badgeText, { color: selectedColor }]}>
+                  {editingCategory?.isCustom || !editingCategory ? 'Custom' : 'System'}
+                </Text>
               </View>
             </View>
 
             {/* Input Name */}
             <Text style={styles.inputTitle}>Category Name</Text>
             <View style={styles.inputWrap}>
-              <Ionicons name="pricetag-outline" size={20} color={colors.accent.purple} style={styles.inputIcon} />
+              <Ionicons name="pricetag-outline" size={18} color={colors.accent.purple} style={styles.inputIcon} />
               <TextInput
                 style={styles.textInput}
                 value={name}
                 onChangeText={setName}
-                placeholder="e.g. Subscriptions, Pet Food, Hobbies"
+                placeholder="e.g. Subscriptions, Pet Food, Coffee"
                 placeholderTextColor={colors.text.muted}
               />
             </View>
@@ -173,7 +336,10 @@ export default function ManageCategoriesModal() {
                   <TouchableOpacity
                     key={g}
                     style={[styles.groupPill, isActive && styles.groupPillActive]}
-                    onPress={() => { setSelectedGroup(g); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                    onPress={() => {
+                      setSelectedGroup(g);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
                   >
                     <Text style={[styles.groupPillText, isActive && styles.groupPillTextActive]}>{g}</Text>
                   </TouchableOpacity>
@@ -182,15 +348,18 @@ export default function ManageCategoriesModal() {
             </ScrollView>
 
             {/* Color Palette Picker */}
-            <Text style={styles.inputTitle}>Theme Accent Color</Text>
+            <Text style={styles.inputTitle}>Accent Color ({COLOR_PALETTE.length} hues)</Text>
             <View style={styles.colorPaletteGrid}>
               {COLOR_PALETTE.map((c) => {
-                const isSelected = c === selectedColor;
+                const isSelected = c.toLowerCase() === selectedColor.toLowerCase();
                 return (
                   <TouchableOpacity
                     key={c}
                     style={[styles.colorCircle, { backgroundColor: c }, isSelected && styles.colorCircleSelected]}
-                    onPress={() => { setSelectedColor(c); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                    onPress={() => {
+                      setSelectedColor(c);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
                   >
                     {isSelected && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
                   </TouchableOpacity>
@@ -198,83 +367,319 @@ export default function ManageCategoriesModal() {
               })}
             </View>
 
-            {/* Icon Palette Picker */}
-            <Text style={styles.inputTitle}>Choose Icon</Text>
+            {/* Expanded Icon Picker */}
+            <View style={styles.iconSectionHeader}>
+              <Text style={styles.inputTitle}>Choose Icon ({filteredIcons.length} available)</Text>
+            </View>
+
+            {/* Icon Search & Group Filter */}
+            <View style={styles.iconSearchWrap}>
+              <Ionicons name="search-outline" size={16} color={colors.text.muted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.iconSearchInput}
+                value={iconSearch}
+                onChangeText={setIconSearch}
+                placeholder="Search icons (e.g. food, car, gym, tech)..."
+                placeholderTextColor={colors.text.muted}
+              />
+              {iconSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setIconSearch('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.text.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.iconGroupScroll}>
+              {iconFilterGroups.map((ig) => {
+                const isActive = ig === iconGroupFilter;
+                return (
+                  <TouchableOpacity
+                    key={ig}
+                    style={[styles.iconGroupPill, isActive && styles.iconGroupPillActive]}
+                    onPress={() => {
+                      setIconGroupFilter(ig);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                  >
+                    <Text style={[styles.iconGroupText, isActive && styles.iconGroupTextActive]}>{ig}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
             <ScrollView style={styles.iconPickerBox} nestedScrollEnabled showsVerticalScrollIndicator={false}>
               <View style={styles.iconPaletteGrid}>
-                {ICON_PALETTE.map((iconName) => {
-                  const isSelected = iconName === selectedIcon;
+                {filteredIcons.map((item) => {
+                  const isSelected = item.name === selectedIcon;
                   return (
                     <TouchableOpacity
-                      key={iconName}
+                      key={item.name}
                       style={[
                         styles.iconTile,
-                        isSelected && { backgroundColor: `${selectedColor}25`, borderColor: selectedColor },
+                        isSelected && {
+                          backgroundColor: `${selectedColor}25`,
+                          borderColor: selectedColor,
+                          borderWidth: 1.5,
+                        },
                       ]}
-                      onPress={() => { setSelectedIcon(iconName); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); }}
+                      onPress={() => {
+                        setSelectedIcon(item.name);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
                     >
-                      <Ionicons name={iconName as any} size={20} color={isSelected ? selectedColor : colors.text.secondary} />
+                      <Ionicons
+                        name={item.name as any}
+                        size={20}
+                        color={isSelected ? selectedColor : colors.text.secondary}
+                      />
                     </TouchableOpacity>
                   );
                 })}
               </View>
             </ScrollView>
 
-            {/* Save CTA Button */}
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveCategory} activeOpacity={0.85}>
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Save Custom Category</Text>
-            </TouchableOpacity>
+            {/* Save Button */}
+            <View style={styles.formActionRow}>
+              {editingCategory && (
+                <TouchableOpacity style={styles.cancelBtn} onPress={cancelForm} activeOpacity={0.8}>
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.saveBtn, editingCategory ? { flex: 1 } : { width: '100%' }]}
+                onPress={handleSaveCategory}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+                <Text style={styles.saveBtnText}>
+                  {editingCategory ? 'Update Category' : 'Save Custom Category'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
-        {/* Existing Categories List */}
-        <View style={styles.listCard}>
-          <View style={styles.listHeaderRow}>
-            <Text style={styles.cardSectionTitle}>ALL CATEGORIES ({allCategories.length})</Text>
-            {!showAddForm && (
-              <TouchableOpacity style={styles.quickAddPill} onPress={toggleAddForm}>
-                <Ionicons name="add" size={14} color={colors.accent.purple} />
-                <Text style={styles.quickAddPillText}>New Custom</Text>
+        {/* Filter Pills & Search for Category List */}
+        <View style={styles.listSectionHeader}>
+          <View style={styles.tabsRow}>
+            <TouchableOpacity
+              style={[styles.tabBtn, activeTab === 'all' && styles.tabBtnActive]}
+              onPress={() => {
+                setActiveTab('all');
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
+                All ({allCategories.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabBtn, activeTab === 'custom' && styles.tabBtnActive]}
+              onPress={() => {
+                setActiveTab('custom');
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text style={[styles.tabText, activeTab === 'custom' && styles.tabTextActive]}>
+                Custom ({customCategories.length})
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.tabBtn, activeTab === 'system' && styles.tabBtnActive]}
+              onPress={() => {
+                setActiveTab('system');
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+            >
+              <Text style={[styles.tabText, activeTab === 'system' && styles.tabTextActive]}>
+                Default ({defaultCategories.length})
+              </Text>
+            </TouchableOpacity>
+
+            {deletedDefaultCategories.length > 0 && (
+              <TouchableOpacity
+                style={[styles.tabBtn, activeTab === 'removed' && styles.tabBtnActive]}
+                onPress={() => {
+                  setActiveTab('removed');
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              >
+                <Text style={[styles.tabText, activeTab === 'removed' && styles.tabTextActive, { color: colors.accent.red }]}>
+                  Removed ({deletedDefaultCategories.length})
+                </Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {allCategories.map((cat) => {
-            const isCustom = customCategories.some((c) => c.name.toLowerCase() === cat.name.toLowerCase());
+          {activeTab !== 'removed' && (
+            <View style={styles.listSearchWrap}>
+              <Ionicons name="search-outline" size={16} color={colors.text.muted} style={{ marginRight: 8 }} />
+              <TextInput
+                style={styles.listSearchInput}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Filter categories by name or group..."
+                placeholderTextColor={colors.text.muted}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.text.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
 
-            return (
+        {/* Existing Categories List */}
+        {activeTab !== 'removed' ? (
+          <View style={styles.listCard}>
+            <View style={styles.listHeaderRow}>
+              <Text style={styles.cardSectionTitle}>
+                CATEGORIES ({filteredCategories.length})
+              </Text>
+              {!showAddForm && (
+                <TouchableOpacity style={styles.quickAddPill} onPress={toggleAddForm}>
+                  <Ionicons name="add" size={14} color={colors.accent.purple} />
+                  <Text style={styles.quickAddPillText}>New Custom</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {filteredCategories.length === 0 ? (
+              <View style={styles.emptyListWrap}>
+                <Ionicons name="search-outline" size={32} color={colors.text.muted} />
+                <Text style={styles.emptyListText}>No categories match your filter</Text>
+              </View>
+            ) : (
+              filteredCategories.map((cat, index) => {
+                const isCustom = cat.isCustom;
+                const globalIndex = allCategories.findIndex(
+                  (c) => c.name.toLowerCase().trim() === cat.name.toLowerCase().trim()
+                );
+                const isFirst = globalIndex === 0;
+                const isLast = globalIndex === allCategories.length - 1;
+
+                return (
+                  <View key={cat.id || cat.name} style={styles.catRow}>
+                    {/* Arrange Up/Down Buttons */}
+                    <View style={styles.arrangeCol}>
+                      <TouchableOpacity
+                        disabled={isFirst}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          moveCategoryUp(globalIndex);
+                        }}
+                        style={[styles.arrowBtn, isFirst && styles.arrowBtnDisabled]}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons
+                          name="chevron-up"
+                          size={15}
+                          color={isFirst ? colors.text.muted : colors.text.primary}
+                        />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        disabled={isLast}
+                        onPress={() => {
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          moveCategoryDown(globalIndex);
+                        }}
+                        style={[styles.arrowBtn, isLast && styles.arrowBtnDisabled]}
+                        hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      >
+                        <Ionicons
+                          name="chevron-down"
+                          size={15}
+                          color={isLast ? colors.text.muted : colors.text.primary}
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Icon Circle */}
+                    <View
+                      style={[
+                        styles.catIconCircle,
+                        { backgroundColor: `${cat.color}18`, borderColor: `${cat.color}35` },
+                      ]}
+                    >
+                      <Ionicons name={cat.icon as any} size={18} color={cat.color} />
+                    </View>
+
+                    {/* Info */}
+                    <View style={styles.catInfo}>
+                      <Text style={styles.catName}>{cat.name}</Text>
+                      <Text style={styles.catGroup}>{cat.group || 'General'}</Text>
+                    </View>
+
+                    {/* Right Wrap: Badges, Edit, Delete */}
+                    <View style={styles.catRightWrap}>
+                      <View style={[styles.badgePill, isCustom ? styles.badgeCustom : styles.badgeSystem]}>
+                        <Text style={[styles.badgeText, isCustom ? styles.badgeCustomText : styles.badgeSystemText]}>
+                          {isCustom ? 'Custom' : 'System'}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        style={styles.editBtn}
+                        onPress={() => startEditCategory(cat)}
+                        hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="pencil-outline" size={16} color={colors.accent.blue} />
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={styles.deleteBtn}
+                        onPress={() => handleDelete(cat)}
+                        hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                      >
+                        <Ionicons name="trash-outline" size={16} color={colors.accent.red} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        ) : (
+          /* Removed Default Categories View */
+          <View style={styles.listCard}>
+            <Text style={styles.cardSectionTitle}>
+              REMOVED DEFAULT CATEGORIES ({deletedDefaultCategories.length})
+            </Text>
+            <Text style={styles.removedSubText}>
+              These default categories are currently hidden from Spending choices. Tap restore to add them back.
+            </Text>
+
+            {deletedDefaultCategories.map((cat) => (
               <View key={cat.name} style={styles.catRow}>
-                <View style={[styles.catIconCircle, { backgroundColor: `${cat.color}18`, borderColor: `${cat.color}35` }]}>
+                <View
+                  style={[
+                    styles.catIconCircle,
+                    { backgroundColor: `${cat.color}18`, borderColor: `${cat.color}35` },
+                  ]}
+                >
                   <Ionicons name={cat.icon as any} size={18} color={cat.color} />
                 </View>
 
                 <View style={styles.catInfo}>
                   <Text style={styles.catName}>{cat.name}</Text>
-                  <Text style={styles.catGroup}>{cat.group || 'General'}</Text>
+                  <Text style={styles.catGroup}>{cat.group}</Text>
                 </View>
 
-                <View style={styles.catRightWrap}>
-                  <View style={[styles.badgePill, isCustom ? styles.badgeCustom : styles.badgeSystem]}>
-                    <Text style={[styles.badgeText, isCustom ? styles.badgeCustomText : styles.badgeSystemText]}>
-                      {isCustom ? 'Custom' : 'System'}
-                    </Text>
-                  </View>
-
-                  {isCustom && (
-                    <TouchableOpacity
-                      style={styles.deleteBtn}
-                      onPress={() => handleDelete(cat.name)}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Ionicons name="trash-outline" size={16} color={colors.accent.red} />
-                    </TouchableOpacity>
-                  )}
-                </View>
+                <TouchableOpacity
+                  style={styles.restoreBtn}
+                  onPress={() => handleRestore(cat.name)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="arrow-undo-outline" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.restoreBtnText}>Restore</Text>
+                </TouchableOpacity>
               </View>
-            );
-          })}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       <AppPopup
@@ -300,93 +705,92 @@ const getStyles = (colors: any, isDark: boolean) =>
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingVertical: 14,
-    },
-    closeBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.glass.card,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 0.5,
-      borderColor: colors.glass.cardBorder,
-    },
-    addHeaderBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.accent.alpha(0.25),
+      paddingHorizontal: 16,
+      paddingVertical: 12,
     },
     headerTitle: {
       color: colors.text.primary,
-      fontSize: 13,
+      fontSize: 16,
       fontWeight: '800',
-      letterSpacing: 0.8,
+      letterSpacing: 1,
     },
-    content: { paddingHorizontal: 20, paddingBottom: 40, gap: 16 },
+    closeBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    resetHeaderBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addHeaderBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 12,
+      backgroundColor: colors.accent.alpha(0.12),
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    content: {
+      padding: 16,
+      paddingBottom: 50,
+      gap: 16,
+    },
     addCard: {
-      padding: 18,
-      borderRadius: 22,
-      backgroundColor: colors.accent.alpha(isDark ? 0.1 : 0.04),
-      borderWidth: 1,
-      borderColor: colors.accent.alpha(0.25),
-      gap: 12,
-    },
-    listCard: {
-      padding: 18,
-      borderRadius: 22,
       backgroundColor: colors.glass.card,
-      borderWidth: 0.5,
+      borderRadius: 20,
+      borderWidth: 1,
       borderColor: colors.glass.cardBorder,
+      padding: 16,
       gap: 12,
     },
-    listHeaderRow: {
+    formTitleRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 6,
+    },
+    cancelLinkBtn: {
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    cancelLinkText: {
+      color: colors.text.muted,
+      fontSize: 12,
+      fontWeight: '600',
     },
     cardSectionTitle: {
-      color: colors.text.tertiary,
-      fontSize: 11,
+      color: colors.text.secondary,
+      fontSize: 11.5,
       fontWeight: '800',
       letterSpacing: 0.8,
-    },
-    quickAddPill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 10,
-      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
-    },
-    quickAddPillText: {
-      color: colors.accent.purple,
-      fontSize: 11,
-      fontWeight: '700',
     },
     previewWrap: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: 14,
       padding: 12,
-      borderRadius: 16,
-      backgroundColor: colors.glass.card,
-      borderWidth: 0.5,
-      borderColor: colors.glass.cardBorder,
+      borderRadius: 14,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
     },
     previewIconBox: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      borderWidth: 1,
+      width: 48,
+      height: 48,
+      borderRadius: 16,
+      borderWidth: 1.5,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -396,7 +800,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '800',
     },
     previewGroup: {
-      color: colors.text.secondary,
+      color: colors.text.muted,
       fontSize: 12,
       marginTop: 2,
     },
@@ -436,18 +840,78 @@ const getStyles = (colors: any, isDark: boolean) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    colorCircleSelected: { borderWidth: 2, borderColor: '#FFFFFF' },
-    iconPickerBox: { maxHeight: 120 },
-    iconPaletteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    colorCircleSelected: { borderWidth: 2.5, borderColor: '#FFFFFF' },
+    iconSectionHeader: {
+      marginTop: 6,
+    },
+    iconSearchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+      paddingHorizontal: 10,
+      height: 38,
+    },
+    iconSearchInput: {
+      flex: 1,
+      color: colors.text.primary,
+      fontSize: 12.5,
+    },
+    iconGroupScroll: {
+      gap: 6,
+      paddingVertical: 2,
+    },
+    iconGroupPill: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+    },
+    iconGroupPillActive: {
+      backgroundColor: colors.accent.alpha(0.2),
+      borderWidth: 1,
+      borderColor: colors.accent.purple,
+    },
+    iconGroupText: {
+      color: colors.text.muted,
+      fontSize: 10.5,
+      fontWeight: '600',
+    },
+    iconGroupTextActive: {
+      color: colors.accent.purple,
+      fontWeight: '700',
+    },
+    iconPickerBox: { maxHeight: 150 },
+    iconPaletteGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 4 },
     iconTile: {
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       borderRadius: 10,
       backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
       borderColor: 'transparent',
+    },
+    formActionRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 8,
+    },
+    cancelBtn: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: 16,
+      height: 48,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+    },
+    cancelBtnText: {
+      color: colors.text.secondary,
+      fontSize: 13,
+      fontWeight: '700',
     },
     saveBtn: {
       flexDirection: 'row',
@@ -457,15 +921,110 @@ const getStyles = (colors: any, isDark: boolean) =>
       height: 48,
       borderRadius: 16,
       backgroundColor: colors.accent.purple,
-      marginTop: 6,
     },
     saveBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+    listSectionHeader: {
+      gap: 10,
+    },
+    tabsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    },
+    tabBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    tabBtnActive: {
+      backgroundColor: colors.accent.alpha(0.15),
+      borderColor: colors.accent.purple,
+    },
+    tabText: {
+      color: colors.text.secondary,
+      fontSize: 11.5,
+      fontWeight: '600',
+    },
+    tabTextActive: {
+      color: colors.accent.purple,
+      fontWeight: '700',
+    },
+    listSearchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderRadius: 14,
+      backgroundColor: colors.glass.card,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+      paddingHorizontal: 12,
+      height: 42,
+    },
+    listSearchInput: {
+      flex: 1,
+      color: colors.text.primary,
+      fontSize: 13,
+    },
+    listCard: {
+      backgroundColor: colors.glass.card,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+      padding: 16,
+      gap: 4,
+    },
+    listHeaderRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 10,
+    },
+    quickAddPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+      backgroundColor: colors.accent.alpha(0.12),
+    },
+    quickAddPillText: {
+      color: colors.accent.purple,
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    emptyListWrap: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 32,
+      gap: 8,
+    },
+    emptyListText: {
+      color: colors.text.muted,
+      fontSize: 13,
+    },
     catRow: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 10,
       borderBottomWidth: 0.5,
       borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+    },
+    arrangeCol: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 8,
+      gap: 2,
+    },
+    arrowBtn: {
+      padding: 2,
+      borderRadius: 6,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
+    },
+    arrowBtnDisabled: {
+      opacity: 0.25,
     },
     catIconCircle: {
       width: 36,
@@ -474,17 +1033,36 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: 12,
+      marginRight: 10,
     },
-    catInfo: { flex: 1 },
+    catInfo: { flex: 1, marginRight: 8 },
     catName: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
     catGroup: { color: colors.text.muted, fontSize: 11, marginTop: 2 },
-    catRightWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    badgePill: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+    catRightWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    badgePill: { paddingHorizontal: 7, paddingVertical: 2.5, borderRadius: 8 },
     badgeSystem: { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' },
     badgeCustom: { backgroundColor: colors.accent.alpha(0.15) },
-    badgeText: { fontSize: 10, fontWeight: '700' },
+    badgeText: { fontSize: 9.5, fontWeight: '700' },
     badgeSystemText: { color: colors.text.secondary },
     badgeCustomText: { color: colors.accent.purple },
+    editBtn: { padding: 4 },
     deleteBtn: { padding: 4 },
+    removedSubText: {
+      color: colors.text.muted,
+      fontSize: 12,
+      marginBottom: 10,
+    },
+    restoreBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 10,
+      backgroundColor: colors.accent.blue,
+    },
+    restoreBtnText: {
+      color: '#FFFFFF',
+      fontSize: 11.5,
+      fontWeight: '700',
+    },
   });

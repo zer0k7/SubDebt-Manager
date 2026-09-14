@@ -499,10 +499,14 @@ export async function checkAndTriggerBudgetAlerts() {
     }
 
     let budgetAmount = 0;
+    let categoryLimits: Record<string, number> = {};
     const rawBudget = await storage.getString(STORAGE_KEYS.MONTHLY_BUDGET);
     if (rawBudget) {
       const parsed = JSON.parse(rawBudget);
       budgetAmount = parsed.amount || 0;
+      if (parsed.categoryLimits && typeof parsed.categoryLimits === 'object') {
+        categoryLimits = parsed.categoryLimits;
+      }
     }
 
     if (budgetAmount <= 0) {
@@ -570,6 +574,45 @@ export async function checkAndTriggerBudgetAlerts() {
       await storage.set('last_budget_alert_threshold', currentThreshold.toString());
     } else if (currentThreshold < lastAlerted) {
       await storage.set('last_budget_alert_threshold', currentThreshold.toString());
+    }
+
+    // Check individual per-category limits
+    if (Object.keys(categoryLimits).length > 0) {
+      const catAlertedRaw = await storage.getString('last_cat_budget_alerts');
+      const catAlerted: Record<string, number> = catAlertedRaw ? JSON.parse(catAlertedRaw) : {};
+      
+      for (const [catName, limit] of Object.entries(categoryLimits)) {
+        const numLimit = Number(limit);
+        if (numLimit > 0) {
+          const catSpent = thisMonthEntries
+            .filter((e) => e.category && e.category.toLowerCase() === catName.toLowerCase())
+            .reduce((sum, e) => sum + (e.amount || 0), 0);
+          
+          const catPct = (catSpent / numLimit) * 100;
+          let catThreshold = 0;
+          if (catPct >= 100) catThreshold = 100;
+          else if (catPct >= 80) catThreshold = 80;
+
+          const prevThreshold = catAlerted[catName] || 0;
+          if (catThreshold > prevThreshold) {
+            catAlerted[catName] = catThreshold;
+            const formattedCatSpent = formatCurrency(catSpent, currencyCode);
+            const formattedCatLimit = formatCurrency(numLimit, currencyCode);
+
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: catThreshold === 100 ? `Category Limit Exceeded: ${catName} ⚠️` : `Category Warning: ${catName} 🔔`,
+                body: catThreshold === 100
+                  ? `You've spent ${formattedCatSpent} of your ${formattedCatLimit} limit on ${catName}.`
+                  : `You've reached ${catPct.toFixed(0)}% of your ${formattedCatLimit} limit on ${catName}.`,
+                data: { type: 'category_budget_alert', category: catName, percentage: catThreshold },
+              },
+              trigger: null,
+            });
+          }
+        }
+      }
+      await storage.set('last_cat_budget_alerts', JSON.stringify(catAlerted));
     }
   } catch (err) {}
 }

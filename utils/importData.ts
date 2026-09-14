@@ -109,6 +109,10 @@ export const importDataObj = async (data: any, mode: 'merge' | 'replace' = 'merg
       spendCount = dailySpending.length;
       catCount = customCategories.length;
 
+      if (Array.isArray(data.customizedCategories) && data.customizedCategories.length > 0) {
+        await storage.set(STORAGE_KEYS.CATEGORIES_CUSTOMIZED, JSON.stringify(data.customizedCategories));
+      }
+
       if (monthlyBudget) {
         await storage.set(STORAGE_KEYS.MONTHLY_BUDGET, JSON.stringify(monthlyBudget));
       }

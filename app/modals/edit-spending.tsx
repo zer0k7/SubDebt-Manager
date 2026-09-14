@@ -13,7 +13,7 @@ import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { AppDatePicker } from '../../components/AppDatePicker';
 import { useDailySpending } from '../../hooks/useDailySpending';
 import { formatShortDate } from '../../utils/dateHelpers';
-import { SPENDING_CATEGORIES } from '../../constants/categories';
+import { useCategoryManager } from '../../hooks/useCategoryManager';
 import { pickReceiptFromGallery, takeReceiptPhoto } from '../../utils/receiptHelper';
 import { ReceiptVaultModal } from '../../components/ReceiptVaultModal';
 
@@ -23,6 +23,7 @@ export default function EditSpendingModal() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { updateEntry, deleteEntry, getEntryById } = useDailySpending();
+  const { allCategories } = useCategoryManager();
   const entry = getEntryById(id);
 
   const [title, setTitle] = useState('');
@@ -123,14 +124,33 @@ export default function EditSpendingModal() {
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <GlassInput label="Spent On" placeholder="Tea, groceries, fuel..." value={title} onChangeText={setTitle} error={errors.title} />
           <GlassInput label="Amount" placeholder="0.00" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={errors.amount} />
-          <Text style={styles.sectionLabel}>Category</Text>
+          <View style={styles.categoryHeaderRow}>
+            <Text style={styles.sectionLabel}>Category</Text>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/modals/manage-categories');
+              }}
+              style={styles.manageCategoryBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="options-outline" size={13} color={colors.accent.purple} />
+              <Text style={styles.manageCategoryText}>Manage</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.chipRow}>
-            {SPENDING_CATEGORIES.map((item) => {
-              const isActive = category === item.name;
+            {allCategories.map((item) => {
+              const isActive = category.toLowerCase() === item.name.toLowerCase();
               return (
                 <TouchableOpacity
-                  key={item.name}
-                  style={[styles.chip, isActive && styles.chipActive]}
+                  key={item.id || item.name}
+                  style={[
+                    styles.chip,
+                    isActive && [
+                      styles.chipActive,
+                      { borderColor: item.color, backgroundColor: `${item.color}22` },
+                    ],
+                  ]}
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setCategory(item.name);
@@ -140,13 +160,48 @@ export default function EditSpendingModal() {
                   <Ionicons
                     name={item.icon as any}
                     size={14}
-                    color={isActive ? colors.accent.blue : colors.text.muted}
+                    color={isActive ? item.color : colors.text.muted}
                     style={{ marginRight: 6 }}
                   />
-                  <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{item.name}</Text>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isActive && [styles.chipTextActive, { color: item.color, fontWeight: '700' }],
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
+            {/* If category of current entry is not in allCategories, show it as an active pill */}
+            {category && !allCategories.some((c) => c.name.toLowerCase() === category.toLowerCase()) && (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.chip,
+                  styles.chipActive,
+                  { borderColor: colors.accent.blue, backgroundColor: `${colors.accent.blue}22` },
+                ]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pricetag-outline" size={14} color={colors.accent.blue} style={{ marginRight: 6 }} />
+                <Text style={[styles.chipText, styles.chipTextActive, { color: colors.accent.blue, fontWeight: '700' }]}>
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[styles.chip, styles.chipAddNew]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/modals/manage-categories');
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="add-circle-outline" size={14} color={colors.accent.purple} style={{ marginRight: 4 }} />
+              <Text style={[styles.chipText, { color: colors.accent.purple, fontWeight: '700' }]}>+ Add Custom</Text>
+            </TouchableOpacity>
           </View>
           <Text style={styles.sectionLabel}>Date</Text>
           <TouchableOpacity style={styles.dateRow} onPress={() => setShowDatePicker(true)}>
@@ -251,10 +306,36 @@ const getStyles = (colors: any, isDark: boolean) =>
     fieldLabel: { color: colors.text.secondary, fontSize: 13, marginBottom: 8, fontWeight: '500' },
     currPill: { alignItems: 'center', justifyContent: 'center', backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.cardBorder, borderRadius: 14, height: 48 },
     currText: { color: colors.text.primary, fontSize: 15 },
-    sectionLabel: { color: colors.text.secondary, fontSize: 13, marginBottom: 10, marginTop: 16, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    categoryHeaderRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 16,
+      marginBottom: 10,
+    },
+    sectionLabel: { color: colors.text.secondary, fontSize: 13, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+    manageCategoryBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      backgroundColor: isDark ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)',
+    },
+    manageCategoryText: {
+      color: colors.accent.purple,
+      fontSize: 11.5,
+      fontWeight: '700',
+    },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.buttonSecondary },
     chipActive: { backgroundColor: colors.accent.alpha ? colors.accent.alpha(0.15) : 'rgba(79,195,247,0.15)', borderColor: colors.accent.blue },
+    chipAddNew: {
+      borderStyle: 'dashed',
+      borderColor: colors.accent.purple,
+      backgroundColor: isDark ? 'rgba(139, 92, 246, 0.1)' : 'rgba(139, 92, 246, 0.06)',
+    },
     chipText: { color: colors.text.muted, fontSize: 13, fontWeight: '500' },
     chipTextActive: { color: colors.accent.blue, fontWeight: '700' },
     dateRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.cardBorder, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 14, marginBottom: 8 },
