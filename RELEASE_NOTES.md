@@ -1,8 +1,25 @@
-# Release Notes — v2.11.0
+# Release Notes — v2.11.1
 
 ## TL;DR
 
-SubDebt v2.11.0 is a milestone release introducing **5 Major Financial Superpowers**: **Split Bills with Friends** (with automated debt/credit logging), **Income Tracking & Real Net Cashflow Analytics** (with Savings Rate %), **30-Day Cashflow Runway Forecast & Subscription Price-Hike Detection**, **Pattern-Based Smart Receipt Scanner & Full Visual Gallery**, and **Complete Category Customization** with reordering, default category deletion/restoration, and a library of 120+ categorized icons.
+SubDebt v2.11.1 is an essential polish and bugfix update resolving Home dashboard card spacing, edge margins, scroll bounds, and Android navigation bar button clipping in custom categories. It also eliminates false-positive subscription price-hike alerts and consolidates the cashflow insights into an executive view.
+
+---
+
+## What's New in v2.11.1
+
+### 1. Home Dashboard Card Layout & Proper Spacing
+- **Restored Gaps & Side Margins**: Re-introduced `contentContainerStyle` with 20px horizontal padding and 16px vertical card spacing to eliminate edge-to-edge crowding.
+- **Scroll Clearance Fix**: Increased bottom padding to 140px so the entire dashboard (including the Financial Utilities Hub) scrolls cleanly above the floating bottom tab bar.
+- **Unified Cashflow & Runway Card**: Combined the separate Monthly Cashflow and 30-Day Runway into a single cohesive executive card showing Inflows, Outflows, Net Savings, daily burn rate, and 30-day projection.
+
+### 2. Custom Category Save Button Clearance
+- **System Navigation Inset Defense**: Added `useSafeAreaInsets` and `edges={['top', 'bottom']}` in Manage Categories so the "Save Custom Category" button and full form never get cut off under the Android 3-button or gesture navigation bar.
+- **Comfortable Touch Target**: Elevated Save button height to 52px with proper vertical margins.
+
+### 3. Price-Hike False-Positive Elimination
+- **Strict Matching Rules**: Prevented micro-recharges or unrelated small purchases from falsely triggering 600%+ price-hike alerts on active subscriptions.
+- **Dismissible Alert**: Added one-tap dismiss button to the price-hike card.
 
 ---
 
@@ -10,7 +27,9 @@ SubDebt v2.11.0 is a milestone release introducing **5 Major Financial Superpowe
 
 | Module | Change Summary | Impact |
 | :--- | :--- | :--- |
-| **Category Customization** | Reordering (up/down), remove/hide defaults, edit colors & names, restore defaults. | Complete personalization over spending taxonomy |
+| **Home Dashboard** | 20px edge margins, 16px card gap, 140px bottom scroll clearance. | Perfect alignment & full scrollability |
+| **Category Manager** | Dynamic safe-area padding for Save button in Custom Categories. | No overlap under Android navigation bar |
+| **Price Hike Engine** | Strict category and magnitude matching with dismiss button. | Zero false alarms |
 | **Icon & Color Library** | 120+ searchable categorized vector icons and 24 curated palette swatches. | Rich visual cues for any lifestyle spending |
 | **Smart Auto-Categorizer** | Keyword & merchant dictionary with self-learning prediction on expense entry. | Instant zero-effort categorization while typing |
 | **Category Budget Alerts** | Automated push notification triggers at 80% and 100% of per-category monthly limits. | Prevents accidental overspending in specific silos |

@@ -123,23 +123,36 @@ export const detectSubscriptionPriceHikes = (
   subscriptions
     .filter((s) => s.isActive && s.amount > 0)
     .forEach((sub) => {
-      const matchingExpenses = spendingEntries.filter(
-        (e) =>
-          e.title.toLowerCase().includes(sub.name.toLowerCase()) ||
-          sub.name.toLowerCase().includes(e.title.toLowerCase())
+      const subNameNorm = sub.name.trim().toLowerCase();
+      if (subNameNorm.length < 3) return; // Avoid matching 1-2 letter acronyms wildly
+
+      // Only match entries that are strictly related to subscriptions or exact name match
+      const matchingExpenses = spendingEntries
+        .filter((e) => {
+          const titleNorm = (e.title || '').trim().toLowerCase();
+          const isCategorySub = (e.category || '').toLowerCase().includes('sub');
+          const isExactName = titleNorm === subNameNorm;
+          const isClearMatch = isCategorySub && titleNorm.includes(subNameNorm);
+          return isExactName || isClearMatch;
+        })
+        .sort((a, b) => new Date(b.spentAt).getTime() - new Date(a.spentAt).getTime());
+
+      // We need at least one genuine previous bill payment that is in the same ballpark (>= 50% of sub.amount)
+      // to avoid treating one-off micro data packs or recharges as the "base subscription price"
+      const previousRegularBill = matchingExpenses.find(
+        (e) => e.amount < sub.amount * 0.95 && e.amount >= sub.amount * 0.5
       );
 
-      if (matchingExpenses.length > 0) {
-        // Find previous charges that are lower than current subscription amount
-        const previousLower = matchingExpenses.find((e) => e.amount < sub.amount * 0.95);
-        if (previousLower) {
-          const diff = sub.amount - previousLower.amount;
-          const pct = Math.round((diff / previousLower.amount) * 100);
+      if (previousRegularBill) {
+        const diff = sub.amount - previousRegularBill.amount;
+        const pct = Math.round((diff / previousRegularBill.amount) * 100);
+        // Only alert on reasonable price hikes between 5% and 100%
+        if (pct >= 5 && pct <= 100) {
           alerts.push({
             subscriptionId: sub.id,
             name: sub.name,
             currentAmount: sub.amount,
-            previousAmount: previousLower.amount,
+            previousAmount: previousRegularBill.amount,
             difference: diff,
             percentIncrease: pct,
           });

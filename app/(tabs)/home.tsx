@@ -42,6 +42,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false);
   const [showReceiptGallery, setShowReceiptGallery] = useState(false);
+  const [dismissedHikes, setDismissedHikes] = useState<string[]>([]);
 
   const { debts, getTotalPendingAmount: getDebtTotal, refresh: refreshDebts } = useDebts();
   const { credits, getTotalPendingAmount: getCreditTotal, refresh: refreshCredits } = useCredits();
@@ -58,16 +59,24 @@ export default function DashboardScreen() {
     } catch {}
 
     await Promise.all([
-      refreshCurrency(),
       refreshDebts(),
       refreshCredits(),
       refreshSubs(),
       refreshSpending(),
       refreshIncome(),
+      refreshCurrency(),
       refreshBudget(),
     ]);
     setRefreshing(false);
-  }, [refreshCurrency, refreshDebts, refreshCredits, refreshSubs, refreshSpending, refreshIncome, refreshBudget]);
+  }, [
+    refreshDebts,
+    refreshCredits,
+    refreshSubs,
+    refreshSpending,
+    refreshIncome,
+    refreshCurrency,
+    refreshBudget,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -77,103 +86,108 @@ export default function DashboardScreen() {
 
   const togglePrivacyMode = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const nextVal = !privacyMode;
-    setPrivacyMode(nextVal);
-    await storage.set('privacy_mode_enabled', nextVal ? 'true' : 'false');
+    const next = !privacyMode;
+    setPrivacyMode(next);
+    await storage.set('privacy_mode_enabled', String(next));
   };
 
-  const formatValue = (amount: number) => {
-    if (privacyMode) return '••••••';
-    return formatCurrency(amount, currencyCode);
-  };
+  const totalDebt = useMemo(() => getDebtTotal(), [getDebtTotal]);
+  const totalCredit = useMemo(() => getCreditTotal(), [getCreditTotal]);
+  const totalSubs = useMemo(() => getSubTotal(), [getSubTotal]);
+  const monthlySpending = useMemo(() => getTotalForMonth(new Date()), [getTotalForMonth]);
+  const monthlyIncome = useMemo(() => getTotalIncomeForMonth(new Date()), [getTotalIncomeForMonth]);
+  const dailyAvg = useMemo(() => getDailyAverage(), [getDailyAverage]);
 
-  // Metrics
-  const totalDebt = getDebtTotal(convertAmount);
-  const totalCredit = getCreditTotal(convertAmount);
-  const totalSubs = getSubTotal(convertAmount);
-  const monthlySpending = getTotalForMonth(new Date(), convertAmount);
-  const monthlyIncome = getTotalIncomeForMonth(new Date(), convertAmount);
-  const dailyAvg = getDailyAverage('30d', convertAmount);
-
-  // Net Cashflow & Savings Rate
-  const totalMonthlyOutflow = monthlySpending + totalSubs;
-  const netMonthlySavings = monthlyIncome - totalMonthlyOutflow;
-  const savingsRate = monthlyIncome > 0 ? Math.max(0, Math.round((netMonthlySavings / monthlyIncome) * 100)) : 0;
-
-  // Net Cash Position: Credits Owed to You - Debts Owed
+  // Net Position (Credits owed to you minus Debts you owe)
   const netPosition = totalCredit - totalDebt;
 
-  // 30-Day Cashflow Runway Forecast
+  // Monthly Net Cashflow = Income Inflow - (Daily Spending + Subscriptions)
+  const totalMonthlyOutflow = monthlySpending + totalSubs;
+  const netMonthlySavings = monthlyIncome - totalMonthlyOutflow;
+  const savingsRate = monthlyIncome > 0
+    ? Math.max(0, Math.min(100, Math.round((netMonthlySavings / monthlyIncome) * 100)))
+    : 0;
+
+  // 30-Day Cash Runway & Outflow Projections
   const cashflowForecast = useMemo(() => {
-    return calculateCashflowForecast(entries, subscriptions, debts, incomes, netPosition, convertAmount);
-  }, [entries, subscriptions, debts, incomes, netPosition, convertAmount]);
+    return calculateCashflowForecast(entries, subscriptions, debts, incomes, totalCredit, (amt, curr) =>
+      convertAmount(amt, curr)
+    );
+  }, [entries, subscriptions, debts, incomes, totalCredit, convertAmount]);
 
-  // Subscription Price Hike Alerts
+  // Subscription Price Hike Detection (with dismiss filter)
   const priceHikeAlerts = useMemo(() => {
-    return detectSubscriptionPriceHikes(subscriptions, entries);
-  }, [subscriptions, entries]);
+    const raw = detectSubscriptionPriceHikes(subscriptions, entries);
+    return raw.filter((h) => !dismissedHikes.includes(h.subscriptionId));
+  }, [subscriptions, entries, dismissedHikes]);
 
-  // Upcoming Due Payments (Next 7 Days)
+  const formatValue = (val: number) => {
+    if (privacyMode) return '••••••';
+    return formatCurrency(val, currencyCode);
+  };
+
+  // Upcoming alerts (next 7 days)
   const upcomingAlerts = useMemo(() => {
-    const alerts: { id: string; title: string; subtitle: string; amount: number; type: 'debt' | 'sub'; date: string }[] = [];
-    const now = Date.now();
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    const now = new Date();
+    const next7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const alerts: {
+      id: string;
+      title: string;
+      subtitle: string;
+      amount: number;
+      type: 'debt' | 'sub';
+    }[] = [];
 
-    debts.forEach((d) => {
-      if (!d.isPaid && d.dueDate) {
-        const dueTime = new Date(d.dueDate).getTime();
-        const diff = dueTime - now;
-        if (diff > 0 && diff <= sevenDays) {
-          const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    subscriptions
+      .filter((s) => s.isActive && s.expiryDate)
+      .forEach((s) => {
+        const d = new Date(s.expiryDate);
+        if (d >= now && d <= next7Days) {
+          const daysLeft = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
           alerts.push({
-            id: d.id,
-            title: `Debt Due: ${d.personName}`,
-            subtitle: `Due in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`,
-            amount: d.amount,
-            type: 'debt',
-            date: d.dueDate,
-          });
-        }
-      }
-    });
-
-    subscriptions.forEach((s) => {
-      if (s.isActive && s.expiryDate) {
-        const expTime = new Date(s.expiryDate).getTime();
-        const diff = expTime - now;
-        if (diff > 0 && diff <= sevenDays) {
-          const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
-          alerts.push({
-            id: s.id,
+            id: `sub-${s.id}`,
             title: `Renewal: ${s.name}`,
-            subtitle: `Due in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`,
-            amount: s.amount,
+            subtitle: daysLeft === 0 ? 'Due today' : `Due in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`,
+            amount: convertAmount(s.amount, s.currency),
             type: 'sub',
-            date: s.expiryDate,
           });
         }
-      }
+      });
+
+    debts
+      .filter((d) => !d.isPaid && d.dueDate)
+      .forEach((d) => {
+        const due = new Date(d.dueDate!);
+        if (due >= now && due <= next7Days) {
+          const daysLeft = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          alerts.push({
+            id: `debt-${d.id}`,
+            title: `Pay Debt: ${d.personName}`,
+            subtitle: daysLeft === 0 ? 'Due today' : `Due in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`,
+            amount: convertAmount(d.amount, d.currency),
+            type: 'debt',
+          });
+        }
+      });
+
+    return alerts.slice(0, 3);
+  }, [subscriptions, debts, convertAmount]);
+
+  // Category spending progress
+  const categoryProgress = useMemo(() => {
+    if (!budget.categoryLimits || Object.keys(budget.categoryLimits).length === 0) return [];
+    const now = new Date();
+    const currentMonthEntries = entries.filter((e) => {
+      const d = new Date(e.spentAt);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
 
-    return alerts.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [debts, subscriptions]);
-
-  // Category Budget Progress
-  const categoryProgress = useMemo(() => {
-    if (!budget.categoryLimits) return [];
-    return Object.keys(budget.categoryLimits)
-      .map((cat) => {
-        const limit = budget.categoryLimits[cat];
+    return Object.entries(budget.categoryLimits)
+      .map(([cat, limit]) => {
         if (!limit || limit <= 0) return null;
-
-        const spending = entries
-          .filter((e) => {
-            const isThisMonth = new Date(e.spentAt).getMonth() === new Date().getMonth() &&
-              new Date(e.spentAt).getFullYear() === new Date().getFullYear();
-            return isThisMonth && e.category.toLowerCase() === cat.toLowerCase();
-          })
-          .reduce((sum, e) => sum + (convertAmount ? convertAmount(e.amount, e.currency) : e.amount), 0);
-
+        const spending = currentMonthEntries
+          .filter((e) => e.category?.toLowerCase() === cat.toLowerCase())
+          .reduce((sum, e) => sum + convertAmount(e.amount, e.currency), 0);
         const pct = Math.min(100, Math.round((spending / limit) * 100));
         return { category: cat, limit, spending, pct };
       })
@@ -182,69 +196,67 @@ export default function DashboardScreen() {
   }, [budget.categoryLimits, entries, convertAmount]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AmbientBackground />
+
+      {/* Modern Floating Top Bar */}
       <FloatingTopHeader
-        title="SubDebt"
-        subtitle="Financial Overview"
+        title="Financial Dashboard"
+        subtitle="Real-Time Overview & Cash Flow"
         rightActions={
-          <TouchableOpacity onPress={() => router.push('/modals/settings')} activeOpacity={0.8} style={styles.privacyBtn}>
-            <Ionicons name="settings-outline" size={20} color={colors.text.secondary} />
-          </TouchableOpacity>
+          <View style={styles.headerActionRow}>
+            <TouchableOpacity style={styles.iconBtn} onPress={togglePrivacyMode} activeOpacity={0.8}>
+              <Ionicons name={privacyMode ? 'eye-off-outline' : 'eye-outline'} size={19} color={colors.text.primary} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/modals/settings')} activeOpacity={0.8}>
+              <Ionicons name="settings-outline" size={19} color={colors.text.primary} />
+            </TouchableOpacity>
+          </View>
         }
       />
 
       <ScrollView
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={loadData} tintColor={colors.accent.purple} />}
       >
-        {/* Net Worth / Position Header Card */}
+        {/* Executive Hero: Net Position & Budget Meter */}
         <View style={styles.heroCard}>
           <View style={styles.heroTopRow}>
-            <View>
-              <Text style={styles.heroSubtitle}>NET LENDING POSITION</Text>
-              <Text style={[styles.heroValue, { color: netPosition >= 0 ? colors.accent.green : colors.accent.red }]}>
-                {netPosition >= 0 ? '+' : ''}{formatValue(netPosition)}
+            <Text style={styles.heroLabel}>NET POSITION (CREDITS - DEBTS)</Text>
+            <View style={[styles.statusBadge, netPosition >= 0 ? styles.badgeGreen : styles.badgeRed]}>
+              <Text style={[styles.statusBadgeText, netPosition >= 0 ? styles.badgeGreenText : styles.badgeRedText]}>
+                {netPosition >= 0 ? 'NET POSITIVE' : 'NET LIABILITY'}
               </Text>
             </View>
-
-            <TouchableOpacity onPress={togglePrivacyMode} style={styles.privacyBtn}>
-              <Ionicons
-                name={privacyMode ? 'eye-off-outline' : 'eye-outline'}
-                size={22}
-                color={colors.text.secondary}
-              />
-            </TouchableOpacity>
           </View>
 
-          {/* Budget Meter Bar */}
+          <Text style={[styles.heroAmount, netPosition < 0 && { color: colors.accent.red }]}>
+            {formatValue(Math.abs(netPosition))}
+          </Text>
+
+          {/* Monthly Budget Progress Meter */}
           {budget.amount > 0 && (
-            <View style={styles.heroBudgetRow}>
-              <View style={styles.budgetMeta}>
-                <Text style={styles.budgetMetaText}>
-                  Monthly Cap: {formatValue(budget.amount)}
-                </Text>
-                <Text
-                  style={[
-                    styles.budgetMetaText,
-                    monthlySpending > budget.amount && { color: colors.accent.red, fontWeight: '700' },
-                  ]}
-                >
-                  {Math.round((monthlySpending / budget.amount) * 100)}% Used
+            <View style={styles.budgetMeterSection}>
+              <View style={styles.budgetMeterRow}>
+                <Text style={styles.meterLabel}>Monthly Budget Progress</Text>
+                <Text style={styles.meterValue}>
+                  {formatCurrency(monthlySpending, currencyCode)} / {formatCurrency(budget.amount, currencyCode)}
                 </Text>
               </View>
-              <View style={styles.budgetTrack}>
+
+              <View style={styles.meterTrack}>
                 <View
                   style={[
-                    styles.budgetFill,
+                    styles.meterFill,
                     {
-                      width: `${Math.min(100, (monthlySpending / budget.amount) * 100)}%`,
+                      width: `${Math.min(100, Math.round((monthlySpending / budget.amount) * 100))}%`,
                       backgroundColor:
                         monthlySpending > budget.amount
                           ? colors.accent.red
-                          : monthlySpending / budget.amount > 0.8
+                          : monthlySpending > budget.amount * 0.8
                           ? colors.accent.amber
-                          : colors.accent.blue,
+                          : colors.accent.green,
                     },
                   ]}
                 />
@@ -253,7 +265,7 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* 1-Tap Quick Action Row */}
+        {/* 1-Tap Quick Action Row (5 Actions) */}
         <View style={styles.quickActionRow}>
           <TouchableOpacity
             style={styles.actionTile}
@@ -292,7 +304,7 @@ export default function DashboardScreen() {
             activeOpacity={0.8}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-              <Ionicons name="hand-right-outline" size={18} color={colors.accent.red} />
+              <Ionicons name="hand-right-outline" size={19} color={colors.accent.red} />
             </View>
             <Text style={styles.actionText}>+ Debt</Text>
           </TouchableOpacity>
@@ -306,7 +318,7 @@ export default function DashboardScreen() {
             activeOpacity={0.8}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
-              <Ionicons name="repeat-outline" size={18} color={colors.accent.blue} />
+              <Ionicons name="repeat-outline" size={19} color={colors.accent.blue} />
             </View>
             <Text style={styles.actionText}>+ Sub</Text>
           </TouchableOpacity>
@@ -320,24 +332,31 @@ export default function DashboardScreen() {
             activeOpacity={0.8}
           >
             <View style={[styles.actionIconBox, { backgroundColor: 'rgba(139, 92, 246, 0.15)' }]}>
-              <Ionicons name="images-outline" size={18} color={colors.accent.purple} />
+              <Ionicons name="images-outline" size={19} color={colors.accent.purple} />
             </View>
             <Text style={styles.actionText}>Receipts</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Real Net Cashflow Card */}
+        {/* Unified Monthly Cashflow & Runway Card */}
         <View style={styles.cashflowCard}>
           <View style={styles.cashflowHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="analytics-outline" size={18} color={colors.accent.blue} />
-              <Text style={styles.cashflowTitle}>MONTHLY NET CASHFLOW</Text>
+              <Ionicons name="analytics-outline" size={17} color={colors.accent.blue} />
+              <Text style={styles.cashflowTitle}>MONTHLY CASHFLOW & RUNWAY</Text>
             </View>
-            <TouchableOpacity onPress={() => router.push('/modals/add-income')}>
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push('/modals/add-income');
+              }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
               <Text style={styles.manageIncomeLink}>+ Log Income</Text>
             </TouchableOpacity>
           </View>
 
+          {/* Row 1: Inflow / Outflow / Net Savings */}
           <View style={styles.cashflowGrid}>
             <View style={styles.cashflowStat}>
               <Text style={styles.cashflowStatLabel}>Income Inflow</Text>
@@ -366,6 +385,35 @@ export default function DashboardScreen() {
             </View>
           </View>
 
+          {/* Row 2: Daily Burn & 30-Day Outflow Projection */}
+          <View style={styles.cashflowForecastRow}>
+            <View style={styles.forecastItem}>
+              <Text style={styles.forecastLabel}>Daily Burn Rate</Text>
+              <Text style={styles.forecastValue}>
+                ~{formatValue(cashflowForecast.dailyBurnRate)}/day
+              </Text>
+            </View>
+            <View style={styles.forecastDivider} />
+            <View style={styles.forecastItem}>
+              <Text style={styles.forecastLabel}>30-Day Outflow Est.</Text>
+              <Text style={[styles.forecastValue, { color: colors.accent.amber }]}>
+                {formatValue(cashflowForecast.projected30DayOutflow)}
+              </Text>
+            </View>
+            {cashflowForecast.daysRunway !== undefined && (
+              <>
+                <View style={styles.forecastDivider} />
+                <View style={styles.forecastItem}>
+                  <Text style={styles.forecastLabel}>Est. Runway</Text>
+                  <Text style={[styles.forecastValue, { color: colors.accent.purple }]}>
+                    {cashflowForecast.daysRunway} Days
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          {/* Savings Rate Meter (if income > 0) */}
           {monthlyIncome > 0 && (
             <View style={styles.savingsRateWrap}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -381,36 +429,22 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* 30-Day Runway Forecast & Projections */}
-        <View style={styles.runwayCard}>
-          <View style={styles.runwayHeader}>
-            <Ionicons name="trending-up-outline" size={18} color={colors.accent.purple} />
-            <Text style={styles.runwayTitle}>30-DAY CASH RUNWAY & FORECAST</Text>
-          </View>
-
-          <View style={styles.runwayGrid}>
-            <View style={styles.runwayStatCol}>
-              <Text style={styles.runwayStatLabel}>Daily Burn Rate</Text>
-              <Text style={styles.runwayStatValue}>
-                ~{formatValue(cashflowForecast.dailyBurnRate)}/day
-              </Text>
-            </View>
-            <View style={styles.runwayDivider} />
-            <View style={styles.runwayStatCol}>
-              <Text style={styles.runwayStatLabel}>30-Day Outflow Est.</Text>
-              <Text style={[styles.runwayStatValue, { color: colors.accent.amber }]}>
-                {formatValue(cashflowForecast.projected30DayOutflow)}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Subscription Price Hike Warning Banner */}
+        {/* Subscription Price Hike Warning Banner (Sleek & Dismissible) */}
         {priceHikeAlerts.length > 0 && (
           <View style={styles.priceHikeCard}>
             <View style={styles.priceHikeHeader}>
-              <Ionicons name="alert-circle" size={18} color={colors.accent.red} />
-              <Text style={styles.priceHikeTitle}>SUBSCRIPTION PRICE HIKE DETECTED</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="alert-circle" size={17} color={colors.accent.red} />
+                <Text style={styles.priceHikeTitle}>SUBSCRIPTION PRICE HIKE DETECTED</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setDismissedHikes(priceHikeAlerts.map((h) => h.subscriptionId));
+                }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Ionicons name="close" size={16} color={colors.text.muted} />
+              </TouchableOpacity>
             </View>
             {priceHikeAlerts.map((hike) => (
               <View key={hike.subscriptionId} style={styles.priceHikeRow}>
@@ -503,7 +537,7 @@ export default function DashboardScreen() {
         {upcomingAlerts.length > 0 && (
           <View style={styles.alertsCard}>
             <View style={styles.alertsHeader}>
-              <Ionicons name="notifications-outline" size={18} color={colors.accent.amber} />
+              <Ionicons name="notifications-outline" size={17} color={colors.accent.amber} />
               <Text style={styles.alertsTitle}>UPCOMING PAYMENTS & RENEWALS</Text>
             </View>
 
@@ -513,7 +547,12 @@ export default function DashboardScreen() {
                   <Text style={styles.alertItemTitle}>{item.title}</Text>
                   <Text style={styles.alertItemSub}>{item.subtitle}</Text>
                 </View>
-                <Text style={[styles.alertItemVal, item.type === 'debt' ? { color: colors.accent.red } : { color: colors.accent.purple }]}>
+                <Text
+                  style={[
+                    styles.alertItemVal,
+                    item.type === 'debt' ? { color: colors.accent.red } : { color: colors.accent.purple },
+                  ]}
+                >
                   {formatValue(item.amount)}
                 </Text>
               </View>
@@ -528,7 +567,8 @@ export default function DashboardScreen() {
 
             {categoryProgress.map((item) => {
               const icon = getCategoryIcon(item.category);
-              const barColor = item.pct >= 90 ? colors.accent.red : item.pct >= 70 ? colors.accent.amber : colors.accent.purple;
+              const barColor =
+                item.pct >= 90 ? colors.accent.red : item.pct >= 70 ? colors.accent.amber : colors.accent.purple;
 
               return (
                 <View key={item.category} style={styles.catProgressRow}>
@@ -600,100 +640,124 @@ export default function DashboardScreen() {
 const getStyles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background.primary },
+    headerActionRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    iconBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.glass.card,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+    },
     content: {
-      paddingHorizontal: 16,
+      paddingHorizontal: 20,
       paddingTop: 8,
-      paddingBottom: 40,
+      paddingBottom: 140,
       gap: 16,
     },
     heroCard: {
       padding: 20,
       borderRadius: 24,
       backgroundColor: colors.glass.card,
-      borderWidth: 1,
+      borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
-      gap: 12,
+      gap: 10,
     },
     heroTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
+      alignItems: 'center',
     },
-    heroSubtitle: {
-      color: colors.text.muted,
-      fontSize: 11,
+    heroLabel: {
+      color: colors.text.tertiary,
+      fontSize: 10,
       fontWeight: '800',
       letterSpacing: 1,
     },
-    heroValue: {
-      fontSize: 32,
-      fontWeight: '900',
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    badgeGreen: { backgroundColor: 'rgba(16, 185, 129, 0.15)' },
+    badgeRed: { backgroundColor: 'rgba(239, 68, 68, 0.15)' },
+    statusBadgeText: { fontSize: 10, fontWeight: '800' },
+    badgeGreenText: { color: colors.accent.green },
+    badgeRedText: { color: colors.accent.red },
+    heroAmount: {
+      color: colors.accent.green,
+      fontSize: 34,
+      fontWeight: '800',
       letterSpacing: -1,
-      marginTop: 4,
     },
-    privacyBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    heroBudgetRow: {
+    budgetMeterSection: {
       gap: 6,
-      marginTop: 4,
+      marginTop: 6,
+      paddingTop: 10,
+      borderTopWidth: 0.5,
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
     },
-    budgetMeta: {
+    budgetMeterRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    budgetMetaText: {
-      color: colors.text.secondary,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    budgetTrack: {
-      height: 6,
-      borderRadius: 3,
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+    meterLabel: { color: colors.text.secondary, fontSize: 11, fontWeight: '600' },
+    meterValue: { color: colors.text.primary, fontSize: 12, fontWeight: '800' },
+    meterTrack: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
       overflow: 'hidden',
     },
-    budgetFill: {
-      height: '100%',
-      borderRadius: 3,
-    },
+    meterFill: { height: '100%', borderRadius: 4 },
+
+    // Quick action 5-button row
     quickActionRow: {
       flexDirection: 'row',
-      justifyContent: 'space-between',
-      gap: 6,
+      gap: 8,
     },
     actionTile: {
       flex: 1,
+      flexDirection: 'column',
       alignItems: 'center',
+      justifyContent: 'center',
       gap: 6,
+      paddingVertical: 12,
+      paddingHorizontal: 2,
+      borderRadius: 16,
+      backgroundColor: colors.glass.card,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
     },
     actionIconBox: {
-      width: 50,
-      height: 50,
-      borderRadius: 16,
+      width: 34,
+      height: 34,
+      borderRadius: 17,
       alignItems: 'center',
       justifyContent: 'center',
     },
     actionText: {
       color: colors.text.primary,
-      fontSize: 11.5,
+      fontSize: 11,
       fontWeight: '700',
+      textAlign: 'center',
     },
 
-    // Net Cashflow Card
+    // Unified Cashflow & Runway Card
     cashflowCard: {
-      padding: 16,
-      borderRadius: 20,
+      padding: 18,
+      borderRadius: 22,
       backgroundColor: colors.glass.card,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(59, 130, 246, 0.25)' : 'rgba(59, 130, 246, 0.15)',
-      gap: 12,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+      gap: 14,
     },
     cashflowHeader: {
       flexDirection: 'row',
@@ -701,28 +765,25 @@ const getStyles = (colors: any, isDark: boolean) =>
       alignItems: 'center',
     },
     cashflowTitle: {
-      color: colors.text.secondary,
+      color: colors.text.tertiary,
       fontSize: 11,
       fontWeight: '800',
       letterSpacing: 0.8,
     },
     manageIncomeLink: {
-      color: colors.accent.green,
+      color: colors.accent.purple,
       fontSize: 12,
       fontWeight: '700',
     },
     cashflowGrid: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
     },
     cashflowStat: {
       flex: 1,
       alignItems: 'center',
-    },
-    cashflowDivider: {
-      width: 1,
-      height: 30,
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+      gap: 4,
     },
     cashflowStatLabel: {
       color: colors.text.muted,
@@ -730,15 +791,48 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '600',
     },
     cashflowStatVal: {
-      fontSize: 14,
+      fontSize: 15,
       fontWeight: '800',
-      marginTop: 2,
+      letterSpacing: -0.3,
+    },
+    cashflowDivider: {
+      width: 0.5,
+      height: 28,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+    },
+    cashflowForecastRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingTop: 12,
+      borderTopWidth: 0.5,
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    forecastItem: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 3,
+    },
+    forecastLabel: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    forecastValue: {
+      color: colors.text.primary,
+      fontSize: 13,
+      fontWeight: '800',
+    },
+    forecastDivider: {
+      width: 0.5,
+      height: 22,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
     },
     savingsRateWrap: {
       gap: 6,
       paddingTop: 8,
       borderTopWidth: 0.5,
-      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+      borderTopColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
     },
     savingsRateLabel: {
       color: colors.text.secondary,
@@ -746,83 +840,38 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '600',
     },
     savingsRateVal: {
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '800',
     },
     savingsTrack: {
-      height: 5,
-      borderRadius: 2.5,
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.04)',
       overflow: 'hidden',
     },
     savingsFill: {
       height: '100%',
+      borderRadius: 3,
       backgroundColor: colors.accent.green,
-      borderRadius: 2.5,
     },
 
-    // 30-Day Runway Card
-    runwayCard: {
-      padding: 16,
-      borderRadius: 20,
-      backgroundColor: colors.glass.card,
-      borderWidth: 1,
-      borderColor: isDark ? 'rgba(139, 92, 246, 0.2)' : 'rgba(139, 92, 246, 0.15)',
-      gap: 10,
-    },
-    runwayHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    runwayTitle: {
-      color: colors.accent.purple,
-      fontSize: 11,
-      fontWeight: '800',
-      letterSpacing: 0.8,
-    },
-    runwayGrid: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    runwayStatCol: {
-      flex: 1,
-      alignItems: 'center',
-    },
-    runwayDivider: {
-      width: 1,
-      height: 28,
-      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
-    },
-    runwayStatLabel: {
-      color: colors.text.muted,
-      fontSize: 11,
-      fontWeight: '600',
-    },
-    runwayStatValue: {
-      color: colors.text.primary,
-      fontSize: 14,
-      fontWeight: '800',
-      marginTop: 2,
-    },
-
-    // Price Hike Warning Card
+    // Price Hike Warning Banner
     priceHikeCard: {
       padding: 14,
       borderRadius: 18,
-      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(254, 226, 226, 0.8)',
       borderWidth: 1,
       borderColor: 'rgba(239, 68, 68, 0.3)',
       gap: 8,
     },
     priceHikeHeader: {
       flexDirection: 'row',
+      justifyContent: 'space-between',
       alignItems: 'center',
-      gap: 6,
     },
     priceHikeTitle: {
       color: colors.accent.red,
-      fontSize: 11,
+      fontSize: 10.5,
       fontWeight: '800',
       letterSpacing: 0.5,
     },
@@ -830,25 +879,26 @@ const getStyles = (colors: any, isDark: boolean) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      paddingVertical: 2,
     },
     priceHikeSubName: {
       color: colors.text.primary,
-      fontSize: 13,
+      fontSize: 12.5,
       fontWeight: '700',
     },
     priceHikeDiff: {
       color: colors.accent.red,
-      fontSize: 13,
+      fontSize: 12.5,
       fontWeight: '800',
     },
 
-    // Matrix
+    // Financial Pulse
     sectionHeaderTitle: {
-      color: colors.text.secondary,
+      color: colors.text.tertiary,
       fontSize: 11,
       fontWeight: '800',
-      letterSpacing: 1,
-      marginTop: 4,
+      letterSpacing: 0.8,
+      marginLeft: 4,
     },
     matrixGrid: {
       flexDirection: 'row',
@@ -881,16 +931,18 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     matrixLabel: {
       color: colors.text.secondary,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: '600',
     },
+
+    // Upcoming Alerts
     alertsCard: {
       padding: 16,
       borderRadius: 20,
-      backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : 'rgba(245, 158, 11, 0.05)',
-      borderWidth: 1,
-      borderColor: 'rgba(245, 158, 11, 0.25)',
-      gap: 10,
+      backgroundColor: colors.glass.card,
+      borderWidth: 0.5,
+      borderColor: colors.glass.cardBorder,
+      gap: 12,
     },
     alertsHeader: {
       flexDirection: 'row',
@@ -907,14 +959,24 @@ const getStyles = (colors: any, isDark: boolean) =>
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: 6,
-      borderBottomWidth: 0.5,
-      borderBottomColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
     },
-    alertInfo: { flex: 1 },
-    alertItemTitle: { color: colors.text.primary, fontSize: 13, fontWeight: '700' },
-    alertItemSub: { color: colors.text.secondary, fontSize: 11, marginTop: 2 },
-    alertItemVal: { fontSize: 13, fontWeight: '800' },
+    alertInfo: { gap: 2 },
+    alertItemTitle: {
+      color: colors.text.primary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    alertItemSub: {
+      color: colors.text.muted,
+      fontSize: 11,
+      fontWeight: '500',
+    },
+    alertItemVal: {
+      fontSize: 13,
+      fontWeight: '800',
+    },
+
+    // Category Spending Limits
     sectionCard: {
       padding: 16,
       borderRadius: 20,
@@ -929,8 +991,16 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    catProgressName: { color: colors.text.primary, fontSize: 13, fontWeight: '700' },
-    catProgressVal: { color: colors.text.secondary, fontSize: 12, fontWeight: '600' },
+    catProgressName: {
+      color: colors.text.primary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    catProgressVal: {
+      color: colors.text.secondary,
+      fontSize: 11.5,
+      fontWeight: '600',
+    },
     catTrack: {
       height: 6,
       borderRadius: 3,
@@ -938,31 +1008,41 @@ const getStyles = (colors: any, isDark: boolean) =>
       overflow: 'hidden',
     },
     catFill: { height: '100%', borderRadius: 3 },
+
+    // Financial Utilities Hub
     toolsGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       gap: 10,
     },
     toolCard: {
-      width: '48%',
+      width: '48.5%',
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
       padding: 12,
-      borderRadius: 16,
+      borderRadius: 18,
       backgroundColor: colors.glass.card,
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
+      gap: 10,
     },
     toolIconBox: {
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       borderRadius: 12,
-      borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
+      borderWidth: 0.5,
     },
-    toolTextWrap: { flex: 1 },
-    toolTitle: { color: colors.text.primary, fontSize: 12, fontWeight: '700' },
-    toolSubtitle: { color: colors.text.secondary, fontSize: 10, marginTop: 1 },
+    toolTextWrap: { flex: 1, gap: 2 },
+    toolTitle: {
+      color: colors.text.primary,
+      fontSize: 12.5,
+      fontWeight: '700',
+    },
+    toolSubtitle: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '500',
+    },
   });

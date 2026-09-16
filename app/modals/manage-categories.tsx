@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AmbientBackground } from '../../components/AmbientBackground';
 import { AppPopup } from '../../components/AppPopup';
 import { useCategoryManager } from '../../hooks/useCategoryManager';
@@ -35,6 +35,7 @@ export default function ManageCategoriesModal() {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const {
     allCategories,
     customCategories,
@@ -251,7 +252,7 @@ export default function ManageCategoriesModal() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <AmbientBackground />
 
       {/* Header */}
@@ -278,7 +279,14 @@ export default function ManageCategoriesModal() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom + 120, 150) },
+        ]}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Add / Edit Category Drawer Form */}
         {showAddForm && (
           <View style={styles.addCard}>
@@ -898,13 +906,14 @@ const getStyles = (colors: any, isDark: boolean) =>
     formActionRow: {
       flexDirection: 'row',
       gap: 10,
-      marginTop: 8,
+      marginTop: 14,
+      marginBottom: 8,
     },
     cancelBtn: {
       alignItems: 'center',
       justifyContent: 'center',
       paddingHorizontal: 16,
-      height: 48,
+      height: 52,
       borderRadius: 16,
       backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
     },
@@ -918,7 +927,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      height: 48,
+      height: 52,
       borderRadius: 16,
       backgroundColor: colors.accent.purple,
     },
