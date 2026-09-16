@@ -26,6 +26,8 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+        env:
+          ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
 
       - name: Install Dependencies
         run: npm install --legacy-peer-deps
@@ -38,6 +40,8 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Cache Gradle
         uses: actions/cache@v4
