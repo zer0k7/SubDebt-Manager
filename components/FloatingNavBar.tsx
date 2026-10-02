@@ -93,24 +93,25 @@ export const CenteredFAB: React.FC<{ onPress: () => void; isMenuOpen: boolean }>
     Animated.spring(rotation, {
       toValue: isMenuOpen ? 1 : 0,
       useNativeDriver: true,
-      friction: 6,
-      tension: 40,
+      friction: 7,
+      tension: 60,
     }).start();
   }, [isMenuOpen]);
 
-  const spin = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '45deg'] });
+  const spin = rotation.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '135deg'] });
 
   const handlePress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Animated.sequence([
-      Animated.spring(scale, { toValue: 0.88, useNativeDriver: true, friction: 8 }),
-      Animated.spring(scale, { toValue: 1, useNativeDriver: true, friction: 8 }),
+      Animated.timing(scale, { toValue: 0.84, duration: 80, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, friction: 5, tension: 70, useNativeDriver: true }),
     ]).start();
     onPress();
   };
 
   const navbarBottom = insets.bottom > 0 ? insets.bottom + 10 : 24;
-  const fabBottom = navbarBottom + 62 / 2 - 56 / 2;
+  const fabBottom = navbarBottom + 64 / 2 - 58 / 2;
+  const activeColor = isMenuOpen ? colors.accent.red : colors.accent.blue;
 
   return (
     <TouchableOpacity
@@ -118,16 +119,18 @@ export const CenteredFAB: React.FC<{ onPress: () => void; isMenuOpen: boolean }>
       activeOpacity={0.9}
       onPress={handlePress}
     >
-      <Animated.View style={[
-        styles.fab,
-        {
-          backgroundColor: isMenuOpen ? colors.accent.red : colors.accent.blue,
-          transform: [{ rotate: spin }, { scale }],
-          shadowColor: isMenuOpen ? colors.accent.red : colors.accent.blue,
-          borderColor: isDark ? '#12121c' : '#ffffff',
-        }
-      ]}>
-        <Ionicons name="add" size={28} color="#fff" />
+      <Animated.View
+        style={[
+          styles.fab,
+          {
+            backgroundColor: isDark ? '#0C111C' : '#FFFFFF',
+            transform: [{ rotate: spin }, { scale }],
+            shadowColor: activeColor,
+            borderColor: activeColor,
+          },
+        ]}
+      >
+        <Ionicons name="add" size={28} color={activeColor} />
       </Animated.View>
     </TouchableOpacity>
   );
@@ -195,21 +198,21 @@ const styles = StyleSheet.create({
   fabWrapper: {
     position: 'absolute',
     alignSelf: 'center',
-    width: 56,
-    height: 56,
+    width: 58,
+    height: 58,
     alignItems: 'center',
     zIndex: 100,
   },
   fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.45,
     shadowRadius: 14,
     elevation: 12,
-    borderWidth: 3,
+    borderWidth: 2.5,
   },
 });

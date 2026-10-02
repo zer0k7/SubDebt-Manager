@@ -87,10 +87,10 @@ jobs:
           }
           GRADLE_PATCH
 
-      - name: Build Release ARM64 APK
+      - name: Build Release ARM64 APK & AAB Bundle
         run: |
           cd android
-          ./gradlew assembleRelease --no-daemon \
+          ./gradlew assembleRelease bundleRelease --no-daemon \
             -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
             -Dorg.gradle.workers.max=2 \
             -Dorg.gradle.parallel=false
@@ -104,7 +104,16 @@ jobs:
               filename=$(basename "$apk")
               new_name=$(echo "$filename" | sed -e 's/app-/SubDebt-/g' -e 's/-release//g' -e 's/-unsigned//g')
               cp "$apk" "release-artifacts/$new_name"
-              echo "Collected: release-artifacts/$new_name"
+              echo "Collected APK: release-artifacts/$new_name"
+            fi
+          done
+
+          for aab in android/app/build/outputs/bundle/release/*.aab; do
+            if [ -f "$aab" ]; then
+              filename=$(basename "$aab")
+              new_name=$(echo "$filename" | sed -e 's/app-/SubDebt-/g' -e 's/-release//g' -e 's/-unsigned//g')
+              cp "$aab" "release-artifacts/$new_name"
+              echo "Collected AAB: release-artifacts/$new_name"
             fi
           done
 
@@ -112,6 +121,13 @@ jobs:
         run: |
           echo "--- Output Artifacts Listing ---"
           ls -lh release-artifacts/
+
+      - name: Upload Build Artifacts to Workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: subdebt-build-artifacts
+          path: release-artifacts/*
+          retention-days: 14
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'

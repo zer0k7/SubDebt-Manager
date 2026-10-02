@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,6 @@ import {
   Modal,
   TouchableOpacity,
   Dimensions,
-  ActivityIndicator,
-  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -15,8 +13,7 @@ import { useTheme } from '../hooks/useTheme';
 import {
   UpdateInfo,
   skipVersion,
-  openDownloadUrl,
-  downloadAndInstallAPK,
+  openStore,
 } from '../utils/updateChecker';
 
 const { width } = Dimensions.get('window');
@@ -27,8 +24,6 @@ interface UpdatePromptProps {
   onDismiss: () => void;
 }
 
-type UpdateState = 'idle' | 'downloading' | 'installing' | 'error';
-
 export const UpdatePrompt: React.FC<UpdatePromptProps> = ({
   visible,
   updateInfo,
@@ -37,36 +32,9 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
 
-  const [updateState, setUpdateState] = useState<UpdateState>('idle');
-  const [progress, setProgress] = useState(0);
-  const [downloadedBytes, setDownloadedBytes] = useState(0);
-  const [totalBytes, setTotalBytes] = useState(0);
-
-  const handleStartInAppUpdate = async () => {
+  const handleUpdate = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setUpdateState('downloading');
-    setProgress(0);
-
-    const success = await downloadAndInstallAPK(
-      updateInfo.downloadUrl,
-      (pct, written, total) => {
-        setProgress(pct);
-        setDownloadedBytes(written);
-        setTotalBytes(total);
-        if (pct >= 100) {
-          setUpdateState('installing');
-        }
-      }
-    );
-
-    if (!success) {
-      setUpdateState('error');
-    }
-  };
-
-  const handleBrowserDownload = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    openDownloadUrl(updateInfo.downloadUrl);
+    await openStore();
     onDismiss();
   };
 
@@ -76,13 +44,8 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({
     onDismiss();
   };
 
-  const formatMB = (bytes: number) => {
-    if (!bytes || bytes <= 0) return '0 MB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
   const formattedDate = updateInfo.publishedAt
-    ? new Date(updateInfo.publishedAt).toLocaleDateString('en-IN', {
+    ? new Date(updateInfo.publishedAt).toLocaleDateString(undefined, {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -106,43 +69,12 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({
     >
       <View style={styles.overlay}>
         <View style={styles.card}>
-          {/* Top Status Icon */}
-          <View
-            style={[
-              styles.iconWrap,
-              updateState === 'downloading' && { backgroundColor: `${colors.accent.blue}20` },
-              updateState === 'installing' && { backgroundColor: `${colors.accent.green}20` },
-            ]}
-          >
-            <Ionicons
-              name={
-                updateState === 'installing'
-                  ? 'checkmark-circle'
-                  : updateState === 'downloading'
-                  ? 'cloud-download-outline'
-                  : 'rocket-outline'
-              }
-              size={30}
-              color={
-                updateState === 'installing'
-                  ? colors.accent.green
-                  : updateState === 'downloading'
-                  ? colors.accent.blue
-                  : colors.accent.purple
-              }
-            />
+          <View style={styles.iconWrap}>
+            <Ionicons name="arrow-up-circle-outline" size={32} color={colors.accent.blue} />
           </View>
 
-          {/* Title */}
-          <Text style={styles.title}>
-            {updateState === 'downloading'
-              ? 'Downloading Update...'
-              : updateState === 'installing'
-              ? 'Opening Package Installer'
-              : 'New Version Available'}
-          </Text>
+          <Text style={styles.title}>Update Available</Text>
 
-          {/* Version Pill Row */}
           <View style={styles.versionRow}>
             <View style={styles.versionBadge}>
               <Text style={styles.versionLabel}>v{updateInfo.currentVersion}</Text>
@@ -155,46 +87,11 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({
             </View>
           </View>
 
-          {formattedDate && updateState === 'idle' ? (
+          {formattedDate ? (
             <Text style={styles.dateText}>Released {formattedDate}</Text>
           ) : null}
 
-          {/* DOWNLOADING STATE UI */}
-          {updateState === 'downloading' && (
-            <View style={styles.downloadingContainer}>
-              <View style={styles.progressHeader}>
-                <Text style={styles.progressStatusText}>
-                  {progress < 100 ? 'Downloading APK...' : 'Finalizing download...'}
-                </Text>
-                <Text style={styles.progressPctText}>{progress}%</Text>
-              </View>
-
-              {/* Progress Bar Track */}
-              <View style={styles.progressBg}>
-                <View style={[styles.progressFill, { width: `${progress}%` }]} />
-              </View>
-
-              <View style={styles.progressMetaRow}>
-                <Text style={styles.progressMetaText}>
-                  {formatMB(downloadedBytes)} / {totalBytes > 0 ? formatMB(totalBytes) : 'calculating...'}
-                </Text>
-                <ActivityIndicator size="small" color={colors.accent.blue} />
-              </View>
-            </View>
-          )}
-
-          {/* INSTALLING STATE UI */}
-          {updateState === 'installing' && (
-            <View style={styles.installingContainer}>
-              <Ionicons name="phone-portrait-outline" size={24} color={colors.accent.green} />
-              <Text style={styles.installingText}>
-                The system package installer window is opening. Confirm the prompt to complete installation!
-              </Text>
-            </View>
-          )}
-
-          {/* IDLE STATE RELEASE NOTES */}
-          {updateState === 'idle' && bulletPoints.length > 0 && (
+          {bulletPoints.length > 0 && (
             <View style={styles.notesContainer}>
               <Text style={styles.notesTitle}>What's New</Text>
               {bulletPoints.map((point, i) => (
@@ -206,50 +103,25 @@ export const UpdatePrompt: React.FC<UpdatePromptProps> = ({
             </View>
           )}
 
-          {/* ACTION BUTTONS */}
-          {updateState === 'idle' && (
-            <View style={styles.btnStack}>
-              {/* Primary In-App Direct Installer */}
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={handleStartInAppUpdate}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="download-outline" size={18} color="#fff" />
-                <Text style={styles.primaryBtnText}>Update Inside App</Text>
-              </TouchableOpacity>
-
-              {/* Secondary Option: Open in Browser */}
-              <TouchableOpacity
-                style={styles.browserBtn}
-                onPress={handleBrowserDownload}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="open-outline" size={16} color={colors.text.primary} />
-                <Text style={styles.browserBtnText}>Open Download Link in Browser</Text>
-              </TouchableOpacity>
-
-              {/* Dismiss / Skip */}
-              <View style={styles.secondaryRow}>
-                <TouchableOpacity onPress={onDismiss} style={styles.secondaryBtn}>
-                  <Text style={styles.secondaryText}>Remind Me Later</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSkip} style={styles.secondaryBtn}>
-                  <Text style={styles.secondaryText}>Skip This Version</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {/* CANCEL BUTTON WHILE DOWNLOADING */}
-          {updateState === 'downloading' && (
+          <View style={styles.btnStack}>
             <TouchableOpacity
-              onPress={() => setUpdateState('idle')}
-              style={[styles.secondaryBtn, { marginTop: 16 }]}
+              style={styles.primaryBtn}
+              onPress={handleUpdate}
+              activeOpacity={0.85}
             >
-              <Text style={styles.secondaryText}>Cancel Download</Text>
+              <Ionicons name="cloud-download-outline" size={18} color="#FFFFFF" />
+              <Text style={styles.primaryBtnText}>Update</Text>
             </TouchableOpacity>
-          )}
+
+            <View style={styles.secondaryRow}>
+              <TouchableOpacity onPress={onDismiss} style={styles.secondaryBtn}>
+                <Text style={styles.secondaryText}>Later</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleSkip} style={styles.secondaryBtn}>
+                <Text style={styles.secondaryText}>Skip Version</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </View>
     </Modal>
@@ -260,218 +132,138 @@ const getStyles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.7)',
+      backgroundColor: 'rgba(0,0,0,0.65)',
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: 20,
     },
     card: {
-      width: width - 40,
-      maxWidth: 380,
-      backgroundColor: isDark ? '#141420' : '#ffffff',
-      borderRadius: 28,
+      width: Math.min(width - 40, 380),
+      backgroundColor: isDark ? '#161922' : '#FFFFFF',
+      borderRadius: 24,
       padding: 24,
       alignItems: 'center',
-      borderWidth: 0.5,
-      borderColor: colors.glass.cardBorder,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+      elevation: 10,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
     },
     iconWrap: {
-      width: 60,
-      height: 60,
-      borderRadius: 20,
-      backgroundColor: colors.accent.alpha(isDark ? 0.12 : 0.08),
-      alignItems: 'center',
+      width: 58,
+      height: 58,
+      borderRadius: 29,
+      backgroundColor: `${colors.accent.blue}15`,
       justifyContent: 'center',
-      marginBottom: 16,
+      alignItems: 'center',
+      marginBottom: 14,
     },
     title: {
-      color: colors.text.primary,
-      fontSize: 20,
+      fontSize: 18,
       fontWeight: '800',
-      letterSpacing: -0.3,
-      marginBottom: 10,
-      textAlign: 'center',
+      color: colors.text.primary,
+      marginBottom: 12,
+      letterSpacing: -0.2,
     },
     versionRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 10,
       marginBottom: 8,
     },
     versionBadge: {
-      paddingHorizontal: 12,
+      paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: 10,
+      borderRadius: 8,
       backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
     },
     versionBadgeNew: {
-      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.1),
-      borderWidth: 0.5,
-      borderColor: colors.accent.alpha(isDark ? 0.35 : 0.25),
+      backgroundColor: `${colors.accent.blue}20`,
     },
     versionLabel: {
-      color: colors.text.secondary,
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '600',
+      color: colors.text.secondary,
     },
     versionLabelNew: {
-      color: colors.accent.purple,
+      color: colors.accent.blue,
       fontWeight: '700',
     },
     dateText: {
-      color: colors.text.secondary,
-      fontSize: 12,
-      fontWeight: '500',
-      marginBottom: 16,
+      fontSize: 11,
+      color: colors.text.muted,
+      marginBottom: 14,
     },
     notesContainer: {
       width: '100%',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
-      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : '#F8FAFC',
+      borderRadius: 14,
       padding: 14,
       marginBottom: 20,
-      borderWidth: 0.5,
-      borderColor: colors.glass.cardBorder,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.05)' : '#E2E8F0',
     },
     notesTitle: {
-      color: colors.text.tertiary,
-      fontSize: 10,
+      fontSize: 11,
       fontWeight: '700',
-      letterSpacing: 0.8,
+      color: colors.text.secondary,
       textTransform: 'uppercase',
-      marginBottom: 10,
+      letterSpacing: 0.5,
+      marginBottom: 8,
     },
     bulletRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
+      gap: 8,
       marginBottom: 6,
     },
     bulletDot: {
-      width: 5,
-      height: 5,
-      borderRadius: 2.5,
-      backgroundColor: colors.accent.purple,
+      width: 4,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: colors.accent.blue,
       marginTop: 6,
-      marginRight: 10,
     },
     bulletText: {
-      color: colors.text.secondary,
-      fontSize: 13,
-      fontWeight: '500',
       flex: 1,
-      lineHeight: 18,
+      fontSize: 12,
+      lineHeight: 17,
+      color: colors.text.primary,
     },
     btnStack: {
       width: '100%',
       gap: 10,
     },
     primaryBtn: {
+      backgroundColor: colors.accent.blue,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
       gap: 8,
-      width: '100%',
       paddingVertical: 14,
-      borderRadius: 16,
-      backgroundColor: colors.accent.purple,
+      borderRadius: 14,
     },
     primaryBtnText: {
-      color: '#ffffff',
-      fontSize: 15,
+      color: '#FFFFFF',
+      fontSize: 14,
       fontWeight: '700',
-    },
-    browserBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      width: '100%',
-      paddingVertical: 12,
-      borderRadius: 16,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-      borderWidth: 0.5,
-      borderColor: colors.glass.cardBorder,
-    },
-    browserBtnText: {
-      color: colors.text.primary,
-      fontSize: 13,
-      fontWeight: '600',
     },
     secondaryRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      width: '100%',
-      marginTop: 6,
+      alignItems: 'center',
+      paddingHorizontal: 4,
+      marginTop: 4,
     },
     secondaryBtn: {
-      paddingVertical: 8,
-      paddingHorizontal: 4,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
     },
     secondaryText: {
-      color: colors.text.secondary,
       fontSize: 12,
       fontWeight: '600',
-    },
-
-    // DOWNLOADING UI STYLES
-    downloadingContainer: {
-      width: '100%',
-      marginVertical: 16,
-      gap: 10,
-    },
-    progressHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    progressStatusText: {
-      color: colors.text.primary,
-      fontSize: 13,
-      fontWeight: '700',
-    },
-    progressPctText: {
-      color: colors.accent.blue,
-      fontSize: 14,
-      fontWeight: '800',
-    },
-    progressBg: {
-      height: 10,
-      borderRadius: 5,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-      overflow: 'hidden',
-    },
-    progressFill: {
-      height: '100%',
-      borderRadius: 5,
-      backgroundColor: colors.accent.blue,
-    },
-    progressMetaRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    progressMetaText: {
-      color: colors.text.secondary,
-      fontSize: 12,
-      fontWeight: '500',
-    },
-
-    // INSTALLING UI STYLES
-    installingContainer: {
-      alignItems: 'center',
-      backgroundColor: isDark ? 'rgba(102,187,106,0.1)' : 'rgba(102,187,106,0.05)',
-      borderRadius: 16,
-      padding: 16,
-      marginVertical: 16,
-      gap: 10,
-      borderWidth: 0.5,
-      borderColor: 'rgba(102,187,106,0.3)',
-    },
-    installingText: {
-      color: colors.text.primary,
-      fontSize: 13,
-      lineHeight: 18,
-      textAlign: 'center',
-      fontWeight: '500',
+      color: colors.text.muted,
     },
   });

@@ -47,6 +47,7 @@ expo-env.d.ts
 .idea/
 
 # AI Tooling and Agent Artifacts
+.agents/
 .gemini/
 .antigravity/
 .cursor/
@@ -67,3 +68,11 @@ tmp/
 fix*.js
 refactor*.js
 updateUI.js
+
+# Internal Project Docs
+prd.md
+architecture.md
+rules.md
+phases.md
+design.md
+memory.md

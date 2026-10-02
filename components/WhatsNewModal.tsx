@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -29,28 +28,28 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
 
   const features = [
     {
-      icon: 'color-palette-outline',
+      icon: 'images-outline',
       color: '#0D9488',
-      title: 'New Brand Identity',
-      desc: 'Redesigned full-bleed icon, deep pine teal aesthetics, and compliant Android status-bar notification silhouette.',
+      title: 'Historical Financial Statements',
+      desc: 'Generate snapshot cards for any past month stored in your database with six themes and privacy masking.',
+    },
+    {
+      icon: 'radio-outline',
+      color: '#38BDF8',
+      title: 'Radial Satellite Action Menu',
+      desc: 'Ergonomic semi-circle bloom for rapid logging of spending, subscriptions, debts, and credits.',
     },
     {
       icon: 'cut-outline',
       color: '#EF4444',
-      title: '1-Tap Unsubscribe Assistant',
-      desc: 'Direct cancellation portals for Google Play, Apple, & web, plus pre-filled cancellation email generator.',
-    },
-    {
-      icon: 'sparkles-outline',
-      color: '#38BDF8',
-      title: 'Aesthetic Financial Snapshot',
-      desc: 'Generate and share beautiful monthly debt & subscription cards with built-in privacy masking.',
+      title: 'Subscription Cancellation Assistant',
+      desc: 'Direct cancellation portals for major platforms and automated cancellation letter generation.',
     },
     {
       icon: 'shield-checkmark-outline',
       color: '#10B981',
-      title: 'Google Play Ready',
-      desc: 'Optimized permissions, scoped storage compliance, and enhanced database reliability.',
+      title: 'Google Play Store Compliance',
+      desc: 'Full Scoped Storage implementation, Android Photo Picker integration, and zero broad storage permissions.',
     },
   ];
 
@@ -58,7 +57,6 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleDismiss}>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          {/* Hero Branding */}
           <View style={styles.heroSection}>
             <View style={styles.logoRing}>
               <Image
@@ -68,15 +66,14 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
               />
             </View>
             <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>WHAT'S NEW • v2.12.0</Text>
+              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.13.0</Text>
             </View>
-            <Text style={styles.heroTitle}>Brand Refresh & Play Store Edition</Text>
+            <Text style={styles.heroTitle}>Statement History & Tactical Menu</Text>
             <Text style={styles.heroSubtitle}>
-              Experience our upgraded visual identity and powerful new debt & subscription utilities.
+              Historical snapshot cards, radial action bloom, and Google Play Store architecture.
             </Text>
           </View>
 
-          {/* Feature List */}
           <ScrollView style={styles.featuresList} showsVerticalScrollIndicator={false}>
             {features.map((item, idx) => (
               <View key={idx} style={styles.featureRow}>
@@ -91,9 +88,8 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
             ))}
           </ScrollView>
 
-          {/* Action Button */}
           <TouchableOpacity style={styles.actionButton} onPress={handleDismiss} activeOpacity={0.8}>
-            <Text style={styles.actionButtonText}>Explore SubDebt v2.12 🎉</Text>
+            <Text style={styles.actionButtonText}>Continue to SubDebt</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -105,7 +101,7 @@ const getStyles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.72)',
+      backgroundColor: 'rgba(0,0,0,0.7)',
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: 20,
@@ -113,92 +109,80 @@ const getStyles = (colors: any, isDark: boolean) =>
     modalCard: {
       width: '100%',
       maxHeight: '85%',
-      backgroundColor: isDark ? '#0F172A' : '#FFFFFF',
+      backgroundColor: isDark ? '#111724' : '#FFFFFF',
       borderRadius: 28,
-      paddingHorizontal: 22,
-      paddingTop: 24,
-      paddingBottom: Platform.OS === 'ios' ? 24 : 20,
-      borderWidth: 1.5,
-      borderColor: isDark ? '#1E293B' : '#E2E8F0',
-      shadowColor: '#000000',
-      shadowOffset: { width: 0, height: 16 },
-      shadowOpacity: 0.5,
-      shadowRadius: 24,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity: 0.4,
+      shadowRadius: 20,
       elevation: 10,
     },
     heroSection: {
       alignItems: 'center',
-      marginBottom: 16,
+      marginBottom: 20,
     },
     logoRing: {
-      width: 76,
-      height: 76,
-      borderRadius: 24,
-      backgroundColor: '#042723',
-      borderWidth: 2,
-      borderColor: '#0D9488',
+      width: 64,
+      height: 64,
+      borderRadius: 18,
+      backgroundColor: 'rgba(13, 148, 136, 0.15)',
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: '#0D9488',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.4,
-      shadowRadius: 12,
-      elevation: 6,
       marginBottom: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(13, 148, 136, 0.3)',
     },
     logoImage: {
-      width: 58,
-      height: 58,
-      borderRadius: 16,
+      width: 48,
+      height: 48,
+      borderRadius: 14,
     },
     versionBadge: {
       paddingHorizontal: 10,
       paddingVertical: 4,
-      borderRadius: 20,
+      borderRadius: 8,
       backgroundColor: 'rgba(13, 148, 136, 0.15)',
-      borderWidth: 1,
-      borderColor: 'rgba(13, 148, 136, 0.3)',
       marginBottom: 8,
     },
     versionBadgeText: {
       fontSize: 10,
       fontWeight: '800',
-      color: '#2DD4BF',
+      color: '#0D9488',
       letterSpacing: 0.8,
     },
     heroTitle: {
-      fontSize: 20,
-      fontWeight: '800',
+      fontSize: 18,
+      fontWeight: '900',
       color: colors.text.primary,
       textAlign: 'center',
-      letterSpacing: -0.3,
+      marginBottom: 6,
+      letterSpacing: -0.2,
     },
     heroSubtitle: {
       fontSize: 12,
       color: colors.text.secondary,
       textAlign: 'center',
-      marginTop: 4,
       lineHeight: 17,
       paddingHorizontal: 10,
     },
     featuresList: {
-      marginVertical: 10,
+      marginBottom: 20,
     },
     featureRow: {
       flexDirection: 'row',
       alignItems: 'flex-start',
       gap: 12,
-      paddingVertical: 10,
-      borderBottomWidth: 1,
-      borderBottomColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+      marginBottom: 16,
     },
     featureIconBox: {
-      width: 38,
-      height: 38,
+      width: 40,
+      height: 40,
       borderRadius: 12,
       justifyContent: 'center',
       alignItems: 'center',
-      marginTop: 2,
     },
     featureTitle: {
       fontSize: 14,
@@ -207,7 +191,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       marginBottom: 2,
     },
     featureDesc: {
-      fontSize: 11,
+      fontSize: 12,
       color: colors.text.secondary,
       lineHeight: 16,
     },
@@ -217,16 +201,11 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderRadius: 16,
       alignItems: 'center',
       justifyContent: 'center',
-      marginTop: 14,
-      shadowColor: '#0D9488',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.35,
-      shadowRadius: 8,
-      elevation: 4,
     },
     actionButtonText: {
       color: '#FFFFFF',
-      fontSize: 15,
+      fontSize: 14,
       fontWeight: '700',
+      letterSpacing: 0.2,
     },
   });

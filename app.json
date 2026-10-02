@@ -2,15 +2,14 @@
   "expo": {
     "name": "SubDebt",
     "slug": "subdebt",
-    "version": "2.12.0",
+    "version": "2.13.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "subdebt",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#090D16"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -18,19 +17,17 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.subdebt.app",
-      "buildNumber": "2.12.0"
+      "buildNumber": "2.13.0"
     },
     "android": {
-      "versionCode": 35,
+      "versionCode": 36,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.subdebt.app",
       "permissions": [
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "REQUEST_INSTALL_PACKAGES"
+        "CAMERA"
       ]
     },
     "web": {
@@ -45,6 +42,13 @@
       "expo-router",
       "expo-font",
       "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SubDebt to access your photos to attach receipts.",
+          "cameraPermission": "Allow SubDebt to use your camera to photograph receipts."
+        }
+      ],
       [
         "expo-notifications",
         {

@@ -274,7 +274,7 @@ export default function SettingsModal() {
     } catch {
       showPopup({
         title: 'Check Failed',
-        message: 'Could not connect to GitHub releases.',
+        message: 'Unable to check for updates. Please check your network connection.',
         icon: 'alert-circle-outline',
         iconColor: colors.accent.red,
         confirmText: 'OK',
@@ -765,8 +765,8 @@ export default function SettingsModal() {
             }}
             activeOpacity={0.8}
           >
-            <Ionicons name="sparkles-outline" size={16} color="#0D9488" />
-            <Text style={[styles.aboutCheckUpdateText, { color: '#0D9488' }]}>What's New in v2.12</Text>
+            <Ionicons name="newspaper-outline" size={16} color="#0D9488" />
+            <Text style={[styles.aboutCheckUpdateText, { color: '#0D9488' }]}>What's New in v2.13</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

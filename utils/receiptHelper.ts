@@ -5,7 +5,6 @@ import { Alert, Platform } from 'react-native';
 
 const RECEIPTS_DIR = `${FileSystem.documentDirectory}receipts/`;
 
-// Ensure receipts directory exists
 export const ensureReceiptDirectoryExists = async (): Promise<void> => {
   try {
     const dirInfo = await FileSystem.getInfoAsync(RECEIPTS_DIR);
@@ -17,18 +16,17 @@ export const ensureReceiptDirectoryExists = async (): Promise<void> => {
   }
 };
 
-/**
- * Pick image from photo gallery
- */
 export const pickReceiptFromGallery = async (): Promise<string | null> => {
   try {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Permission Required',
-        'Please allow access to your photo library to attach receipt photos.'
-      );
-      return null;
+    if (Platform.OS === 'ios') {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Permission Required',
+          'Please allow access to your photo library to attach receipt photos.'
+        );
+        return null;
+      }
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -50,9 +48,6 @@ export const pickReceiptFromGallery = async (): Promise<string | null> => {
   }
 };
 
-/**
- * Take photo using camera
- */
 export const takeReceiptPhoto = async (): Promise<string | null> => {
   try {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -82,9 +77,6 @@ export const takeReceiptPhoto = async (): Promise<string | null> => {
   }
 };
 
-/**
- * Save image to app's permanent document directory so it survives cache clears
- */
 export const saveReceiptImagePermanently = async (sourceUri: string): Promise<string> => {
   try {
     await ensureReceiptDirectoryExists();
@@ -104,9 +96,6 @@ export const saveReceiptImagePermanently = async (sourceUri: string): Promise<st
   }
 };
 
-/**
- * Share receipt image
- */
 export const shareReceiptImage = async (imageUri: string, title?: string): Promise<boolean> => {
   try {
     const isAvailable = await Sharing.isAvailableAsync();
