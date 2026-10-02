@@ -136,6 +136,7 @@ function AppLayout() {
       <Stack.Screen name="modals/tool-currency-converter" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/spending-explorer" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/add-income" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modals/financial-snapshot" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
     </Stack>
 
       {showLockOverlay && (

@@ -26,6 +26,7 @@ import { storage } from '../../storage/mmkv';
 import { getCategoryIcon } from '../../constants/categories';
 import { FloatingTopHeader } from '../../components/FloatingTopHeader';
 import { ReceiptGalleryModal } from '../../components/ReceiptGalleryModal';
+import { WhatsNewModal } from '../../components/WhatsNewModal';
 import {
   calculateCashflowForecast,
   detectSubscriptionPriceHikes,
@@ -42,6 +43,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false);
   const [showReceiptGallery, setShowReceiptGallery] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [dismissedHikes, setDismissedHikes] = useState<string[]>([]);
 
   const { debts, getTotalPendingAmount: getDebtTotal, refresh: refreshDebts } = useDebts();
@@ -56,6 +58,11 @@ export default function DashboardScreen() {
     try {
       const pMode = await storage.getString('privacy_mode_enabled');
       setPrivacyMode(pMode === 'true');
+
+      const seen = await storage.getString('whats_new_seen_v2_12');
+      if (seen !== 'true') {
+        setShowWhatsNew(true);
+      }
     } catch {}
 
     await Promise.all([
@@ -89,6 +96,11 @@ export default function DashboardScreen() {
     const next = !privacyMode;
     setPrivacyMode(next);
     await storage.set('privacy_mode_enabled', String(next));
+  };
+
+  const dismissWhatsNew = async () => {
+    setShowWhatsNew(false);
+    await storage.set('whats_new_seen_v2_12', 'true');
   };
 
   const totalDebt = useMemo(() => getDebtTotal(), [getDebtTotal]);
@@ -345,15 +357,28 @@ export default function DashboardScreen() {
               <Ionicons name="analytics-outline" size={17} color={colors.accent.blue} />
               <Text style={styles.cashflowTitle}>MONTHLY CASHFLOW & RUNWAY</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/modals/add-income');
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.manageIncomeLink}>+ Log Income</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/modals/financial-snapshot');
+                }}
+                style={styles.snapshotQuickBtn}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="sparkles" size={13} color="#2DD4BF" />
+                <Text style={styles.snapshotQuickBtnText}>Snapshot</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/modals/add-income');
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.manageIncomeLink}>+ Log Income</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Row 1: Inflow / Outflow / Net Savings */}
@@ -595,6 +620,7 @@ export default function DashboardScreen() {
         <Text style={styles.sectionHeaderTitle}>FINANCIAL UTILITIES HUB</Text>
         <View style={styles.toolsGrid}>
           {[
+            { id: 'snapshot', title: 'Snapshot Card', subtitle: 'Share Stats', icon: 'sparkles-outline', color: '#0D9488', route: '/modals/financial-snapshot' },
             { id: 'fin-calendar', title: 'Calendar Grid', subtitle: 'Event Matrix', icon: 'calendar-number-outline', color: '#3B82F6', route: '/modals/tool-financial-calendar' },
             { id: 'emi-calc', title: 'EMI Calculator', subtitle: 'Loan Schedules', icon: 'calculator-outline', color: '#8B5CF6', route: '/modals/tool-emi-calculator' },
             { id: 'sub-forecast', title: 'Sub Forecast', subtitle: '12-Month Outflow', icon: 'calendar-outline', color: '#6366F1', route: '/modals/tool-subscription-forecast' },
@@ -632,6 +658,12 @@ export default function DashboardScreen() {
         visible={showReceiptGallery}
         onClose={() => setShowReceiptGallery(false)}
         entries={entries}
+      />
+
+      {/* Brand Reveal & Release Showcase Modal */}
+      <WhatsNewModal
+        visible={showWhatsNew}
+        onDismiss={dismissWhatsNew}
       />
     </SafeAreaView>
   );
@@ -773,6 +805,22 @@ const getStyles = (colors: any, isDark: boolean) =>
     manageIncomeLink: {
       color: colors.accent.purple,
       fontSize: 12,
+      fontWeight: '700',
+    },
+    snapshotQuickBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 10,
+      backgroundColor: 'rgba(45, 212, 191, 0.12)',
+      borderWidth: 0.5,
+      borderColor: 'rgba(45, 212, 191, 0.3)',
+    },
+    snapshotQuickBtnText: {
+      color: '#2DD4BF',
+      fontSize: 11,
       fontWeight: '700',
     },
     cashflowGrid: {

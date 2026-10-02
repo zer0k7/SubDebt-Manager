@@ -28,6 +28,7 @@ import { STORAGE_KEYS } from '../../storage/keys';
 import { useAuthLock } from '../../context/AuthLockContext';
 import { checkForUpdate, UpdateInfo } from '../../utils/updateChecker';
 import { UpdatePrompt } from '../../components/UpdatePrompt';
+import { WhatsNewModal } from '../../components/WhatsNewModal';
 import { exportAllData } from '../../utils/exportData';
 import { exportSpendingCSV } from '../../utils/backupRestore';
 import { SPENDING_CATEGORIES, getCategoryIcon } from '../../constants/categories';
@@ -74,6 +75,7 @@ export default function SettingsModal() {
   const [exporting, setExporting] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
 
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupConfig, setPopupConfig] = useState<any>({});
@@ -756,6 +758,18 @@ export default function SettingsModal() {
           </View>
 
           <TouchableOpacity
+            style={[styles.aboutCheckUpdateBtn, { marginBottom: 10, borderColor: '#0D9488' }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setShowWhatsNew(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="sparkles-outline" size={16} color="#0D9488" />
+            <Text style={[styles.aboutCheckUpdateText, { color: '#0D9488' }]}>What's New in v2.12</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.aboutCheckUpdateBtn}
             onPress={handleCheckUpdate}
             activeOpacity={0.8}
@@ -808,6 +822,11 @@ export default function SettingsModal() {
           onDismiss={() => setShowUpdatePrompt(false)}
         />
       )}
+
+      <WhatsNewModal
+        visible={showWhatsNew}
+        onDismiss={() => setShowWhatsNew(false)}
+      />
     </SafeAreaView>
   );
 }

@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Full-Bleed Background Gradient: Deep Racing Pine Teal -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#044E43"/>
+      <stop offset="50%" stop-color="#023028"/>
+      <stop offset="100%" stop-color="#011814"/>
+    </linearGradient>
+
+    <!-- Radial Mint-Teal Center Glow for High Store Visibility -->
+    <radialGradient id="centerGlow" cx="50%" cy="46%" r="48%">
+      <stop offset="0%" stop-color="#2DD4BF" stop-opacity="0.32"/>
+      <stop offset="65%" stop-color="#14B8A6" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#023028" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Card Gradient: Warm Sunset Gold to Amber/Coral -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="55%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+
+    <!-- Card Microchip Metallic Gradient -->
+    <linearGradient id="chipGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF3C7"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+
+    <!-- Receipt Gradient: Clean Porcelain Paper -->
+    <linearGradient id="receiptGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+
+    <!-- Wallet Body: Sculpted Platinum White -->
+    <linearGradient id="walletGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="65%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+
+    <!-- Wallet Top Inner Highlight Rim -->
+    <linearGradient id="walletRimGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+    </linearGradient>
+
+    <!-- Wallet Strap Clasp: Rich Deep Emerald Teal -->
+    <linearGradient id="strapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D9488"/>
+      <stop offset="50%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#115E59"/>
+    </linearGradient>
+
+    <!-- Snap Button Metallic Gradient -->
+    <radialGradient id="buttonGrad" cx="38%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="55%" stop-color="#E2E8F0"/>
+      <stop offset="85%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#64748B"/>
+    </radialGradient>
+
+    <!-- Dollar Symbol: Rich Deep Jewel Teal -->
+    <linearGradient id="dollarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#042F2E"/>
+    </linearGradient>
+
+    <!-- Layered Soft Shadows -->
+    <filter id="shadowWallet" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#000000" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#011814" flood-opacity="0.35"/>
+    </filter>
+
+    <filter id="shadowCard" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="-2" dy="8" stdDeviation="10" flood-color="#011814" flood-opacity="0.45"/>
+    </filter>
+
+    <filter id="shadowReceipt" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="8" stdDeviation="10" flood-color="#011814" flood-opacity="0.4"/>
+    </filter>
+
+    <filter id="shadowStrap" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="-3" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+
+    <filter id="shadowDollar" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#000000" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- ========================================== -->
+  <!-- 1. FULL BLEED SQUARE BACKGROUND (PLAY STORE SAFE) -->
+  <!-- 0 corner radius on canvas edges so Google Play mask fills 100% -->
+  <!-- ========================================== -->
+  <rect width="512" height="512" fill="url(#bgGrad)"/>
+  <rect width="512" height="512" fill="url(#centerGlow)"/>
+
+  <!-- ========================================== -->
+  <!-- 2. RECURRING BILLING & SUBSCRIPTION CARD (Tilted Left) -->
+  <!-- ========================================== -->
+  <g transform="translate(138, 134) rotate(-14)" filter="url(#shadowCard)">
+    <rect width="144" height="94" rx="14" fill="url(#cardGrad)"/>
+    <rect x="2" y="2" width="140" height="90" rx="12" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="1.5"/>
+    <!-- Gold Microchip -->
+    <rect x="16" y="24" width="28" height="20" rx="4" fill="url(#chipGrad)"/>
+    <line x1="16" y1="34" x2="44" y2="34" stroke="#78350F" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="30" y1="24" x2="30" y2="44" stroke="#78350F" stroke-width="1" stroke-opacity="0.6"/>
+    <!-- Card Accent Lines -->
+    <line x1="16" y1="62" x2="82" y2="62" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Contactless wave -->
+    <path d="M 110,24 A 12 12 0 0 1 110,40 M 116,20 A 18 18 0 0 1 116,44" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.8"/>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- 3. DEBT BREAKDOWN INVOICE / RECEIPT (Tilted Right) -->
+  <!-- ========================================== -->
+  <g transform="translate(258, 130) rotate(10)" filter="url(#shadowReceipt)">
+    <path d="M0,20 L12,8 L24,20 L36,8 L48,20 L60,8 L72,20 L84,8 L96,20 L108,8 L116,18 L116,105 L0,105 Z" fill="url(#receiptGrad)"/>
+    <line x1="20" y1="38" x2="94" y2="38" stroke="#64748B" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="20" y1="54" x2="80" y2="54" stroke="#94A3B8" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="20" y1="70" x2="60" y2="70" stroke="#0D9488" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- 4. MAIN SCULPTED PORCELAIN WALLET BODY -->
+  <!-- ========================================== -->
+  <g filter="url(#shadowWallet)">
+    <rect x="92" y="210" width="328" height="202" rx="38" fill="url(#walletGrad)"/>
+    <rect x="94" y="212" width="324" height="198" rx="36" fill="none" stroke="url(#walletRimGrad)" stroke-width="2"/>
+    <rect x="104" y="222" width="304" height="178" rx="28" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6,5" stroke-opacity="0.6"/>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- 5. WALLET STRAP CLASP & SNAP BUTTON -->
+  <!-- ========================================== -->
+  <g filter="url(#shadowStrap)">
+    <path d="M 315,268 L 388,268 A 34,34 0 0,1 422,302 L 422,320 A 34,34 0 0,1 388,354 L 315,354 Z" fill="url(#strapGrad)"/>
+    <circle cx="380" cy="311" r="15" fill="#042F2E" fill-opacity="0.35"/>
+    <circle cx="380" cy="311" r="12" fill="url(#buttonGrad)"/>
+    <circle cx="380" cy="311" r="6" fill="#0D9488"/>
+    <circle cx="378" cy="309" r="1.8" fill="#FFFFFF" fill-opacity="0.9"/>
+  </g>
+
+  <!-- ========================================== -->
+  <!-- 6. MATHEMATICALLY BALANCED FINTECH DOLLAR EMBLEM -->
+  <!-- ========================================== -->
+  <g transform="translate(220, 312)" filter="url(#shadowDollar)">
+    <!-- Vertical Center Spine -->
+    <line x1="0" y1="-48" x2="0" y2="48" stroke="url(#dollarGrad)" stroke-width="14" stroke-linecap="round"/>
+    <!-- Perfect Typographic S-Glyph -->
+    <text x="0" y="4" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'SF Pro Display', Roboto, 'Segoe UI', sans-serif" font-weight="900" font-size="104" fill="url(#dollarGrad)" text-anchor="middle" dominant-baseline="central">$</text>
+  </g>
+</svg>

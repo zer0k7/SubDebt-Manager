@@ -18,6 +18,7 @@ import { AmbientBackground } from '../../components/AmbientBackground';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { BrandIconPickerModal } from '../../components/BrandIconPickerModal';
 import { SkeletonLoader } from '../../components/SkeletonLoader';
+import { CancelSubscriptionModal } from '../../components/CancelSubscriptionModal';
 import { useSubscriptions, BillingCycle } from '../../hooks/useSubscriptions';
 import { formatShortDate } from '../../utils/dateHelpers';
 import { IconKey } from '../../utils/subscriptionIcons';
@@ -85,6 +86,7 @@ export default function EditSubscriptionModal() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deletePopupVisible, setDeletePopupVisible] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     if (subscription) {
@@ -498,12 +500,43 @@ export default function EditSubscriptionModal() {
 
           {/* Action Buttons */}
           <View style={styles.btns}>
+            <TouchableOpacity
+              style={styles.unsubscribeActionBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setShowCancelModal(true);
+              }}
+            >
+              <Ionicons name="cut-outline" size={18} color="#EF4444" />
+              <Text style={styles.unsubscribeActionText}>Cancel / Unsubscribe Assistant</Text>
+            </TouchableOpacity>
+
             <GlassButton title="Save Changes" onPress={handleSave} size="large" />
             <GlassButton title="Duplicate Subscription" variant="secondary" onPress={handleDuplicate} size="large" />
             <GlassButton title="Cancel" variant="ghost" onPress={() => router.back()} size="large" />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {subscription && (
+        <CancelSubscriptionModal
+          visible={showCancelModal}
+          onClose={() => setShowCancelModal(false)}
+          subscription={{
+            name: name || subscription.name,
+            amount: parseFloat(amount) || subscription.amount,
+            currency: currency || subscription.currency,
+            billingCycle: billingCycle || subscription.billingCycle,
+            isActive,
+          }}
+          onMarkCancelled={async () => {
+            setIsActive(false);
+            if (id) {
+              await updateSubscription(id, { isActive: false });
+            }
+          }}
+        />
+      )}
 
       <AppDatePicker
         visible={showStartPicker}
@@ -722,4 +755,21 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   dateValue: { color: colors.text.primary, fontSize: 14, fontWeight: '700' },
   errorText: { color: colors.accent.red, fontSize: 12, marginTop: -4, marginBottom: 8 },
   btns: { gap: 10, marginTop: 24 },
+  unsubscribeActionBtn: {
+    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEE2E2',
+    borderWidth: 1,
+    borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FCA5A5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 14,
+    marginBottom: 4,
+  },
+  unsubscribeActionText: {
+    color: '#EF4444',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 });

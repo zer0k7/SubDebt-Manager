@@ -1,3 +1,34 @@
+# Release Notes — v2.12.0
+
+## TL;DR
+
+SubDebt v2.12.0 is a milestone visual and utility update introducing our **new brand identity & Play Store full-bleed icon**, the **1-Tap Unsubscribe Assistant** for terminating recurring charges across major services, the **Aesthetic Financial Snapshot Card** for sharing privacy-masked debt & subscription milestones, and the **v2.12 Celebratory Brand Reveal Modal**.
+
+---
+
+## What's New in v2.12.0
+
+### 1. Brand Refresh & Google Play Store Icon Standards
+- **Full-Bleed 512×512 Icon**: Redesigned master app icon featuring Deep Racing Pine Teal with porcelain leather folio, vibrant amber subscription card, and mathematically balanced geometric currency emblem (`$`).
+- **Play Store Squircle Invariant**: 100% full-bleed square canvas (0 border-radius on outer canvas), preventing the awkward "dot in a squircle" double-padding bug on Google Play listings.
+- **Android Status Bar Silhouette**: Created a pure monochrome `#FFFFFF` alpha punch-through icon (`notification-icon.png`), ensuring crystal-clear status-bar rendering on modern Android devices without solid white box artifacts.
+
+### 2. 1-Tap "Cancel Subscription" Direct Assistant
+- **Direct Portal Links**: Instant one-tap navigation to official subscription management pages for Google Play, Apple App Store, Netflix, Spotify, Amazon Prime, YouTube, Disney+, ChatGPT, GitHub, and Adobe.
+- **Formal Cancellation Letter Generator**: Automatically drafts a polite, legally sound cancellation request with subscription cost, dates, and account placeholders. Includes 1-tap "Share / Copy" and "Email Support" (`mailto:`).
+- **1-Tap Inactive State**: Instantly marks subscriptions inactive in SubDebt to pause renewal alerts and exclude them from monthly cashflow burn projections.
+
+### 3. Aesthetic Financial Snapshot Card ("Share My Stats")
+- **Shareable Visual Card**: High-resolution branded card featuring the new SubDebt logo, active subscriptions outlay, debt payoff progress %, and net savings rate.
+- **Built-in Privacy Masking**: Toggle eye button to mask sensitive financial amounts (`$••••••`) while keeping progress percentages and service counts visible for safe social sharing.
+- **Multi-Theme Engine**: Switch between Emerald Luxe, Obsidian Dark, and Sapphire Blue card themes with 1-tap native image sharing (`expo-sharing` + `react-native-view-shot`).
+
+### 4. Interactive "What's New in v2.12" Brand Reveal
+- **First-Launch Celebration**: Beautiful modal unveiling the new brand look upon updating to v2.12.
+- **Settings Access**: Accessible anytime via Settings > About > "What's New in v2.12".
+
+---
+
 # Release Notes — v2.11.1
 
 ## TL;DR
