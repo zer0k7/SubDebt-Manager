@@ -101,24 +101,22 @@ jobs:
         run: |
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
-            GRADLE_FILE="android/app/build.gradle"
-            cat >> "$GRADLE_FILE" << 'SIGNING_PATCH'
-            android {
-                signingConfigs {
-                    release {
-                        storeFile file('release.keystore')
-                        storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
-                        keyAlias System.getenv("ANDROID_KEY_ALIAS")
-                        keyPassword System.getenv("ANDROID_KEY_PASSWORD")
-                    }
-                }
-                buildTypes {
-                    release {
-                        signingConfig signingConfigs.release
-                    }
-                }
-            }
-            SIGNING_PATCH
+            echo "" >> android/app/build.gradle
+            echo "android {" >> android/app/build.gradle
+            echo "    signingConfigs {" >> android/app/build.gradle
+            echo "        release {" >> android/app/build.gradle
+            echo "            storeFile file('release.keystore')" >> android/app/build.gradle
+            echo '            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")' >> android/app/build.gradle
+            echo '            keyAlias System.getenv("ANDROID_KEY_ALIAS")' >> android/app/build.gradle
+            echo '            keyPassword System.getenv("ANDROID_KEY_PASSWORD")' >> android/app/build.gradle
+            echo "        }" >> android/app/build.gradle
+            echo "    }" >> android/app/build.gradle
+            echo "    buildTypes {" >> android/app/build.gradle
+            echo "        release {" >> android/app/build.gradle
+            echo "            signingConfig signingConfigs.release" >> android/app/build.gradle
+            echo "        }" >> android/app/build.gradle
+            echo "    }" >> android/app/build.gradle
+            echo "}" >> android/app/build.gradle
           fi
 
       - name: Build Release ARM64 APK & AAB Bundle
