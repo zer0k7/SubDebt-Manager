@@ -17,6 +17,7 @@ import { authenticate } from '../utils/authHelpers';
 import { checkForUpdate, UpdateInfo } from '../utils/updateChecker';
 import { checkAndRunScheduledSnapshot } from '../utils/vaultSnapshots';
 import { UpdatePrompt } from '../components/UpdatePrompt';
+import { initTelemetry, logEvent } from '../utils/telemetry';
 
 function AppLayout() {
   const { colors, isDark } = useTheme();
@@ -40,6 +41,8 @@ function AppLayout() {
   };
 
   useEffect(() => {
+    initTelemetry();
+    logEvent('app_started');
     registerForPushNotificationsAsync();
     handleAuth(false);
     checkAndRunScheduledSnapshot();

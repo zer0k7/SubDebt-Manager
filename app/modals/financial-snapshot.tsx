@@ -669,7 +669,7 @@ export default function FinancialSnapshotModal() {
                   </Text>
                 </View>
                 <View style={styles.footerBrand}>
-                  <Ionicons name="sparkles" size={10} color="rgba(255,255,255,0.4)" />
+                  <Ionicons name="wallet-outline" size={10} color="rgba(255,255,255,0.4)" />
                   <Text style={styles.watermark}>Built with SubDebt</Text>
                 </View>
               </View>

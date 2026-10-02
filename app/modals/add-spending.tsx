@@ -502,7 +502,7 @@ export default function AddSpendingModal() {
                 onPress={handleScanAndAutoFill}
                 activeOpacity={0.7}
               >
-                <Ionicons name="sparkles-outline" size={18} color={colors.accent.blue} />
+                <Ionicons name="scan-outline" size={18} color={colors.accent.blue} />
                 <Text style={[styles.receiptUploadBtnText, { color: colors.accent.blue }]}>Scan & Fill</Text>
               </TouchableOpacity>
             </View>

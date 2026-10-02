@@ -53,8 +53,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Inject Environment Variables
+        run: |
+          echo "EXPO_PUBLIC_APTABASE_APP_KEY=${{ secrets.EXPO_PUBLIC_APTABASE_APP_KEY }}" >> .env
+          echo "EXPO_PUBLIC_EXCHANGE_RATE_API_KEY=${{ secrets.EXPO_PUBLIC_EXCHANGE_RATE_API_KEY }}" >> .env
+
       - name: Prebuild Expo Android
         run: npx expo prebuild --platform android --clean
+        env:
+          EXPO_PUBLIC_APTABASE_APP_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_APP_KEY }}
+          EXPO_PUBLIC_EXCHANGE_RATE_API_KEY: ${{ secrets.EXPO_PUBLIC_EXCHANGE_RATE_API_KEY }}
 
       - name: Configure Proguard Rules & ARM64 ABI
         run: |
@@ -94,6 +102,9 @@ jobs:
             -Dorg.gradle.jvmargs="-Xmx3072m -XX:MaxMetaspaceSize=512m" \
             -Dorg.gradle.workers.max=2 \
             -Dorg.gradle.parallel=false
+        env:
+          EXPO_PUBLIC_APTABASE_APP_KEY: ${{ secrets.EXPO_PUBLIC_APTABASE_APP_KEY }}
+          EXPO_PUBLIC_EXCHANGE_RATE_API_KEY: ${{ secrets.EXPO_PUBLIC_EXCHANGE_RATE_API_KEY }}
 
       - name: Collect Build Artifacts
         run: |

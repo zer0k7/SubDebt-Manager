@@ -1,6 +1,6 @@
 {
   "name": "subdebt-manager",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@aptabase/react-native": "^0.6.0",
     "@expo/vector-icons": "^15.0.0",
     "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-community/datetimepicker": "8.4.4",

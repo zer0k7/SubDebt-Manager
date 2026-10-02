@@ -766,7 +766,7 @@ export default function SettingsModal() {
             activeOpacity={0.8}
           >
             <Ionicons name="newspaper-outline" size={16} color="#0D9488" />
-            <Text style={[styles.aboutCheckUpdateText, { color: '#0D9488' }]}>What's New in v2.13</Text>
+            <Text style={[styles.aboutCheckUpdateText, { color: '#0D9488' }]}>What's New in v2.14</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -785,8 +785,18 @@ export default function SettingsModal() {
             )}
           </TouchableOpacity>
 
+          <View style={styles.telemetryCard}>
+            <View style={styles.telemetryHeader}>
+              <Ionicons name="shield-checkmark-outline" size={13} color="#10B981" />
+              <Text style={styles.telemetryTitle}>Privacy & Anonymous Diagnostics</Text>
+            </View>
+            <Text style={styles.telemetryText}>
+              SubDebt only logs minimal anonymous device stats (app version and device model) to help verify app stability and prevent crashes. We never collect or see your financial records, transactions, names, or balances.
+            </Text>
+          </View>
+
           <Text style={styles.aboutMadeWith}>
-            Made with ❤️ for financial freedom
+            Built by zer0k7 Lab
           </Text>
         </View>
       </ScrollView>
@@ -1208,5 +1218,32 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.muted,
       fontSize: 11,
       fontWeight: '500',
+    },
+    telemetryCard: {
+      marginTop: 6,
+      marginBottom: 16,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: 12,
+      backgroundColor: colors.accent.alpha(isDark ? 0.06 : 0.04),
+      borderWidth: 0.5,
+      borderColor: colors.accent.alpha(isDark ? 0.15 : 0.1),
+      width: '100%',
+    },
+    telemetryHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: 6,
+    },
+    telemetryTitle: {
+      color: colors.text.primary,
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    telemetryText: {
+      color: colors.text.muted,
+      fontSize: 11,
+      lineHeight: 16,
     },
   });

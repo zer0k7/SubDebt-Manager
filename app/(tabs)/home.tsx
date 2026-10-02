@@ -27,6 +27,8 @@ import { getCategoryIcon } from '../../constants/categories';
 import { FloatingTopHeader } from '../../components/FloatingTopHeader';
 import { ReceiptGalleryModal } from '../../components/ReceiptGalleryModal';
 import { WhatsNewModal } from '../../components/WhatsNewModal';
+import { SettingsCoachMark } from '../../components/SettingsCoachMark';
+import { STORAGE_KEYS } from '../../storage/keys';
 import {
   calculateCashflowForecast,
   detectSubscriptionPriceHikes,
@@ -44,6 +46,7 @@ export default function DashboardScreen() {
   const [privacyMode, setPrivacyMode] = useState(false);
   const [showReceiptGallery, setShowReceiptGallery] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showCoachMark, setShowCoachMark] = useState(false);
   const [dismissedHikes, setDismissedHikes] = useState<string[]>([]);
 
   const { debts, getTotalPendingAmount: getDebtTotal, refresh: refreshDebts } = useDebts();
@@ -62,6 +65,23 @@ export default function DashboardScreen() {
       const seen = await storage.getString('whats_new_seen_v2_12');
       if (seen !== 'true') {
         setShowWhatsNew(true);
+      }
+
+      const coachSeen = await storage.getString(STORAGE_KEYS.COACH_MARK_SETTINGS_SEEN);
+      if (coachSeen !== 'true') {
+        const lastTsStr = await storage.getString(STORAGE_KEYS.COACH_MARK_SETTINGS_LAST_TS);
+        const lastTimestamp = lastTsStr ? parseInt(lastTsStr, 10) : 0;
+        const now = Date.now();
+        const oneDayMs = 24 * 60 * 60 * 1000;
+        if (now - lastTimestamp >= oneDayMs) {
+          const isLuckyRoll = Math.random() < 0.45;
+          if (isLuckyRoll) {
+            await storage.set(STORAGE_KEYS.COACH_MARK_SETTINGS_LAST_TS, String(now));
+            setTimeout(() => {
+              setShowCoachMark(true);
+            }, 1200);
+          }
+        }
       }
     } catch {}
 
@@ -207,11 +227,24 @@ export default function DashboardScreen() {
       .sort((a, b) => b.pct - a.pct);
   }, [budget.categoryLimits, entries, convertAmount]);
 
+  const handleOpenSettings = async () => {
+    if (showCoachMark) {
+      setShowCoachMark(false);
+      try {
+        await storage.set(STORAGE_KEYS.COACH_MARK_SETTINGS_SEEN, 'true');
+      } catch {}
+    }
+    router.push('/modals/settings');
+  };
+
+  const handleDismissCoachMark = () => {
+    setShowCoachMark(false);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <AmbientBackground />
 
-      {/* Modern Floating Top Bar */}
       <FloatingTopHeader
         title="Financial Dashboard"
         subtitle="Real-Time Overview & Cash Flow"
@@ -220,11 +253,17 @@ export default function DashboardScreen() {
             <TouchableOpacity style={styles.iconBtn} onPress={togglePrivacyMode} activeOpacity={0.8}>
               <Ionicons name={privacyMode ? 'eye-off-outline' : 'eye-outline'} size={19} color={colors.text.primary} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconBtn} onPress={() => router.push('/modals/settings')} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.iconBtn} onPress={handleOpenSettings} activeOpacity={0.8}>
               <Ionicons name="settings-outline" size={19} color={colors.text.primary} />
             </TouchableOpacity>
           </View>
         }
+      />
+
+      <SettingsCoachMark
+        visible={showCoachMark}
+        onDismiss={handleDismissCoachMark}
+        onPressSettings={handleOpenSettings}
       />
 
       <ScrollView
@@ -350,7 +389,6 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Unified Monthly Cashflow & Runway Card */}
         <View style={styles.cashflowCard}>
           <View style={styles.cashflowHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -366,7 +404,7 @@ export default function DashboardScreen() {
                 style={styles.snapshotQuickBtn}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="sparkles" size={13} color="#2DD4BF" />
+                <Ionicons name="images-outline" size={13} color="#2DD4BF" />
                 <Text style={styles.snapshotQuickBtnText}>Snapshot</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -616,11 +654,10 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Financial Tools Hub */}
         <Text style={styles.sectionHeaderTitle}>FINANCIAL UTILITIES HUB</Text>
         <View style={styles.toolsGrid}>
           {[
-            { id: 'snapshot', title: 'Snapshot Card', subtitle: 'Share Stats', icon: 'sparkles-outline', color: '#0D9488', route: '/modals/financial-snapshot' },
+            { id: 'snapshot', title: 'Snapshot Card', subtitle: 'Share Stats', icon: 'images-outline', color: '#0D9488', route: '/modals/financial-snapshot' },
             { id: 'fin-calendar', title: 'Calendar Grid', subtitle: 'Event Matrix', icon: 'calendar-number-outline', color: '#3B82F6', route: '/modals/tool-financial-calendar' },
             { id: 'emi-calc', title: 'EMI Calculator', subtitle: 'Loan Schedules', icon: 'calculator-outline', color: '#8B5CF6', route: '/modals/tool-emi-calculator' },
             { id: 'sub-forecast', title: 'Sub Forecast', subtitle: '12-Month Outflow', icon: 'calendar-outline', color: '#6366F1', route: '/modals/tool-subscription-forecast' },

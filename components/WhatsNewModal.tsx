@@ -28,6 +28,12 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
 
   const features = [
     {
+      icon: 'navigate-outline',
+      color: '#8B5CF6',
+      title: 'Interactive Feature Discovery',
+      desc: 'Guided coach marks highlight navigation settings and vault options with smart display intervals.',
+    },
+    {
       icon: 'images-outline',
       color: '#0D9488',
       title: 'Historical Financial Statements',
@@ -45,12 +51,6 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
       title: 'Subscription Cancellation Assistant',
       desc: 'Direct cancellation portals for major platforms and automated cancellation letter generation.',
     },
-    {
-      icon: 'shield-checkmark-outline',
-      color: '#10B981',
-      title: 'Google Play Store Compliance',
-      desc: 'Full Scoped Storage implementation, Android Photo Picker integration, and zero broad storage permissions.',
-    },
   ];
 
   return (
@@ -66,11 +66,11 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
               />
             </View>
             <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.13.0</Text>
+              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.14.0</Text>
             </View>
-            <Text style={styles.heroTitle}>Statement History & Tactical Menu</Text>
+            <Text style={styles.heroTitle}>Feature Discovery & Refinements</Text>
             <Text style={styles.heroSubtitle}>
-              Historical snapshot cards, radial action bloom, and Google Play Store architecture.
+              Interactive navigation guidance, tactile controls, and financial statements.
             </Text>
           </View>
 

@@ -17,7 +17,7 @@ type Tone = 'friendly' | 'casual' | 'polite' | 'direct' | 'formal';
 const TONES: { id: Tone; label: string; icon: string }[] = [
   { id: 'friendly', label: 'Friendly', icon: 'happy-outline' },
   { id: 'casual', label: 'Casual', icon: 'chatbubble-ellipses-outline' },
-  { id: 'polite', label: 'Polite', icon: 'sparkles-outline' },
+  { id: 'polite', label: 'Polite', icon: 'heart-outline' },
   { id: 'direct', label: 'Direct', icon: 'flash-outline' },
   { id: 'formal', label: 'Formal', icon: 'briefcase-outline' },
 ];
