@@ -1,29 +1,26 @@
-# SubDebt Manager 2.14.0
+# SubDebt Manager 2.14.1
 
 ## Overview
 
-Version 2.14.0 introduces an interactive feature discovery coach mark for navigation guidance and refines user interface iconography.
+Version 2.14.1 resolves network communication configuration on Android to ensure reliable currency conversion rate retrieval and stabilizes background service queues.
 
 | Detail | Value |
 | :--- | :--- |
-| Version | 2.14.0 |
-| Version Code | 37 |
+| Version | 2.14.1 |
+| Version Code | 38 |
 | Target Platform | Android |
 | Package Identifier | com.subdebt.app |
 
 ## Key Updates
 
-### 1. Navigation Feature Discovery
+### 1. Network Connectivity Configuration
 
-A guided tooltip helps users discover the top navigation settings and vault configurations.
+Android application permissions have been updated to restore standard internet access for external service pings and currency exchange rates.
 
-1. Curved Direction Arrow: An animated vector arrow points directly from the discovery card to the top bar settings trigger.
-2. Smart Occurrence: The indicator uses a twenty four hour cooldown interval and random trigger logic to prevent repetitive display.
-3. Automatic Dismissal: Tapping the settings trigger or discovery card opens the settings screen and saves completion status.
+1. System Permission: Added explicit network state and internet declarations to the application configuration.
+2. Background Dispatch: Optimized queue dispatch intervals to prevent delayed data synchronization.
 
-### 2. Interface Iconography Refinements
+### 2. General Stability Fixes
 
-Visual symbols across the dashboard and modal tools have been aligned with financial clarity standards.
-
-1. Financial Snapshot Button: Updated with a clean document card symbol in the cashflow overview header.
-2. Utilities Hub: Aligned tool grid symbols for statements and receipt scanning with standard device actions.
+1. Navigation Stability: Resolved minor edge cases in feature discovery coach mark positioning across different device aspect ratios.
+2. Maintenance Patches: Verified local storage consistency for transaction receipts.
