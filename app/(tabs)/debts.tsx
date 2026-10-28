@@ -293,30 +293,11 @@ export default function DebtsScreen() {
     </>
   );
 
-  if (!isLoaded) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AmbientBackground />
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerEyebrow}>TRACKER</Text>
-            <Text style={styles.title}>Debts</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <View style={styles.iconButton}><Ionicons name="settings-outline" size={20} color={colors.text.tertiary} /></View>
-          </View>
-        </View>
-        <SkeletonLoader variant="debts" />
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AmbientBackground />
       <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      {/* ── Floating Top Bar ── */}
       <FloatingTopHeader
         title="Debts"
         subtitle="Money You Owe"
@@ -327,7 +308,9 @@ export default function DebtsScreen() {
         }
       />
 
-      {filteredDebts.length === 0 && !searchQuery ? (
+      {!isLoaded ? (
+        <SkeletonLoader variant="debts" />
+      ) : filteredDebts.length === 0 && !searchQuery ? (
         <>
           {renderHeader()}
           <EmptyState
@@ -431,45 +414,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
-  },
-
-  // ── Header ──
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
-  },
-  headerEyebrow: {
-    color: isDark ? '#FB7185' : '#E11D48',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 2,
-    marginBottom: 2,
-    opacity: 0.9,
-  },
-  title: {
-    color: colors.text.primary,
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.8,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: isDark ? 'rgba(244,63,94,0.15)' : '#FFE4E6',
-    borderWidth: 1,
-    borderColor: isDark ? 'rgba(244,63,94,0.3)' : '#FDA4AF',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   iconButton: {
     width: 38,

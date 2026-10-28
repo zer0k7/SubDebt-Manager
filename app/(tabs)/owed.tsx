@@ -337,24 +337,11 @@ export default function OwedScreen() {
     </>
   );
 
-  if (!isLoaded) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AmbientBackground />
-        <View style={styles.header}>
-          <Text style={styles.title}>Manager</Text>
-        </View>
-        <SkeletonLoader variant="debts" />
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AmbientBackground />
       <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
       
-      {/* Floating Top Bar */}
       <FloatingTopHeader
         title="Ledger"
         subtitle={viewMode === 'borrowed' ? 'Debts & Borrowed' : 'Credits & Owed'}
@@ -365,7 +352,9 @@ export default function OwedScreen() {
         }
       />
 
-      {filteredData.length === 0 && !searchQuery ? (
+      {!isLoaded ? (
+        <SkeletonLoader variant="debts" />
+      ) : filteredData.length === 0 && !searchQuery ? (
         <>
           {renderHeader()}
           <EmptyState
@@ -459,32 +448,6 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background.primary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 8,
-  },
-  title: {
-    color: colors.text.primary,
-    fontSize: 28,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  addButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   iconButton: {
     width: 38,

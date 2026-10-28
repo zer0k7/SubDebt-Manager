@@ -189,29 +189,11 @@ export default function CreditsScreen() {
     </>
   );
 
-  if (!isLoaded) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AmbientBackground />
-        <View style={styles.header}>
-          <Text style={styles.title}>Credits</Text>
-          <View style={styles.headerRight}>
-            <View style={styles.iconButton}>
-              <Ionicons name="settings-outline" size={22} color={colors.text.tertiary} />
-            </View>
-          </View>
-        </View>
-        <SkeletonLoader variant="debts" />
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AmbientBackground />
       <Confetti visible={showConfetti} onComplete={() => setShowConfetti(false)} />
 
-      {/* Floating Top Bar */}
       <FloatingTopHeader
         title="Credits"
         subtitle="Money Owed to You"
@@ -222,7 +204,9 @@ export default function CreditsScreen() {
         }
       />
 
-      {filteredCredits.length === 0 && !searchQuery ? (
+      {!isLoaded ? (
+        <SkeletonLoader variant="debts" />
+      ) : filteredCredits.length === 0 && !searchQuery ? (
         <>
           {renderHeader()}
           <EmptyState
@@ -292,10 +276,6 @@ export default function CreditsScreen() {
 
 const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background.primary },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-  title: { color: colors.text.primary, fontSize: 28, fontWeight: '700', letterSpacing: -0.5 },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  addButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(102,187,106,0.12)', borderWidth: 0.5, borderColor: 'rgba(102,187,106,0.3)', justifyContent: 'center', alignItems: 'center' },
   iconButton: {
     width: 38,
     height: 38,

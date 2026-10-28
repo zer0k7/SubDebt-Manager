@@ -506,75 +506,10 @@ export default function SubscriptionsScreen() {
     );
   };
 
-  if (!isLoaded) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AmbientBackground />
-        <SkeletonLoader />
-      </SafeAreaView>
-    );
-  }
-
-  // 1. Completely Empty State (0 subscriptions added ever)
-  if (subscriptions.length === 0 && !searchQuery) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AmbientBackground />
-        
-        {/* Floating Top Bar */}
-        <FloatingTopHeader
-          title="Subscriptions"
-          subtitle="Recurring & Trials"
-          rightActions={
-            <TouchableOpacity
-              style={styles.addBtn}
-              onPress={() => router.push('/modals/add-subscription')}
-            >
-              <Ionicons name="add" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-          }
-        />
-
-        <ScrollView
-          contentContainerStyle={styles.emptyScrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <EmptyState
-            icon="card-outline"
-            title="No Subscriptions Yet"
-            subtitle="Track all your recurring payments, trials, and shared family plans with smart alarms."
-            actionLabel="Add Subscription"
-            onAction={() => router.push('/modals/add-subscription')}
-            variant="subscriptions"
-          >
-            {/* Quick Preset Shortcuts in Empty State */}
-            <View style={styles.emptyPresetContainer}>
-              <Text style={styles.emptyPresetTitle}>Or tap a popular service to start:</Text>
-              <View style={styles.emptyPresetGrid}>
-                {SUBSCRIPTION_PRESETS.slice(0, 6).map((preset) => (
-                  <TouchableOpacity
-                    key={preset.id}
-                    style={styles.emptyPresetChip}
-                    onPress={() => router.push('/modals/add-subscription')}
-                  >
-                    <SubscriptionIcon name={preset.iconKey} size={28} />
-                    <Text style={styles.emptyPresetName}>{preset.name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          </EmptyState>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // 2. Normal List / Section View
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AmbientBackground />
       
-      {/* Floating Top Bar */}
       <FloatingTopHeader
         title="Subscriptions"
         subtitle="Recurring & Trials"
@@ -599,7 +534,39 @@ export default function SubscriptionsScreen() {
         }
       />
 
-      {groupByCategory && categorySections.length > 0 ? (
+      {!isLoaded ? (
+        <SkeletonLoader />
+      ) : subscriptions.length === 0 && !searchQuery ? (
+        <ScrollView
+          contentContainerStyle={styles.emptyScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <EmptyState
+            icon="card-outline"
+            title="No Subscriptions Yet"
+            subtitle="Track all your recurring payments, trials, and shared family plans with smart alarms."
+            actionLabel="Add Subscription"
+            onAction={() => router.push('/modals/add-subscription')}
+            variant="subscriptions"
+          >
+            <View style={styles.emptyPresetContainer}>
+              <Text style={styles.emptyPresetTitle}>Or tap a popular service to start:</Text>
+              <View style={styles.emptyPresetGrid}>
+                {SUBSCRIPTION_PRESETS.slice(0, 6).map((preset) => (
+                  <TouchableOpacity
+                    key={preset.id}
+                    style={styles.emptyPresetChip}
+                    onPress={() => router.push('/modals/add-subscription')}
+                  >
+                    <SubscriptionIcon name={preset.iconKey} size={28} />
+                    <Text style={styles.emptyPresetName}>{preset.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </EmptyState>
+        </ScrollView>
+      ) : groupByCategory && categorySections.length > 0 ? (
         <SectionList
           sections={categorySections}
           renderItem={renderItem}
@@ -614,7 +581,7 @@ export default function SubscriptionsScreen() {
               onRefresh={onRefresh}
               tintColor={colors.accent.blue}
               colors={[colors.accent.blue]}
-              progressBackgroundColor="#1a1a2e"
+              progressBackgroundColor={colors.background.primary}
             />
           }
         />
@@ -635,7 +602,7 @@ export default function SubscriptionsScreen() {
               onRefresh={onRefresh}
               tintColor={colors.accent.blue}
               colors={[colors.accent.blue]}
-              progressBackgroundColor="#1a1a2e"
+              progressBackgroundColor={colors.background.primary}
             />
           }
           ListEmptyComponent={

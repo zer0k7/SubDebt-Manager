@@ -562,23 +562,10 @@ export default function SpendingScreen() {
     </>
   );
 
-  if (!isLoaded) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <AmbientBackground />
-        <View style={styles.header}>
-          <Text style={styles.title}>Daily Spending</Text>
-        </View>
-        <SkeletonLoader variant="debts" />
-      </SafeAreaView>
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <AmbientBackground />
 
-      {/* Floating Top Bar */}
       <FloatingTopHeader
         title="Daily Spending"
         subtitle="Track & Analytics"
@@ -671,78 +658,82 @@ export default function SpendingScreen() {
         }
       />
 
-      <FlatList
-        data={
-          viewMode === 'entries'
-            ? filteredEntries
-            : filteredEntries.slice(0, 10)
-        }
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        initialNumToRender={10}
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        removeClippedSubviews={Platform.OS === 'android'}
-        ListHeaderComponent={
-          viewMode === 'overview' ? renderOverviewHeader : renderEntriesHeader
-        }
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.accent.purple}
-            colors={[colors.accent.purple]}
-            progressBackgroundColor={colors.background.primary}
-          />
-        }
-        ListEmptyComponent={
-          !searchQuery ? (
-            <View style={{ paddingVertical: 60 }}>
-              <EmptyState
-                icon="receipt-outline"
-                title="No spending recorded"
-                subtitle="Track your daily expenses to understand your spending habits"
-                actionLabel="Add Spending"
-                onAction={handleAddPress}
-                variant="debts"
-              />
-            </View>
-          ) : (
-            <View style={styles.noResultsWrap}>
-              <Ionicons
-                name="search-outline"
-                size={36}
-                color={colors.text.muted}
-              />
-              <Text style={styles.noResultsText}>
-                No results for "{searchQuery}"
-              </Text>
-            </View>
-          )
-        }
-        ListFooterComponent={
-          viewMode === 'overview' && rangeEntries.length > 10 ? (
-            <TouchableOpacity
-              style={styles.viewAllBtn}
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                setViewMode('entries');
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.viewAllText}>
-                View All {rangeEntries.length} Entries
-              </Text>
-              <Ionicons
-                name="chevron-forward"
-                size={16}
-                color={colors.accent.purple}
-              />
-            </TouchableOpacity>
-          ) : null
-        }
-      />
+      {!isLoaded ? (
+        <SkeletonLoader variant="debts" />
+      ) : (
+        <FlatList
+          data={
+            viewMode === 'entries'
+              ? filteredEntries
+              : filteredEntries.slice(0, 10)
+          }
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={Platform.OS === 'android'}
+          ListHeaderComponent={
+            viewMode === 'overview' ? renderOverviewHeader : renderEntriesHeader
+          }
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.accent.purple}
+              colors={[colors.accent.purple]}
+              progressBackgroundColor={colors.background.primary}
+            />
+          }
+          ListEmptyComponent={
+            !searchQuery ? (
+              <View style={{ paddingVertical: 60 }}>
+                <EmptyState
+                  icon="receipt-outline"
+                  title="No spending recorded"
+                  subtitle="Track your daily expenses to understand your spending habits"
+                  actionLabel="Add Spending"
+                  onAction={handleAddPress}
+                  variant="debts"
+                />
+              </View>
+            ) : (
+              <View style={styles.noResultsWrap}>
+                <Ionicons
+                  name="search-outline"
+                  size={36}
+                  color={colors.text.muted}
+                />
+                <Text style={styles.noResultsText}>
+                  No results for "{searchQuery}"
+                </Text>
+              </View>
+            )
+          }
+          ListFooterComponent={
+            viewMode === 'overview' && rangeEntries.length > 10 ? (
+              <TouchableOpacity
+                style={styles.viewAllBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setViewMode('entries');
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.viewAllText}>
+                  View All {rangeEntries.length} Entries
+                </Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.accent.purple}
+                />
+              </TouchableOpacity>
+            ) : null
+          }
+        />
+      )}
 
       <AppPopup
         visible={!!deleteId}
@@ -765,25 +756,6 @@ const getStyles = (colors: any, isDark: boolean) =>
     container: {
       flex: 1,
       backgroundColor: colors.background.primary,
-    },
-    header: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingTop: 12,
-      paddingBottom: 8,
-    },
-    title: {
-      color: colors.text.primary,
-      fontSize: 28,
-      fontWeight: '700',
-      letterSpacing: -0.5,
-    },
-    headerRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
     },
     toggleWrap: {
       flexDirection: 'row',
