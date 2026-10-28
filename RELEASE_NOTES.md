@@ -1,21 +1,25 @@
-# SubDebt Manager 2.15.1
+# SubDebt Manager v2.15.1
 
-## Overview
+### Release Metadata
 
-Version 2.15.1 fixes header flickering and raw title layout clipping during tab navigation by rendering the floating top header synchronously on screen mount across all tab screens.
-
-| Detail | Value |
+| Attribute | Specification |
 | :--- | :--- |
-| Version | 2.15.1 |
-| Version Code | 41 |
-| Target Platform | Android |
-| Package Identifier | com.subdebt.app |
+| Version | `2.15.1` |
+| Build Code | `41` |
+| Architecture | `arm64-v8a` |
+| Package | `com.subdebt.app` |
 
-## Key Updates
+### Commits in This Release
 
-### 1. Tab Header Stability
+| Hash | Type | Summary |
+| :--- | :--- | :--- |
+| `71c7a27` | fix | Fix tab switch header flash and raw title text layout shift |
+| `7ec13c3` | feat | Overhaul theme with pure OLED AMOLED black palette |
+| `5410638` | fix | Resolve number overflow and chart layout clipping across device widths |
 
-1. Immediate Header Mounting: Moved the floating top header to mount synchronously on initial frame across Daily Spending, Ledger, Debts, Credits, and Subscriptions screens.
-2. Removal of Raw Text Fallbacks: Eliminated unstyled early-return header views that caused text to clip beyond screen bounds before content finished loading.
-3. In-Place Loading States: Replaced full-screen conditional returns with inline skeleton loaders placed beneath the permanently mounted floating top header.
-4. Top Edge Inset Alignment: Configured uniform safe area top edge insets across all tabs to eliminate vertical header displacement during tab switches.
+### Technical Highlights
+
+1. **Pure AMOLED Black Palette**: Canvas `background.primary` converted to `#000000` with deep dark surfaces (`#0A0A0F`), high-contrast slate text tokens, and dark PDF exports. Murky purple mesh haze removed.
+2. **Synchronous Header Mounting**: `FloatingTopHeader` now mounts on initial frame across Daily Spending, Ledger, Debts, Credits, and Subscriptions. Eliminated raw unstyled text fallback and visual pop-in.
+3. **Adaptive Card Layouts**: Enforced flex bounds, auto-scaling typography (`minimumFontScale=0.6`), and single-line constraints to prevent numbers and badges from overflowing on narrow viewports.
+4. **Unified Insets**: Standardized `edges={['top']}` across all tab containers for consistent status bar alignment.

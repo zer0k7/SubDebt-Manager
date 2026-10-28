@@ -30,4 +30,5 @@ export const STORAGE_KEYS = {
   INCOME_ENTRIES: 'income_entries_v1',
   COACH_MARK_SETTINGS_SEEN: 'coach_mark_settings_seen_v1',
   COACH_MARK_SETTINGS_LAST_TS: 'coach_mark_settings_last_ts_v1',
+  WHATS_NEW_SEEN: 'whats_new_seen_v2_15',
 } as const;

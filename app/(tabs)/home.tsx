@@ -62,7 +62,7 @@ export default function DashboardScreen() {
       const pMode = await storage.getString('privacy_mode_enabled');
       setPrivacyMode(pMode === 'true');
 
-      const seen = await storage.getString('whats_new_seen_v2_12');
+      const seen = await storage.getString(STORAGE_KEYS.WHATS_NEW_SEEN);
       if (seen !== 'true') {
         setShowWhatsNew(true);
       }
@@ -120,7 +120,7 @@ export default function DashboardScreen() {
 
   const dismissWhatsNew = async () => {
     setShowWhatsNew(false);
-    await storage.set('whats_new_seen_v2_12', 'true');
+    await storage.set(STORAGE_KEYS.WHATS_NEW_SEEN, 'true');
   };
 
   const totalDebt = useMemo(() => getDebtTotal(), [getDebtTotal]);

@@ -28,28 +28,28 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
 
   const features = [
     {
-      icon: 'navigate-outline',
-      color: '#8B5CF6',
-      title: 'Interactive Feature Discovery',
-      desc: 'Guided coach marks highlight navigation settings and vault options with smart display intervals.',
-    },
-    {
-      icon: 'images-outline',
-      color: '#0D9488',
-      title: 'Historical Financial Statements',
-      desc: 'Generate snapshot cards for any past month stored in your database with six themes and privacy masking.',
-    },
-    {
-      icon: 'radio-outline',
+      icon: 'contrast-outline',
       color: '#38BDF8',
-      title: 'Radial Satellite Action Menu',
-      desc: 'Ergonomic semi-circle bloom for rapid logging of spending, subscriptions, debts, and credits.',
+      title: 'Pure AMOLED Dark Theme',
+      desc: 'True pitch black surfaces across all cards, navigation, and sheets with zero murky purple tint.',
     },
     {
-      icon: 'cut-outline',
-      color: '#EF4444',
-      title: 'Subscription Cancellation Assistant',
-      desc: 'Direct cancellation portals for major platforms and automated cancellation letter generation.',
+      icon: 'albums-outline',
+      color: '#A855F7',
+      title: 'Instant Floating Header',
+      desc: 'Synchronous mounting eliminates top bar flickering and text overflow during tab switching.',
+    },
+    {
+      icon: 'shield-checkmark-outline',
+      color: '#10B981',
+      title: 'Adaptive Layout Bounds',
+      desc: 'Auto-scaling typography and responsive containers prevent number clipping on all screen sizes.',
+    },
+    {
+      icon: 'document-text-outline',
+      color: '#F59E0B',
+      title: 'High-Contrast Reports',
+      desc: 'PDF statements updated with deep black styling, refined table lines, and enhanced legibility.',
     },
   ];
 
@@ -66,11 +66,11 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
               />
             </View>
             <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.14.0</Text>
+              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.15.1</Text>
             </View>
-            <Text style={styles.heroTitle}>Feature Discovery & Refinements</Text>
+            <Text style={styles.heroTitle}>Pure Dark & Performance</Text>
             <Text style={styles.heroSubtitle}>
-              Interactive navigation guidance, tactile controls, and financial statements.
+              True black display optimization, seamless navigation, and responsive layout hardening.
             </Text>
           </View>
 
