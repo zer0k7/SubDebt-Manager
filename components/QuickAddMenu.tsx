@@ -142,8 +142,8 @@ export const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ visible, onClose }) 
           {
             top: originY - 44,
             left: originX - 60,
-            backgroundColor: isDark ? 'rgba(18, 24, 38, 0.9)' : 'rgba(255, 255, 255, 0.95)',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+            backgroundColor: isDark ? 'rgba(10, 10, 14, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
           },
           promptStyle,
         ]}
@@ -250,7 +250,7 @@ const SatelliteItem: React.FC<SatelliteItemProps> = ({
         style={[
           styles.satelliteDisc,
           {
-            backgroundColor: isDark ? '#0C111C' : '#FFFFFF',
+            backgroundColor: isDark ? '#08080c' : '#FFFFFF',
             borderColor: itemColor,
             shadowColor: itemColor,
           },
@@ -267,8 +267,8 @@ const SatelliteItem: React.FC<SatelliteItemProps> = ({
         style={[
           styles.labelBadge,
           {
-            backgroundColor: isDark ? 'rgba(12, 17, 28, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+            backgroundColor: isDark ? 'rgba(10, 10, 14, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
           },
         ]}
       >

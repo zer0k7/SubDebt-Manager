@@ -164,7 +164,7 @@ const getStyles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     overlay: {
       flex: 1,
-      backgroundColor: isDark ? '#0C0C14' : '#0F172A',
+      backgroundColor: isDark ? '#000000' : '#0F172A',
       justifyContent: 'center',
       alignItems: 'center',
       padding: 24,

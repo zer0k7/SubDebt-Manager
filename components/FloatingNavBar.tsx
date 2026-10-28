@@ -123,7 +123,7 @@ export const CenteredFAB: React.FC<{ onPress: () => void; isMenuOpen: boolean }>
         style={[
           styles.fab,
           {
-            backgroundColor: isDark ? '#0C111C' : '#FFFFFF',
+            backgroundColor: isDark ? '#08080c' : '#FFFFFF',
             transform: [{ rotate: spin }, { scale }],
             shadowColor: activeColor,
             borderColor: activeColor,
@@ -143,9 +143,9 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     right: 12,
     height: 64,
     borderRadius: 32,
-    backgroundColor: isDark ? 'rgba(18, 18, 28, 0.94)' : 'rgba(255, 255, 255, 0.98)',
+    backgroundColor: isDark ? 'rgba(10, 10, 14, 0.96)' : 'rgba(255, 255, 255, 0.98)',
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+    borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
     elevation: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },

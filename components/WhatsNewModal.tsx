@@ -109,11 +109,11 @@ const getStyles = (colors: any, isDark: boolean) =>
     modalCard: {
       width: '100%',
       maxHeight: '85%',
-      backgroundColor: isDark ? '#111724' : '#FFFFFF',
+      backgroundColor: isDark ? colors.glass.card : '#FFFFFF',
       borderRadius: 28,
       padding: 24,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+      borderColor: isDark ? colors.glass.cardBorder : 'rgba(0,0,0,0.06)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 12 },
       shadowOpacity: 0.4,

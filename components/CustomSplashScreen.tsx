@@ -59,7 +59,7 @@ export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
       <LinearGradient
-        colors={['#090D16', '#0B111E', '#060910']}
+        colors={['#000000', '#060609', '#000000']}
         start={{ x: 0, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         style={StyleSheet.absoluteFillObject}
@@ -79,7 +79,7 @@ export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish
       >
         <View style={styles.emblemContainer}>
           <LinearGradient
-            colors={['#131D2D', '#0E1624']}
+            colors={['#101015', '#08080c']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.emblemCard}
@@ -110,7 +110,7 @@ export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#090D16',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 9999,

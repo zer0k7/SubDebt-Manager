@@ -204,7 +204,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#0a0a0f',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -40,9 +40,9 @@ const getStyles = (colors: any, isDark: boolean, isMultiline: boolean) => StyleS
     fontWeight: '600',
   },
   inputWrap: {
-    backgroundColor: isDark ? 'rgba(18, 18, 28, 0.88)' : '#FFFFFF',
+    backgroundColor: isDark ? colors.glass.input : '#FFFFFF',
     borderWidth: 1,
-    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : '#CBD5E1',
+    borderColor: isDark ? colors.glass.inputBorder : '#CBD5E1',
     borderRadius: 14,
     paddingHorizontal: 14,
     height: isMultiline ? undefined : 48,

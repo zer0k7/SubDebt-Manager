@@ -194,20 +194,20 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
   if (pdfTheme === 'dark') {
     themeCss = `
       :root {
-        --bg-primary: #0A0E1A;
-        --bg-panel: #111827;
-        --bg-stat: #182234;
-        --text-primary: #F9FAFB;
-        --text-secondary: #9CA3AF;
-        --text-muted: #6B7280;
-        --border-color: #2D3748;
-        --accent-primary: #6366F1;
-        --accent-primary-light: rgba(99, 102, 241, 0.15);
+        --bg-primary: #000000;
+        --bg-panel: #0D0D12;
+        --bg-stat: #14141B;
+        --text-primary: #FFFFFF;
+        --text-secondary: #CBD5E1;
+        --text-muted: #94A3B8;
+        --border-color: #27272A;
+        --accent-primary: #38BDF8;
+        --accent-primary-light: rgba(56, 189, 248, 0.15);
         --accent-debt: #F87171;
         --accent-credit: #34D399;
-        --table-row-border: #1F2937;
-        --table-row-alt: #131C2E;
-        --table-header-bg: #1A2438;
+        --table-row-border: #1E1E24;
+        --table-row-alt: #08080C;
+        --table-header-bg: #14141B;
       }
     `;
   } else if (pdfTheme === 'emerald') {

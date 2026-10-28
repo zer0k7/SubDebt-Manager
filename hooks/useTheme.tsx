@@ -36,7 +36,7 @@ export const ACCENT_PALETTE: Record<AccentColor, {
   light: { primary: string; secondary: string; gradient: readonly [string, string]; glow: string };
 }> = {
   blue: {
-    dark: { primary: '#4FC3F7', secondary: '#1976D2', gradient: ['#4FC3F7', '#1976D2'], glow: 'rgba(79, 195, 247, 0.4)' },
+    dark: { primary: '#38bdf8', secondary: '#0284c7', gradient: ['#38bdf8', '#0284c7'], glow: 'rgba(56, 189, 248, 0.35)' },
     light: { primary: '#0284c7', secondary: '#0369a1', gradient: ['#0284c7', '#0369a1'], glow: 'rgba(2, 132, 199, 0.3)' },
   },
   green: {

@@ -492,7 +492,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
   heroCard: {
     borderRadius: 24,
     padding: 20,
-    backgroundColor: isDark ? 'rgba(18,18,28,0.88)' : '#ffffff',
+    backgroundColor: isDark ? colors.glass.card : '#ffffff',
     borderWidth: 1,
     borderColor: isDark ? 'rgba(251,113,133,0.25)' : 'rgba(225,29,72,0.18)',
     overflow: 'hidden',

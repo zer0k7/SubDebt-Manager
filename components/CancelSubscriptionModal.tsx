@@ -322,7 +322,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'flex-end',
     },
     sheetContainer: {
-      backgroundColor: isDark ? '#111827' : '#FFFFFF',
+      backgroundColor: isDark ? colors.glass.card : '#FFFFFF',
       borderTopLeftRadius: 28,
       borderTopRightRadius: 28,
       paddingHorizontal: 20,
@@ -330,7 +330,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingBottom: Platform.OS === 'ios' ? 36 : 24,
       maxHeight: '85%',
       borderTopWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+      borderColor: isDark ? colors.glass.cardBorder : 'rgba(0,0,0,0.06)',
     },
     header: {
       flexDirection: 'row',

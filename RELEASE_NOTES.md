@@ -1,41 +1,38 @@
-# SubDebt Manager 2.14.2
+# SubDebt Manager 2.15.0
 
 ## Overview
 
-Version 2.14.2 resolves layout overflow, badge clipping, and text wrapping across the Home Dashboard, Daily Spending screen, and summary cards on various Android screen sizes and font scales.
+Version 2.15.0 introduces Pure Dark AMOLED Black mode across the entire application, replacing muted purple tones with true black surfaces, high-contrast typography, and refined border treatments for screens, navigation bars, modals, and PDF exports.
 
 | Detail | Value |
 | :--- | :--- |
-| Version | 2.14.2 |
-| Version Code | 39 |
+| Version | 2.15.0 |
+| Version Code | 40 |
 | Target Platform | Android |
 | Package Identifier | com.subdebt.app |
 
 ## Key Updates
 
-### 1. Home Dashboard Layout and Cashflow
+### 1. Pure Dark Theme Engine
 
-1. Cashflow Card Header: Compacted action buttons and enforced flex bounds so snapshot and income actions stay within the card boundary on compact screens.
-2. Cashflow Statistics: Added single-line auto-scale typography across income inflow, total outflow, and net savings to avoid multi-line number breaks.
-3. Daily Burn Projection: Rounded burn rate calculations and applied auto-scale constraints to prevent decimal overflow.
-4. Financial Pulse Cards: Restricted metric values and daily average pill badges within card limits with auto-scaling font sizes.
-5. Alerts and Limits: Applied flex boundaries to upcoming payment alerts and category spending limits.
+1. True Black Backgrounds: Replaced mesh purple gradients with true OLED black across primary canvases, secondary surfaces, and ambient screens.
+2. Solid Glass Tokens: Converted semi-transparent card and input surfaces to high-contrast dark tones with refined edge borders, eliminating murky background bleed-through.
+3. Enhanced Typography Contrast: Elevated secondary, tertiary, and muted text tokens to brighter slate tones for crisp readability on dark displays.
+4. Accent and Status Tuning: Calibrated status badges, category indicators, and glowing highlights for balanced visual clarity against deep black.
 
-### 2. Spending Trend Chart Layout
+### 2. Navigation and Header Interfaces
 
-1. Header Restructuring: Separated the period title and trend percentage badge into a dedicated top row to prevent horizontal badge clipping.
-2. Responsive Typography: Added automatic font scaling and single-line constraints to total and daily average metrics to accommodate large figures without clipping.
-3. Chart Dimension Alignment: Recalculated bar widths and offsets to stay within card margins on narrower displays.
+1. Floating Top Bar: Updated container background to deep dark slate with subtle white borders for clean header separation.
+2. Floating Bottom Navigation: Converted floating bar background and action trigger disc to pure dark styling with high-contrast active icons.
+3. Quick Add Satellite Menu: Restyled speed-dial satellite discs and selection badges to dark surfaces matching the primary theme.
 
-### 3. Daily Spending Dashboard Responsiveness
+### 3. Cards and Modal Components
 
-1. Quick Stat Cards: Added auto-scaling text constraints to today, weekly, monthly, and yearly overview cards to avoid multi-line number breaks.
-2. Budget and Insight Containers: Enforced flex boundary constraints on category limits and highest spending day insights to prevent overflow outside container cards.
-3. Category Breakdown: Enforced flex bounds on category name labels and amount values to preserve proper spacing on all viewport widths.
-4. Heatmap Margin Alignment: Restored uniform horizontal margin to the spending calendar heatmap to align with surrounding cards.
-5. Smart Insights Alignment: Enforced flex constraints and text scaling across top expenses and projected totals.
+1. Core Entity Cards: Converted debt, credit, and subscription cards to solid dark containers with high-contrast text and border separation.
+2. Custom Date Picker: Updated calendar grid cells, preset selection chips, and container sheets to clean dark slate tones.
+3. Action Sheets and Modals: Updated category managers, subscription cancellation dialogs, receipt inspectors, and spending explorer panels to uniform dark surfaces.
+4. Security Lock and Splash: Aligned biometric and PIN lock overlay along with custom boot splash screens to pure black.
 
-### 4. Cross-Tab Hero Cards
+### 4. Financial Document Exporter
 
-1. Debts and Credits: Applied single-line auto-scaling and flex constraints to borrowed and pending summary cards.
-2. Subscriptions: Enforced flex constraints and overflow containment on burn rate and billing cards.
+1. PDF Dark Mode Palette: Restyled PDF report dark theme variables to true black backgrounds with clean light text and distinct table row borders.
