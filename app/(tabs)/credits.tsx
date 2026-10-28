@@ -145,7 +145,14 @@ export default function CreditsScreen() {
             <Text style={styles.pendingBadgeText}>{credits.filter(c => !c.isReturned).length} pending</Text>
           </View>
         </View>
-        <Text style={styles.summaryAmount}>{formatCurrency(totalPending, currencyCode)}</Text>
+        <Text
+          style={styles.summaryAmount}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+        >
+          {formatCurrency(totalPending, currencyCode)}
+        </Text>
       </View>
 
       <SearchBar
@@ -299,7 +306,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  summaryCard: { marginHorizontal: 20, marginTop: 8, marginBottom: 12, padding: 20, borderRadius: 20, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.cardBorder },
+  summaryCard: { marginHorizontal: 20, marginTop: 8, marginBottom: 12, padding: 20, borderRadius: 20, backgroundColor: colors.glass.card, borderWidth: 0.5, borderColor: colors.glass.cardBorder, overflow: 'hidden' },
   summaryTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
   summaryLabel: { color: colors.text.tertiary, fontSize: 13, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 0.5 },
   pendingBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, backgroundColor: 'rgba(102,187,106,0.15)', borderWidth: 0.5, borderColor: 'rgba(102,187,106,0.3)' },

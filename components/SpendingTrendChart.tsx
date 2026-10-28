@@ -166,18 +166,18 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
       barGap = barCount > 60 ? 3 : barCount > 30 ? 4 : 6;
       chartWidth = barCount * (barWidth + barGap) + 40;
     } else {
-      const containerWidth = SCREEN_WIDTH - 80;
+      const containerWidth = SCREEN_WIDTH - 72;
       barGap = barCount > 10 ? 6 : 10;
       barWidth = Math.min(
-        (containerWidth - (barCount - 1) * barGap) / barCount,
+        (containerWidth - 20 - (barCount - 1) * barGap) / barCount,
         48
       );
-      chartWidth = barCount * barWidth + (barCount - 1) * barGap + 40;
+      chartWidth = containerWidth;
     }
 
-    const startX = 20;
+    const totalBarsWidth = barCount * barWidth + (barCount - 1) * barGap;
+    const startX = scrollable ? 20 : Math.max(10, (chartWidth - totalBarsWidth) / 2);
 
-    // Show label every Nth bar for dense charts
     const labelEveryN =
       barCount > 60 ? 14 : barCount > 30 ? 5 : barCount > 14 ? 3 : 1;
 
@@ -352,15 +352,9 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
 
   return (
     <View style={styles.card}>
-      {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerTopRow}>
           <Text style={styles.headerLabel}>{rangeLabel}</Text>
-          <Text style={styles.totalAmount}>
-            {formatCurrency(rangeTotal, currencyCode)}
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
           {showTrend && timeRange !== 'all' && (
             <View
               style={[
@@ -398,19 +392,35 @@ export const SpendingTrendChart: React.FC<SpendingTrendChartProps> = ({
               </Text>
             </View>
           )}
+        </View>
+
+        <View style={styles.headerMainRow}>
+          <View style={styles.totalWrap}>
+            <Text
+              style={styles.totalAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.55}
+            >
+              {formatCurrency(rangeTotal, currencyCode)}
+            </Text>
+          </View>
           <View style={styles.avgBadge}>
             <Text style={styles.avgLabel}>avg/day</Text>
-            <Text style={styles.avgValue}>
+            <Text
+              style={styles.avgValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.65}
+            >
               {formatCurrency(dailyAvg, currencyCode)}
             </Text>
           </View>
         </View>
       </View>
 
-      {/* Chart */}
       {renderChart()}
 
-      {/* Scroll hint for scrollable charts */}
       {(timeRange === '30d' || timeRange === '90d') && (
         <View style={styles.scrollHint}>
           <Ionicons
@@ -430,24 +440,38 @@ const getStyles = (colors: any, isDark: boolean) =>
     card: {
       marginHorizontal: 20,
       marginBottom: 14,
-      padding: 18,
+      padding: 16,
       borderRadius: 22,
       backgroundColor: colors.glass.card,
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
+      overflow: 'hidden',
     },
     header: {
+      marginBottom: 14,
+    },
+    headerTopRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 18,
+      alignItems: 'center',
+      marginBottom: 6,
     },
     headerLabel: {
       color: colors.text.tertiary,
       fontSize: 11,
       fontWeight: '600',
       letterSpacing: 0.8,
-      marginBottom: 4,
+    },
+    headerMainRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      gap: 12,
+    },
+    totalWrap: {
+      flex: 1,
+      minWidth: 0,
+      justifyContent: 'flex-end',
     },
     totalAmount: {
       color: colors.text.primary,
@@ -455,9 +479,24 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '800',
       letterSpacing: -0.5,
     },
-    headerRight: {
+    avgBadge: {
       alignItems: 'flex-end',
-      gap: 6,
+      maxWidth: '45%',
+      flexShrink: 0,
+      justifyContent: 'flex-end',
+    },
+    avgLabel: {
+      color: colors.text.muted,
+      fontSize: 9,
+      fontWeight: '600',
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginBottom: 1,
+    },
+    avgValue: {
+      color: colors.accent.amber,
+      fontSize: 13,
+      fontWeight: '700',
     },
     trendBadge: {
       flexDirection: 'row',
@@ -495,21 +534,6 @@ const getStyles = (colors: any, isDark: boolean) =>
     trendText: {
       color: colors.text.muted,
       fontSize: 11,
-      fontWeight: '700',
-    },
-    avgBadge: {
-      alignItems: 'flex-end',
-    },
-    avgLabel: {
-      color: colors.text.muted,
-      fontSize: 9,
-      fontWeight: '600',
-      letterSpacing: 0.4,
-      textTransform: 'uppercase',
-    },
-    avgValue: {
-      color: colors.accent.amber,
-      fontSize: 13,
       fontWeight: '700',
     },
     chartWrap: {

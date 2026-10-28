@@ -282,16 +282,25 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          <Text style={[styles.heroAmount, netPosition < 0 && { color: colors.accent.red }]}>
+          <Text
+            style={[styles.heroAmount, netPosition < 0 && { color: colors.accent.red }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
             {formatValue(Math.abs(netPosition))}
           </Text>
 
-          {/* Monthly Budget Progress Meter */}
           {budget.amount > 0 && (
             <View style={styles.budgetMeterSection}>
               <View style={styles.budgetMeterRow}>
-                <Text style={styles.meterLabel}>Monthly Budget Progress</Text>
-                <Text style={styles.meterValue}>
+                <Text style={styles.meterLabel} numberOfLines={1}>Monthly Budget Progress</Text>
+                <Text
+                  style={styles.meterValue}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
                   {formatCurrency(monthlySpending, currencyCode)} / {formatCurrency(budget.amount, currencyCode)}
                 </Text>
               </View>
@@ -391,11 +400,11 @@ export default function DashboardScreen() {
 
         <View style={styles.cashflowCard}>
           <View style={styles.cashflowHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Ionicons name="analytics-outline" size={17} color={colors.accent.blue} />
-              <Text style={styles.cashflowTitle}>MONTHLY CASHFLOW & RUNWAY</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, marginRight: 6 }}>
+              <Ionicons name="analytics-outline" size={16} color={colors.accent.blue} />
+              <Text style={styles.cashflowTitle} numberOfLines={1}>CASHFLOW & RUNWAY</Text>
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               <TouchableOpacity
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -404,7 +413,7 @@ export default function DashboardScreen() {
                 style={styles.snapshotQuickBtn}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name="images-outline" size={13} color="#2DD4BF" />
+                <Ionicons name="images-outline" size={12} color="#2DD4BF" />
                 <Text style={styles.snapshotQuickBtnText}>Snapshot</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -414,52 +423,73 @@ export default function DashboardScreen() {
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.manageIncomeLink}>+ Log Income</Text>
+                <Text style={styles.manageIncomeLink}>+ Income</Text>
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Row 1: Inflow / Outflow / Net Savings */}
           <View style={styles.cashflowGrid}>
             <View style={styles.cashflowStat}>
-              <Text style={styles.cashflowStatLabel}>Income Inflow</Text>
-              <Text style={[styles.cashflowStatVal, { color: colors.accent.green }]}>
+              <Text style={styles.cashflowStatLabel} numberOfLines={1}>Income Inflow</Text>
+              <Text
+                style={[styles.cashflowStatVal, { color: colors.accent.green }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
                 +{formatValue(monthlyIncome)}
               </Text>
             </View>
             <View style={styles.cashflowDivider} />
             <View style={styles.cashflowStat}>
-              <Text style={styles.cashflowStatLabel}>Total Outflow</Text>
-              <Text style={[styles.cashflowStatVal, { color: colors.accent.red }]}>
+              <Text style={styles.cashflowStatLabel} numberOfLines={1}>Total Outflow</Text>
+              <Text
+                style={[styles.cashflowStatVal, { color: colors.accent.red }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
                 -{formatValue(totalMonthlyOutflow)}
               </Text>
             </View>
             <View style={styles.cashflowDivider} />
             <View style={styles.cashflowStat}>
-              <Text style={styles.cashflowStatLabel}>Net Savings</Text>
+              <Text style={styles.cashflowStatLabel} numberOfLines={1}>Net Savings</Text>
               <Text
                 style={[
                   styles.cashflowStatVal,
                   { color: netMonthlySavings >= 0 ? colors.accent.green : colors.accent.red },
                 ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
               >
                 {netMonthlySavings >= 0 ? '+' : ''}{formatValue(netMonthlySavings)}
               </Text>
             </View>
           </View>
 
-          {/* Row 2: Daily Burn & 30-Day Outflow Projection */}
           <View style={styles.cashflowForecastRow}>
             <View style={styles.forecastItem}>
-              <Text style={styles.forecastLabel}>Daily Burn Rate</Text>
-              <Text style={styles.forecastValue}>
-                ~{formatValue(cashflowForecast.dailyBurnRate)}/day
+              <Text style={styles.forecastLabel} numberOfLines={1}>Daily Burn Rate</Text>
+              <Text
+                style={styles.forecastValue}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
+                ~{formatValue(Math.round(cashflowForecast.dailyBurnRate))}/day
               </Text>
             </View>
             <View style={styles.forecastDivider} />
             <View style={styles.forecastItem}>
-              <Text style={styles.forecastLabel}>30-Day Outflow Est.</Text>
-              <Text style={[styles.forecastValue, { color: colors.accent.amber }]}>
+              <Text style={styles.forecastLabel} numberOfLines={1}>30-Day Outflow Est.</Text>
+              <Text
+                style={[styles.forecastValue, { color: colors.accent.amber }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
                 {formatValue(cashflowForecast.projected30DayOutflow)}
               </Text>
             </View>
@@ -467,8 +497,13 @@ export default function DashboardScreen() {
               <>
                 <View style={styles.forecastDivider} />
                 <View style={styles.forecastItem}>
-                  <Text style={styles.forecastLabel}>Est. Runway</Text>
-                  <Text style={[styles.forecastValue, { color: colors.accent.purple }]}>
+                  <Text style={styles.forecastLabel} numberOfLines={1}>Est. Runway</Text>
+                  <Text
+                    style={[styles.forecastValue, { color: colors.accent.purple }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.65}
+                  >
                     {cashflowForecast.daysRunway} Days
                   </Text>
                 </View>
@@ -476,7 +511,6 @@ export default function DashboardScreen() {
             )}
           </View>
 
-          {/* Savings Rate Meter (if income > 0) */}
           {monthlyIncome > 0 && (
             <View style={styles.savingsRateWrap}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -492,7 +526,6 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* Subscription Price Hike Warning Banner (Sleek & Dismissible) */}
         {priceHikeAlerts.length > 0 && (
           <View style={styles.priceHikeCard}>
             <View style={styles.priceHikeHeader}>
@@ -520,10 +553,8 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* 4-Metric Financial Pulse Matrix */}
         <Text style={styles.sectionHeaderTitle}>FINANCIAL PULSE</Text>
         <View style={styles.matrixGrid}>
-          {/* Debts */}
           <TouchableOpacity
             style={[styles.matrixCard, { borderColor: 'rgba(239, 68, 68, 0.25)' }]}
             onPress={() => router.push('/(tabs)/debts')}
@@ -532,16 +563,25 @@ export default function DashboardScreen() {
             <View style={styles.matrixCardTop}>
               <Ionicons name="alert-circle-outline" size={20} color={colors.accent.red} />
               <View style={[styles.pillBadge, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
-                <Text style={{ color: colors.accent.red, fontSize: 10, fontWeight: '700' }}>
+                <Text
+                  style={{ color: colors.accent.red, fontSize: 10, fontWeight: '700' }}
+                  numberOfLines={1}
+                >
                   {debts.filter((d) => !d.isPaid).length} Pending
                 </Text>
               </View>
             </View>
-            <Text style={styles.matrixValue}>{formatValue(totalDebt)}</Text>
+            <Text
+              style={styles.matrixValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.55}
+            >
+              {formatValue(totalDebt)}
+            </Text>
             <Text style={styles.matrixLabel}>Debts Owed</Text>
           </TouchableOpacity>
 
-          {/* Credits */}
           <TouchableOpacity
             style={[styles.matrixCard, { borderColor: 'rgba(16, 185, 129, 0.25)' }]}
             onPress={() => router.push('/(tabs)/credits')}
@@ -550,16 +590,25 @@ export default function DashboardScreen() {
             <View style={styles.matrixCardTop}>
               <Ionicons name="checkmark-circle-outline" size={20} color={colors.accent.green} />
               <View style={[styles.pillBadge, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
-                <Text style={{ color: colors.accent.green, fontSize: 10, fontWeight: '700' }}>
+                <Text
+                  style={{ color: colors.accent.green, fontSize: 10, fontWeight: '700' }}
+                  numberOfLines={1}
+                >
                   {credits.filter((c) => !c.isReturned).length} Owed
                 </Text>
               </View>
             </View>
-            <Text style={styles.matrixValue}>{formatValue(totalCredit)}</Text>
+            <Text
+              style={styles.matrixValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.55}
+            >
+              {formatValue(totalCredit)}
+            </Text>
             <Text style={styles.matrixLabel}>Owed to You</Text>
           </TouchableOpacity>
 
-          {/* Subscriptions */}
           <TouchableOpacity
             style={[styles.matrixCard, { borderColor: colors.accent.alpha(0.25) }]}
             onPress={() => router.push('/(tabs)/subscriptions')}
@@ -568,16 +617,25 @@ export default function DashboardScreen() {
             <View style={styles.matrixCardTop}>
               <Ionicons name="refresh-circle-outline" size={20} color={colors.accent.purple} />
               <View style={[styles.pillBadge, { backgroundColor: colors.accent.alpha(0.15) }]}>
-                <Text style={{ color: colors.accent.purple, fontSize: 10, fontWeight: '700' }}>
+                <Text
+                  style={{ color: colors.accent.purple, fontSize: 10, fontWeight: '700' }}
+                  numberOfLines={1}
+                >
                   {subscriptions.filter((s) => s.isActive).length} Active
                 </Text>
               </View>
             </View>
-            <Text style={styles.matrixValue}>{formatValue(totalSubs)}</Text>
+            <Text
+              style={styles.matrixValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.55}
+            >
+              {formatValue(totalSubs)}
+            </Text>
             <Text style={styles.matrixLabel}>Sub Outflow</Text>
           </TouchableOpacity>
 
-          {/* Spending */}
           <TouchableOpacity
             style={[styles.matrixCard, { borderColor: 'rgba(59, 130, 246, 0.25)' }]}
             onPress={() => router.push('/(tabs)/spending')}
@@ -586,12 +644,24 @@ export default function DashboardScreen() {
             <View style={styles.matrixCardTop}>
               <Ionicons name="wallet-outline" size={20} color={colors.accent.blue} />
               <View style={[styles.pillBadge, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
-                <Text style={{ color: colors.accent.blue, fontSize: 10, fontWeight: '700' }}>
-                  ~{formatValue(dailyAvg)}/day
+                <Text
+                  style={{ color: colors.accent.blue, fontSize: 10, fontWeight: '700' }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.65}
+                >
+                  ~{formatValue(Math.round(dailyAvg))}/day
                 </Text>
               </View>
             </View>
-            <Text style={styles.matrixValue}>{formatValue(monthlySpending)}</Text>
+            <Text
+              style={styles.matrixValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.55}
+            >
+              {formatValue(monthlySpending)}
+            </Text>
             <Text style={styles.matrixLabel}>Spent This Month</Text>
           </TouchableOpacity>
         </View>
@@ -607,14 +677,17 @@ export default function DashboardScreen() {
             {upcomingAlerts.map((item) => (
               <View key={item.id} style={styles.alertRow}>
                 <View style={styles.alertInfo}>
-                  <Text style={styles.alertItemTitle}>{item.title}</Text>
-                  <Text style={styles.alertItemSub}>{item.subtitle}</Text>
+                  <Text style={styles.alertItemTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={styles.alertItemSub} numberOfLines={1}>{item.subtitle}</Text>
                 </View>
                 <Text
                   style={[
                     styles.alertItemVal,
                     item.type === 'debt' ? { color: colors.accent.red } : { color: colors.accent.purple },
                   ]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
                 >
                   {formatValue(item.amount)}
                 </Text>
@@ -623,7 +696,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Category Budget Progress Bars */}
         {categoryProgress.length > 0 && (
           <View style={styles.sectionCard}>
             <Text style={styles.sectionHeaderTitle}>CATEGORY SPENDING LIMITS</Text>
@@ -636,11 +708,16 @@ export default function DashboardScreen() {
               return (
                 <View key={item.category} style={styles.catProgressRow}>
                   <View style={styles.catProgressHeader}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, marginRight: 8 }}>
                       <Ionicons name={icon as any} size={16} color={colors.text.primary} />
-                      <Text style={styles.catProgressName}>{item.category}</Text>
+                      <Text style={styles.catProgressName} numberOfLines={1}>{item.category}</Text>
                     </View>
-                    <Text style={styles.catProgressVal}>
+                    <Text
+                      style={styles.catProgressVal}
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.65}
+                    >
                       {formatValue(item.spending)} / {formatValue(item.limit)}
                     </Text>
                   </View>
@@ -737,6 +814,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
       gap: 10,
+      overflow: 'hidden',
     },
     heroTopRow: {
       flexDirection: 'row',
@@ -827,6 +905,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
       gap: 14,
+      overflow: 'hidden',
     },
     cashflowHeader: {
       flexDirection: 'row',
@@ -867,6 +946,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     cashflowStat: {
       flex: 1,
+      minWidth: 0,
       alignItems: 'center',
       gap: 4,
     },
@@ -895,6 +975,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     forecastItem: {
       flex: 1,
+      minWidth: 0,
       alignItems: 'center',
       gap: 3,
     },
@@ -991,22 +1072,27 @@ const getStyles = (colors: any, isDark: boolean) =>
       gap: 12,
     },
     matrixCard: {
-      width: '48%',
+      flexBasis: '47%',
+      flexGrow: 1,
       padding: 16,
       borderRadius: 20,
       backgroundColor: colors.glass.card,
       borderWidth: 1,
       gap: 8,
+      overflow: 'hidden',
     },
     matrixCardTop: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
+      gap: 6,
     },
     pillBadge: {
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: 6,
+      maxWidth: '65%',
+      flexShrink: 1,
     },
     matrixValue: {
       color: colors.text.primary,
@@ -1020,7 +1106,6 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '600',
     },
 
-    // Upcoming Alerts
     alertsCard: {
       padding: 16,
       borderRadius: 20,
@@ -1028,6 +1113,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
       gap: 12,
+      overflow: 'hidden',
     },
     alertsHeader: {
       flexDirection: 'row',
@@ -1045,7 +1131,12 @@ const getStyles = (colors: any, isDark: boolean) =>
       justifyContent: 'space-between',
       alignItems: 'center',
     },
-    alertInfo: { gap: 2 },
+    alertInfo: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+      marginRight: 8,
+    },
     alertItemTitle: {
       color: colors.text.primary,
       fontSize: 13,
@@ -1059,9 +1150,11 @@ const getStyles = (colors: any, isDark: boolean) =>
     alertItemVal: {
       fontSize: 13,
       fontWeight: '800',
+      maxWidth: '45%',
+      flexShrink: 0,
+      textAlign: 'right',
     },
 
-    // Category Spending Limits
     sectionCard: {
       padding: 16,
       borderRadius: 20,
@@ -1069,6 +1162,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
       gap: 12,
+      overflow: 'hidden',
     },
     catProgressRow: { gap: 6 },
     catProgressHeader: {
@@ -1085,6 +1179,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.secondary,
       fontSize: 11.5,
       fontWeight: '600',
+      maxWidth: '45%',
+      flexShrink: 0,
+      textAlign: 'right',
     },
     catTrack: {
       height: 6,

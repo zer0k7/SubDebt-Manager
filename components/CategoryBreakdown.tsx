@@ -173,8 +173,13 @@ export const CategoryBreakdown: React.FC<CategoryBreakdownProps> = ({
             </View>
             <View style={styles.info}>
               <View style={styles.labelRow}>
-                <Text style={styles.catName}>{cat.category}</Text>
-                <Text style={[styles.catAmount, isOver && { color: colors.accent.red }]}>
+                <Text style={styles.catName} numberOfLines={1}>{cat.category}</Text>
+                <Text
+                  style={[styles.catAmount, isOver && { color: colors.accent.red }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                >
                   {formatCurrency(cat.total, currencyCode)}
                 </Text>
               </View>
@@ -332,6 +337,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     info: {
       flex: 1,
+      minWidth: 0,
     },
     labelRow: {
       flexDirection: 'row',
@@ -343,11 +349,17 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.primary,
       fontSize: 14,
       fontWeight: '600',
+      flex: 1,
+      minWidth: 0,
+      marginRight: 8,
     },
     catAmount: {
       color: colors.text.primary,
       fontSize: 14,
       fontWeight: '700',
+      maxWidth: '45%',
+      flexShrink: 0,
+      textAlign: 'right',
     },
     barTrack: {
       height: 6,

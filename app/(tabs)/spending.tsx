@@ -339,17 +339,27 @@ export default function SpendingScreen() {
       {budget.amount > 0 && (
         <View style={styles.budgetCard}>
           <View style={styles.budgetHeader}>
-            <View>
+            <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
               <Text style={styles.budgetLabel}>Monthly Budget</Text>
-              <Text style={styles.budgetAmount}>
+              <Text
+                style={styles.budgetAmount}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
                 {formatCurrency(monthTotal, currencyCode)} / {formatCurrency(budget.amount, currencyCode)}
               </Text>
             </View>
             <View style={styles.budgetStats}>
-              <Text style={[
-                styles.remainingText,
-                remainingBudget < 0 && { color: colors.accent.red }
-              ]}>
+              <Text
+                style={[
+                  styles.remainingText,
+                  remainingBudget < 0 && { color: colors.accent.red }
+                ]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
                 {remainingBudget >= 0 ? 'Remaining: ' : 'Over: '}
                 {formatCurrency(Math.abs(remainingBudget), currencyCode)}
               </Text>
@@ -366,14 +376,18 @@ export default function SpendingScreen() {
         </View>
       )}
 
-      {/* Quick Stats Row */}
       <View style={styles.statsGrid}>
         <View style={[styles.statCard, styles.statCardPrimary]}>
           <View style={styles.statHeader}>
             <Ionicons name="today-outline" size={14} color={colors.accent.purple} />
             <Text style={styles.statLabel}>TODAY</Text>
           </View>
-          <Text style={[styles.statValue, { color: colors.accent.purple }]}>
+          <Text
+            style={[styles.statValue, { color: colors.accent.purple }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.55}
+          >
             {formatCurrency(todayTotal, currencyCode)}
           </Text>
         </View>
@@ -382,7 +396,12 @@ export default function SpendingScreen() {
             <Ionicons name="calendar-outline" size={14} color={colors.text.tertiary} />
             <Text style={styles.statLabel}>THIS WEEK</Text>
           </View>
-          <Text style={styles.statValue}>
+          <Text
+            style={styles.statValue}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.55}
+          >
             {formatCurrency(weekTotal, currencyCode)}
           </Text>
         </View>
@@ -391,7 +410,12 @@ export default function SpendingScreen() {
             <Ionicons name="calendar-number-outline" size={14} color={colors.text.tertiary} />
             <Text style={styles.statLabel}>THIS MONTH</Text>
           </View>
-          <Text style={styles.statValue}>
+          <Text
+            style={styles.statValue}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.55}
+          >
             {formatCurrency(monthTotal, currencyCode)}
           </Text>
         </View>
@@ -400,13 +424,17 @@ export default function SpendingScreen() {
             <Ionicons name="stats-chart-outline" size={14} color={colors.accent.amber} />
             <Text style={styles.statLabel}>THIS YEAR</Text>
           </View>
-          <Text style={[styles.statValue, { color: colors.accent.amber }]}>
+          <Text
+            style={[styles.statValue, { color: colors.accent.amber }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.55}
+          >
             {formatCurrency(yearTotal, currencyCode)}
           </Text>
         </View>
       </View>
 
-      {/* Spending Trend Chart */}
       <SpendingTrendChart
         timeRange={timeRange}
         weeklyData={weeklyData}
@@ -420,7 +448,6 @@ export default function SpendingScreen() {
         dailyAvg={dailyAvg}
       />
 
-      {/* Highest Spending Day Insight */}
       {highestDay.total > 0 && (
         <View style={styles.insightCard}>
           <View style={styles.insightIcon}>
@@ -428,7 +455,12 @@ export default function SpendingScreen() {
           </View>
           <View style={styles.insightInfo}>
             <Text style={styles.insightLabel}>Highest Spending Day</Text>
-            <Text style={styles.insightValue}>
+            <Text
+              style={styles.insightValue}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.65}
+            >
               {formatCurrency(highestDay.total, currencyCode)}
               <Text style={styles.insightDate}>
                 {' '}· {new Date(highestDay.date + 'T00:00:00').toLocaleDateString('en-IN', {
@@ -483,8 +515,15 @@ export default function SpendingScreen() {
       {groupedEntries.slice(0, 5).map((group) => (
         <View key={group.date}>
           <View style={styles.dayHeader}>
-            <Text style={styles.dayLabel}>{group.relativeLabel}</Text>
-            <Text style={styles.dayTotal}>{formatCurrency(group.total, currencyCode)}</Text>
+            <Text style={styles.dayLabel} numberOfLines={1}>{group.relativeLabel}</Text>
+            <Text
+              style={styles.dayTotal}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {formatCurrency(group.total, currencyCode)}
+            </Text>
           </View>
         </View>
       ))}
@@ -914,6 +953,8 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     budgetStats: {
       alignItems: 'flex-end',
+      maxWidth: '45%',
+      flexShrink: 0,
     },
     remainingText: {
       color: colors.accent.green,
@@ -1004,6 +1045,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     insightInfo: {
       flex: 1,
+      minWidth: 0,
     },
     insightLabel: {
       color: colors.text.muted,
@@ -1116,10 +1158,16 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.secondary,
       fontSize: 13,
       fontWeight: '700',
+      flex: 1,
+      minWidth: 0,
+      marginRight: 8,
     },
     dayTotal: {
       color: colors.accent.purple,
       fontSize: 13,
       fontWeight: '700',
+      maxWidth: '50%',
+      flexShrink: 0,
+      textAlign: 'right',
     },
   });

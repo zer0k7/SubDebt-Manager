@@ -54,7 +54,12 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({
             <Ionicons name="wallet-outline" size={16} color={colors.accent.blue} />
           </View>
           <View style={styles.insightInfo}>
-            <Text style={styles.insightLabel}>
+            <Text
+              style={styles.insightLabel}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               Daily allowance: {formatCurrency(dailyAllowance, currencyCode)}
             </Text>
             <Text style={styles.insightSub}>{daysLeftInMonth} days left in month</Text>
@@ -68,7 +73,12 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({
             <Ionicons name="trending-up-outline" size={16} color={colors.accent.amber} />
           </View>
           <View style={styles.insightInfo}>
-            <Text style={styles.insightLabel}>
+            <Text
+              style={styles.insightLabel}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
               Projected month-end: {formatCurrency(projectedMonthEnd, currencyCode)}
             </Text>
             <Text style={styles.insightSub}>
@@ -88,7 +98,12 @@ export const InsightsPanel: React.FC<InsightsPanelProps> = ({
                 <Text style={styles.rankText}>{i + 1}</Text>
               </View>
               <Text style={styles.topName} numberOfLines={1}>{expense.title}</Text>
-              <Text style={styles.topAmount}>
+              <Text
+                style={styles.topAmount}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+              >
                 {formatCurrency(expense.amount, expense.currency)}
               </Text>
             </View>
@@ -109,6 +124,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       backgroundColor: colors.glass.card,
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
+      overflow: 'hidden',
     },
     title: {
       color: colors.text.tertiary,
@@ -139,6 +155,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     insightInfo: {
       flex: 1,
+      minWidth: 0,
     },
     insightLabel: {
       color: colors.text.primary,
@@ -177,6 +194,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     topName: {
       flex: 1,
+      minWidth: 0,
       color: colors.text.secondary,
       fontSize: 13,
       fontWeight: '500',
@@ -186,5 +204,8 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.primary,
       fontSize: 13,
       fontWeight: '700',
+      maxWidth: '45%',
+      flexShrink: 0,
+      textAlign: 'right',
     },
   });

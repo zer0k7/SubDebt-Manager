@@ -199,9 +199,16 @@ export default function DebtsScreen() {
           <View style={styles.heroOrb} />
 
           <View style={styles.heroTopRow}>
-            <View>
+            <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
               <Text style={styles.heroEyebrow}>BORROWED TOTAL</Text>
-              <Text style={styles.heroAmount}>{formatCurrency(totalPending, currencyCode)}</Text>
+              <Text
+                style={styles.heroAmount}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
+                {formatCurrency(totalPending, currencyCode)}
+              </Text>
             </View>
             <View style={styles.heroIconCircle}>
               <Ionicons name="wallet-outline" size={26} color={isDark ? '#FB7185' : '#E11D48'} />

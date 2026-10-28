@@ -278,16 +278,21 @@ export default function SubscriptionsScreen() {
         activeOpacity={0.85}
       >
         <View style={styles.summaryTop}>
-          <View>
+          <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
             <Text style={styles.summaryLabel}>
               {showYearlyBurn ? 'YEARLY OUTFLOW' : 'MONTHLY BURN RATE'}
             </Text>
-            <Text style={styles.summaryAmount}>
+            <Text
+              style={styles.summaryAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
               {formatCurrency(showYearlyBurn ? yearlyBurn : monthlyBurn, currencyCode)}
             </Text>
           </View>
 
-          <View style={styles.statsPillBox}>
+          <View style={[styles.statsPillBox, { flexShrink: 0 }]}>
             <View style={styles.statChip}>
               <Text style={styles.statChipText}>
                 {subscriptions.filter(s => s.isActive && !s.isTrial).length} active
@@ -807,6 +812,7 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     backgroundColor: isDark ? 'rgba(18, 18, 28, 0.88)' : '#FFFFFF',
     borderWidth: 1,
     borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+    overflow: 'hidden',
     elevation: isDark ? 2 : 3,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },

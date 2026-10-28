@@ -98,11 +98,17 @@ export const SpendingChart: React.FC<SpendingChartProps> = ({ subscriptions, cur
 
   return (
     <View style={styles.card}>
-      {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerLabel}>MONTHLY SPENDING</Text>
-          <Text style={styles.totalAmount}>{formatCurrency(totalMonthly, currencyCode)}</Text>
+          <Text
+            style={styles.totalAmount}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+          >
+            {formatCurrency(totalMonthly, currencyCode)}
+          </Text>
         </View>
         <View style={styles.badge}>
           <Ionicons name="trending-up" size={14} color={colors.accent.blue} />
@@ -218,6 +224,11 @@ const getStyles = (colors: any) => StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: 16,
   },
+  headerLeft: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 10,
+  },
   headerLabel: {
     color: colors.text.tertiary,
     fontSize: 11,
@@ -232,6 +243,7 @@ const getStyles = (colors: any) => StyleSheet.create({
     letterSpacing: -0.5,
   },
   badge: {
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

@@ -37,11 +37,15 @@ export const WeeklySpendingChart: React.FC<WeeklySpendingChartProps> = ({
 
   return (
     <View style={styles.card}>
-      {/* Header */}
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerLeft}>
           <Text style={styles.headerLabel}>LAST 7 DAYS</Text>
-          <Text style={styles.totalAmount}>
+          <Text
+            style={styles.totalAmount}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.65}
+          >
             {formatCurrency(weekTotal, currencyCode)}
           </Text>
         </View>
@@ -143,12 +147,18 @@ const getStyles = (colors: any, isDark: boolean) =>
       backgroundColor: colors.glass.card,
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
+      overflow: 'hidden',
     },
     header: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
       marginBottom: 18,
+    },
+    headerLeft: {
+      flex: 1,
+      minWidth: 0,
+      marginRight: 10,
     },
     headerLabel: {
       color: colors.text.tertiary,
@@ -164,6 +174,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       letterSpacing: -0.5,
     },
     badge: {
+      flexShrink: 0,
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 12,

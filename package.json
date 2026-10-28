@@ -1,6 +1,6 @@
 {
   "name": "subdebt-manager",
-  "version": "2.14.1",
+  "version": "2.14.2",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

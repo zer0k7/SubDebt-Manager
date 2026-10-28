@@ -316,16 +316,25 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
       {activeDay && (
         <View style={styles.detailCard}>
           <View style={styles.detailCardHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, marginRight: 8 }}>
               <Ionicons name="calendar-outline" size={13} color={colors.accent.blue} />
-              <Text style={styles.detailDateText}>{formatDate(activeDay.dateStr)}</Text>
+              <Text style={styles.detailDateText} numberOfLines={1}>{formatDate(activeDay.dateStr)}</Text>
               {activeDay.isToday && (
                 <View style={styles.todayPill}>
                   <Text style={styles.todayPillText}>Today</Text>
                 </View>
               )}
             </View>
-            <Text style={[styles.detailAmountText, { color: activeDay.amount > 0 ? colors.accent.blue : colors.accent.green }]}>
+            <Text
+              style={[
+                styles.detailAmountText,
+                { color: activeDay.amount > 0 ? colors.accent.blue : colors.accent.green },
+                { maxWidth: '45%', flexShrink: 0, textAlign: 'right' },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
               {activeDay.amount > 0
                 ? formatCurrency(activeDay.amount, currencyCode)
                 : 'Zero Spend'}
@@ -339,7 +348,12 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
                   <Text style={styles.entryTitle} numberOfLines={1}>
                     {e.title}
                   </Text>
-                  <Text style={styles.entryVal}>
+                  <Text
+                    style={[styles.entryVal, { maxWidth: '45%', flexShrink: 0, textAlign: 'right' }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
                     {formatCurrency(e.amount, e.currency)}
                   </Text>
                 </View>
@@ -385,13 +399,15 @@ export const SpendingHeatmap: React.FC<SpendingHeatmapProps> = ({
 const getStyles = (colors: any, isDark: boolean) =>
   StyleSheet.create({
     card: {
-      padding: 14,
-      borderRadius: 20,
+      marginHorizontal: 20,
+      marginBottom: 14,
+      padding: 16,
+      borderRadius: 22,
       backgroundColor: colors.glass.card,
       borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
+      overflow: 'hidden',
       gap: 10,
-      marginBottom: 16,
     },
     cardHeader: {
       flexDirection: 'row',
