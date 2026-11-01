@@ -1,9 +1,13 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
 import { SpendingEntry } from '../hooks/useDailySpending';
 import { formatCurrency } from './dateHelpers';
 import { getCategoryColor } from '../constants/categories';
+import { storage } from '../storage/mmkv';
+import { STORAGE_KEYS } from '../storage/keys';
+import { pickPublicBackupFolder } from './vaultSnapshots';
 
 export interface PDFSubscriptionItem {
   name: string;
@@ -47,7 +51,100 @@ export interface PDFExportData {
   includeAllSections?: boolean;
 }
 
-export const exportSpendingToPDF = async (data: PDFExportData): Promise<string | null> => {
+export interface PDFExportResult {
+  success: boolean;
+  filePath: string;
+  fileName: string;
+}
+
+const OFFICIAL_APP_ICON_SVG = `
+<svg class="app-logo" viewBox="0 0 512 512" width="46" height="46" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#044E43"/>
+      <stop offset="50%" stop-color="#023028"/>
+      <stop offset="100%" stop-color="#011814"/>
+    </linearGradient>
+    <radialGradient id="centerGlow" cx="50%" cy="46%" r="48%">
+      <stop offset="0%" stop-color="#2DD4BF" stop-opacity="0.32"/>
+      <stop offset="65%" stop-color="#14B8A6" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#023028" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="55%" stop-color="#F97316"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+    <linearGradient id="chipGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FEF3C7"/>
+      <stop offset="100%" stop-color="#D97706"/>
+    </linearGradient>
+    <linearGradient id="receiptGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+    <linearGradient id="walletGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="65%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#E2E8F0"/>
+    </linearGradient>
+    <linearGradient id="walletRimGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="strapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0D9488"/>
+      <stop offset="50%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#115E59"/>
+    </linearGradient>
+    <radialGradient id="buttonGrad" cx="38%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="55%" stop-color="#E2E8F0"/>
+      <stop offset="85%" stop-color="#94A3B8"/>
+      <stop offset="100%" stop-color="#64748B"/>
+    </radialGradient>
+    <linearGradient id="dollarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#042F2E"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  <rect width="512" height="512" rx="112" fill="url(#centerGlow)"/>
+  <g transform="translate(138, 134) rotate(-14)">
+    <rect width="144" height="94" rx="14" fill="url(#cardGrad)"/>
+    <rect x="2" y="2" width="140" height="90" rx="12" fill="none" stroke="#FFFFFF" stroke-opacity="0.35" stroke-width="1.5"/>
+    <rect x="16" y="24" width="28" height="20" rx="4" fill="url(#chipGrad)"/>
+    <line x1="16" y1="34" x2="44" y2="34" stroke="#78350F" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="30" y1="24" x2="30" y2="44" stroke="#78350F" stroke-width="1" stroke-opacity="0.6"/>
+    <line x1="16" y1="62" x2="82" y2="62" stroke="#FFFFFF" stroke-opacity="0.75" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M 110,24 A 12 12 0 0 1 110,40 M 116,20 A 18 18 0 0 1 116,44" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.8"/>
+  </g>
+  <g transform="translate(258, 130) rotate(10)">
+    <path d="M0,20 L12,8 L24,20 L36,8 L48,20 L60,8 L72,20 L84,8 L96,20 L108,8 L116,18 L116,105 L0,105 Z" fill="url(#receiptGrad)"/>
+    <line x1="20" y1="38" x2="94" y2="38" stroke="#64748B" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="20" y1="54" x2="80" y2="54" stroke="#94A3B8" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="20" y1="70" x2="60" y2="70" stroke="#0D9488" stroke-width="4.5" stroke-linecap="round"/>
+  </g>
+  <g>
+    <rect x="92" y="210" width="328" height="202" rx="38" fill="url(#walletGrad)"/>
+    <rect x="94" y="212" width="324" height="198" rx="36" fill="none" stroke="url(#walletRimGrad)" stroke-width="2"/>
+    <rect x="104" y="222" width="304" height="178" rx="28" fill="none" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="6,5" stroke-opacity="0.6"/>
+  </g>
+  <g>
+    <path d="M 315,268 L 388,268 A 34,34 0 0,1 422,302 L 422,320 A 34,34 0 0,1 388,354 L 315,354 Z" fill="url(#strapGrad)"/>
+    <circle cx="380" cy="311" r="15" fill="#042F2E" fill-opacity="0.35"/>
+    <circle cx="380" cy="311" r="12" fill="url(#buttonGrad)"/>
+    <circle cx="380" cy="311" r="6" fill="#0D9488"/>
+    <circle cx="378" cy="309" r="1.8" fill="#FFFFFF" fill-opacity="0.9"/>
+  </g>
+  <g transform="translate(220, 312)">
+    <line x1="0" y1="-48" x2="0" y2="48" stroke="url(#dollarGrad)" stroke-width="14" stroke-linecap="round"/>
+    <text x="0" y="4" font-family="system-ui, -apple-system, sans-serif" font-weight="900" font-size="104" fill="url(#dollarGrad)" text-anchor="middle" dominant-baseline="central">$</text>
+  </g>
+</svg>
+`;
+
+export const exportSpendingToPDF = async (data: PDFExportData): Promise<PDFExportResult | null> => {
   const {
     entries,
     timeRangeLabel,
@@ -74,7 +171,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
 
   const reportId = `SBD-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  // Financial aggregates
   const activeSubs = subscriptions.filter((s) => s.isActive);
   const monthlySubsTotal = activeSubs.reduce((sum, s) => {
     let monthly = s.amount;
@@ -89,7 +185,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
   const openCredits = credits.filter((c) => !c.isReturned);
   const totalOpenCredits = openCredits.reduce((sum, c) => sum + (c.remainingAmount || c.amount || 0), 0);
 
-  // Category breakdown calculation
   const maxCategoryTotal = categoryTotals.length > 0 ? categoryTotals[0].total : 1;
 
   const categoryRowsHTML = categoryTotals
@@ -118,7 +213,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
     })
     .join('');
 
-  // Transaction rows table generator
   const entryRowsHTML = entries
     .map((entry) => {
       const entryDate = new Date(entry.spentAt).toLocaleDateString('en-IN', {
@@ -148,7 +242,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
     })
     .join('');
 
-  // Subscriptions rows HTML
   const subsRowsHTML = activeSubs
     .map((sub) => {
       const renewalStr = sub.nextRenewalDate
@@ -166,7 +259,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
     })
     .join('');
 
-  // Debts rows HTML
   const debtsRowsHTML = openDebts
     .map((debt) => {
       const dueStr = debt.dueDate
@@ -189,7 +281,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
     })
     .join('');
 
-  // Theme-specific CSS variables
   let themeCss = '';
   if (pdfTheme === 'dark') {
     themeCss = `
@@ -198,39 +289,36 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         --bg-panel: #0D0D12;
         --bg-stat: #14141B;
         --text-primary: #FFFFFF;
-        --text-secondary: #CBD5E1;
-        --text-muted: #94A3B8;
+        --text-secondary: #94A3B8;
+        --text-muted: #64748B;
         --border-color: #27272A;
-        --accent-primary: #38BDF8;
-        --accent-primary-light: rgba(56, 189, 248, 0.15);
+        --accent-primary: #818CF8;
+        --accent-primary-light: rgba(129, 140, 248, 0.15);
+        --accent-green: #34D399;
         --accent-debt: #F87171;
-        --accent-credit: #34D399;
-        --table-row-border: #1E1E24;
         --table-row-alt: #08080C;
-        --table-header-bg: #14141B;
+        --table-row-border: #18181B;
       }
     `;
   } else if (pdfTheme === 'emerald') {
     themeCss = `
       :root {
-        --bg-primary: #022C22;
-        --bg-panel: #064E3B;
-        --bg-stat: #042F2E;
-        --text-primary: #F0FDF4;
+        --bg-primary: #04120F;
+        --bg-panel: #07201B;
+        --bg-stat: #0C2E27;
+        --text-primary: #ECFDF5;
         --text-secondary: #A7F3D0;
         --text-muted: #6EE7B7;
         --border-color: #065F46;
         --accent-primary: #10B981;
         --accent-primary-light: rgba(16, 185, 129, 0.15);
-        --accent-debt: #F87171;
-        --accent-credit: #34D399;
-        --table-row-border: #065F46;
-        --table-row-alt: #04382A;
-        --table-header-bg: #03392B;
+        --accent-green: #34D399;
+        --accent-debt: #FB7185;
+        --table-row-alt: #051A15;
+        --table-row-border: #044E43;
       }
     `;
   } else {
-    // Light
     themeCss = `
       :root {
         --bg-primary: #F8FAFC;
@@ -240,13 +328,12 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         --text-secondary: #475569;
         --text-muted: #64748B;
         --border-color: #E2E8F0;
-        --accent-primary: #7C3AED;
-        --accent-primary-light: rgba(124, 58, 237, 0.08);
+        --accent-primary: #0D9488;
+        --accent-primary-light: rgba(13, 148, 136, 0.1);
+        --accent-green: #059669;
         --accent-debt: #DC2626;
-        --accent-credit: #059669;
-        --table-row-border: #E2E8F0;
         --table-row-alt: #F8FAFC;
-        --table-header-bg: #F1F5F9;
+        --table-row-border: #EDF2F7;
       }
     `;
   }
@@ -256,16 +343,15 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
     <html lang="en">
     <head>
       <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>SubDebt Financial Statement - ${timeRangeLabel}</title>
+      <title>SubDebt Financial Statement</title>
       <style>
         ${themeCss}
 
         @page {
-          margin: 14mm 12mm 16mm 12mm;
           size: A4 portrait;
+          margin: 16mm 14mm 16mm 14mm;
           @bottom-right {
-            content: "Page " counter(page);
+            content: "Page " counter(page) " of " counter(pages);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             font-size: 8pt;
             font-weight: 600;
@@ -315,8 +401,10 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         }
 
         .app-logo {
-          width: 44px;
-          height: 44px;
+          width: 46px;
+          height: 46px;
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .brand-text h1 {
@@ -382,7 +470,7 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         }
 
         .stat-value {
-          font-size: 14pt;
+          font-size: 15pt;
           font-weight: 800;
           color: var(--text-primary);
           line-height: 1.2;
@@ -390,9 +478,8 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
 
         .stat-sub {
           font-size: 8pt;
-          color: var(--text-secondary);
-          margin-top: 3px;
-          font-weight: 500;
+          color: var(--text-muted);
+          margin-top: 2px;
         }
 
         .section-grid {
@@ -418,24 +505,18 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
           display: flex;
           align-items: center;
           gap: 6px;
-          border-bottom: 1px solid var(--border-color);
-          padding-bottom: 6px;
         }
 
         .category-row {
-          margin-bottom: 10px;
-        }
-
-        .category-row:last-child {
-          margin-bottom: 0;
+          margin-bottom: 8px;
         }
 
         .category-info {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          font-size: 9pt;
           margin-bottom: 3px;
-          font-size: 9.5pt;
         }
 
         .category-name-wrap {
@@ -448,16 +529,16 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
           width: 8px;
           height: 8px;
           border-radius: 4px;
+          display: inline-block;
         }
 
         .category-name {
-          font-weight: 700;
+          font-weight: 600;
           color: var(--text-primary);
         }
 
         .category-value-wrap {
           display: flex;
-          align-items: center;
           gap: 8px;
         }
 
@@ -468,42 +549,36 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
 
         .category-percent {
           color: var(--text-muted);
-          font-size: 8pt;
-          font-weight: 600;
-          min-width: 26px;
+          font-size: 8.5pt;
+          width: 32px;
           text-align: right;
         }
 
         .progress-bar-bg {
-          height: 6px;
-          background-color: var(--bg-stat);
-          border-radius: 3px;
+          height: 5px;
+          background: var(--bg-stat);
+          border-radius: 4px;
           overflow: hidden;
         }
 
         .progress-bar-fill {
           height: 100%;
-          border-radius: 3px;
+          border-radius: 4px;
         }
 
         .insight-box {
-          background-color: var(--bg-stat);
-          border-radius: 10px;
+          background: var(--bg-stat);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
           padding: 10px 12px;
           margin-bottom: 8px;
-          border: 1px solid var(--border-color);
-        }
-
-        .insight-box:last-child {
-          margin-bottom: 0;
         }
 
         .insight-title {
-          font-size: 8.5pt;
-          font-weight: 800;
-          color: var(--accent-primary);
+          font-size: 8pt;
+          font-weight: 700;
+          color: var(--text-muted);
           text-transform: uppercase;
-          letter-spacing: 0.5px;
           margin-bottom: 2px;
         }
 
@@ -513,13 +588,12 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
           line-height: 1.35;
         }
 
-        .table-panel {
+        .ledger-table-panel {
           background-color: var(--bg-panel);
           border: 1px solid var(--border-color);
           border-radius: 14px;
           padding: 14px 16px;
-          margin-bottom: 16px;
-          break-inside: avoid;
+          margin-bottom: 14px;
         }
 
         .ledger-table {
@@ -529,14 +603,13 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         }
 
         .ledger-table th {
-          background-color: var(--table-header-bg);
-          color: var(--text-muted);
-          font-weight: 700;
-          font-size: 8pt;
-          text-transform: uppercase;
-          letter-spacing: 0.6px;
-          padding: 8px 10px;
           text-align: left;
+          font-size: 8pt;
+          font-weight: 700;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          padding: 6px 10px;
           border-bottom: 1px solid var(--border-color);
         }
 
@@ -625,21 +698,9 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
       </style>
     </head>
     <body>
-      <!-- Header with Official Logo & Document Info -->
       <div class="header">
         <div class="brand-section">
-          <svg class="app-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" rx="22" fill="#7C3AED" />
-            <path d="M25 35C25 29.4772 29.4772 25 35 25H65C70.5228 25 75 29.4772 75 35V65C75 70.5228 70.5228 75 65 75H35C29.4772 75 25 70.5228 25 65V35Z" fill="#1E1B4B" />
-            <path d="M32 44C32 39.5817 35.5817 36 40 36H68C72.4183 36 76 39.5817 76 44V64C76 68.4183 72.4183 72 68 72H40C35.5817 72 32 68.4183 32 64V44Z" fill="url(#paint0_linear)" />
-            <circle cx="62" cy="54" r="5" fill="#FFFFFF" />
-            <defs>
-              <linearGradient id="paint0_linear" x1="32" y1="36" x2="76" y2="72" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#4FC3F7" />
-                <stop offset="1" stop-color="#8B5CF6" />
-              </linearGradient>
-            </defs>
-          </svg>
+          ${OFFICIAL_APP_ICON_SVG}
           <div class="brand-text">
             <h1>SubDebt Manager</h1>
             <p>Financial Statement & Audit Ledger</p>
@@ -653,7 +714,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         </div>
       </div>
 
-      <!-- Key Metric Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-title">Total Spending</div>
@@ -677,7 +737,6 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
         </div>
       </div>
 
-      <!-- Visual Breakdown & Insights -->
       <div class="section-grid">
         <div class="panel">
           <div class="panel-title">Spending by Category</div>
@@ -700,34 +759,50 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
             <div class="insight-title">Peak Outflow Day</div>
             <div class="insight-body">
               ${
-                highestDay && highestDay.total > 0
-                  ? `Highest single-day expenditure was <strong>${formatCurrency(highestDay.total, currencyCode)}</strong> on ${new Date(highestDay.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}.`
-                  : 'No peak single-day expense recorded.'
+                highestDay.date
+                  ? `Highest single-day expenditure occurred on <strong>${new Date(highestDay.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong> totaling <strong>${formatCurrency(highestDay.total, currencyCode)}</strong>.`
+                  : 'No single peak expenditure identified.'
               }
             </div>
           </div>
           <div class="insight-box">
-            <div class="insight-title">Privacy Verification</div>
+            <div class="insight-title">Average Ticket Size</div>
             <div class="insight-body">
-              This statement was generated 100% offline on-device with zero cloud telemetry.
+              Average spent per transaction is <strong>${formatCurrency(entries.length > 0 ? totalAmount / entries.length : 0, currencyCode)}</strong> across ${entries.length} records.
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Active Subscriptions Overview (if enabled and present) -->
+      <div class="ledger-table-panel">
+        <div class="panel-title">Itemized Expense Log (${entries.length} items)</div>
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th style="width: 15%;">Date</th>
+              <th style="width: 45%;">Description</th>
+              <th style="width: 20%;">Category</th>
+              <th style="width: 20%;" class="text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${entries.length > 0 ? entryRowsHTML : '<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-muted);">No transactions found in this time range.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+
       ${
         includeAllSections && activeSubs.length > 0
           ? `
-        <div class="table-panel">
-          <div class="panel-title">Active Recurring Subscriptions (${activeSubs.length})</div>
+        <div class="ledger-table-panel" style="page-break-before: auto;">
+          <div class="panel-title">Active Recurring Subscriptions (${activeSubs.length} services)</div>
           <table class="ledger-table">
             <thead>
               <tr>
-                <th style="width: 40%;">Subscription</th>
+                <th style="width: 40%;">Service / Subscription</th>
                 <th style="width: 20%;">Billing Cycle</th>
                 <th style="width: 20%;">Next Renewal</th>
-                <th style="width: 20%; text-align: right;">Amount</th>
+                <th style="width: 20%;" class="text-right">Amount</th>
               </tr>
             </thead>
             <tbody>
@@ -739,19 +814,18 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
           : ''
       }
 
-      <!-- Open Debts Overview (if enabled and present) -->
       ${
         includeAllSections && openDebts.length > 0
           ? `
-        <div class="table-panel">
-          <div class="panel-title">Open Debts & Liabilities (${openDebts.length})</div>
+        <div class="ledger-table-panel">
+          <div class="panel-title">Outstanding Debts / Liabilities (${openDebts.length} pending)</div>
           <table class="ledger-table">
             <thead>
               <tr>
-                <th style="width: 40%;">Counterparty</th>
+                <th style="width: 40%;">Counterparty / Creditor</th>
                 <th style="width: 20%;">Status</th>
                 <th style="width: 20%;">Due Date</th>
-                <th style="width: 20%; text-align: right;">Balance Due</th>
+                <th style="width: 20%;" class="text-right">Outstanding</th>
               </tr>
             </thead>
             <tbody>
@@ -763,28 +837,9 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
           : ''
       }
 
-      <!-- Detailed Transaction Ledger -->
-      <div class="table-panel">
-        <div class="panel-title">Daily Expense Transactions (${entries.length})</div>
-        <table class="ledger-table">
-          <thead>
-            <tr>
-              <th style="width: 18%;">Date</th>
-              <th style="width: 47%;">Description</th>
-              <th style="width: 18%;">Category</th>
-              <th style="width: 17%; text-align: right;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${entries.length > 0 ? entryRowsHTML : '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 30px;">No entries available.</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Verification Footer -->
       <div class="footer-watermark">
-        <div>SubDebt Manager • Encrypted On-Device Statement</div>
-        <div>Report ID: ${reportId} • ${formattedDate}</div>
+        <span>Generated offline by SubDebt Manager • Zero Cloud Transmission</span>
+        <span>${formattedDate}</span>
       </div>
     </body>
     </html>
@@ -807,23 +862,94 @@ export const exportSpendingToPDF = async (data: PDFExportData): Promise<string |
       to: customFilePath,
     });
 
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(customFilePath, {
-        mimeType: 'application/pdf',
-        dialogTitle: `SubDebt Financial Statement - ${timeRangeLabel}`,
-        UTI: 'com.adobe.pdf',
-      });
-    }
-
     try {
       await FileSystem.deleteAsync(uri, { idempotent: true });
-    } catch (cleanupError) {
-      console.warn('Temporary file cleanup failed:', cleanupError);
-    }
+    } catch {}
 
-    return customFilePath;
+    return {
+      success: true,
+      filePath: customFilePath,
+      fileName: customFileName,
+    };
   } catch (error) {
     console.error('Error generating PDF:', error);
     return null;
+  }
+};
+
+export const savePDFToPhoneFolder = async (
+  filePath: string,
+  fileName: string
+): Promise<{ success: boolean; folderName?: string; targetUri?: string; error?: string }> => {
+  try {
+    if (Platform.OS === 'android') {
+      let folderUri = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
+      let folderName = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_NAME);
+
+      if (!folderUri) {
+        const pickRes = await pickPublicBackupFolder();
+        if (!pickRes.granted || !pickRes.folderUri) {
+          return { success: false, error: 'No folder selected.' };
+        }
+        folderUri = pickRes.folderUri;
+        folderName = pickRes.folderName || 'Selected Storage Folder';
+      }
+
+      const base64Data = await FileSystem.readAsStringAsync(filePath, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      const cleanFileName = fileName.replace('.pdf', '');
+      const createdFileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+        folderUri,
+        cleanFileName,
+        'application/pdf'
+      );
+
+      await FileSystem.writeAsStringAsync(createdFileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      return {
+        success: true,
+        folderName: folderName || 'Storage Folder',
+        targetUri: createdFileUri,
+      };
+    } else {
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(filePath, {
+          mimeType: 'application/pdf',
+          dialogTitle: `Save Statement: ${fileName}`,
+          UTI: 'com.adobe.pdf',
+        });
+        return { success: true, folderName: 'Files' };
+      }
+      return { success: false, error: 'Sharing not available on this device.' };
+    }
+  } catch (err) {
+    console.error('Failed to save PDF to phone folder:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Could not save file to device.',
+    };
+  }
+};
+
+export const sharePDFFile = async (filePath: string, fileName: string): Promise<boolean> => {
+  try {
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (isAvailable) {
+      await Sharing.shareAsync(filePath, {
+        mimeType: 'application/pdf',
+        dialogTitle: `Share Statement: ${fileName}`,
+        UTI: 'com.adobe.pdf',
+      });
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to share PDF:', error);
+    return false;
   }
 };

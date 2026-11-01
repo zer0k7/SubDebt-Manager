@@ -1,5 +1,5 @@
 import { useTheme } from '../../hooks/useTheme';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -15,13 +16,23 @@ import * as Haptics from 'expo-haptics';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AmbientBackground } from '../../components/AmbientBackground';
 import { GlassButton } from '../../components/GlassButton';
+import { AppPopup } from '../../components/AppPopup';
 import { useDailySpending, SpendingEntry, TimeRange } from '../../hooks/useDailySpending';
 import { useSubscriptions } from '../../hooks/useSubscriptions';
 import { useDebts } from '../../hooks/useDebts';
 import { useCredits } from '../../hooks/useCredits';
 import { useCurrency } from '../../hooks/useCurrency';
 import { formatCurrency } from '../../utils/dateHelpers';
-import { exportSpendingToPDF } from '../../utils/pdfExporter';
+import {
+  exportSpendingToPDF,
+  savePDFToPhoneFolder,
+  sharePDFFile,
+  PDFExportData,
+} from '../../utils/pdfExporter';
+import {
+  getPublicBackupFolderInfo,
+  pickPublicBackupFolder,
+} from '../../utils/vaultSnapshots';
 
 type ExportRange = TimeRange | 'custom';
 type PDFTheme = 'light' | 'dark' | 'emerald';
@@ -36,8 +47,8 @@ const RANGE_OPTIONS: { key: ExportRange; label: string; icon: string }[] = [
 ];
 
 const THEME_OPTIONS: { key: PDFTheme; label: string; icon: string; activeColor: string }[] = [
-  { key: 'light', label: 'Classic Light', icon: 'sunny-outline', activeColor: '#7C3AED' },
-  { key: 'dark', label: 'Deep Slate Dark', icon: 'moon-outline', activeColor: '#6366F1' },
+  { key: 'light', label: 'Classic Light', icon: 'sunny-outline', activeColor: '#0D9488' },
+  { key: 'dark', label: 'Deep Slate Dark', icon: 'moon-outline', activeColor: '#818CF8' },
   { key: 'emerald', label: 'Luxury Emerald', icon: 'leaf-outline', activeColor: '#10B981' },
 ];
 
@@ -54,6 +65,12 @@ export default function ExportPDFModal() {
 
   const [selectedRange, setSelectedRange] = useState<ExportRange>('30d');
   const [pdfTheme, setPdfTheme] = useState<PDFTheme>('light');
+  const [includeAllSections, setIncludeAllSections] = useState(true);
+  const [publicFolder, setPublicFolder] = useState<{ uri: string | null; name: string | null }>({
+    uri: null,
+    name: null,
+  });
+
   const [startDate, setStartDate] = useState<Date>(() => {
     const d = new Date();
     d.setDate(d.getDate() - 30);
@@ -63,9 +80,46 @@ export default function ExportPDFModal() {
 
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
-  const [exporting, setExporting] = useState(false);
+  const [exportingAction, setExportingAction] = useState<'save' | 'share' | null>(null);
 
-  // Compute stats in real-time based on selection
+  const [popupConfig, setPopupConfig] = useState<any>(null);
+  const showPopup = (config: any) => setPopupConfig(config);
+  const closePopup = () => setPopupConfig(null);
+
+  const loadFolder = useCallback(async () => {
+    const info = await getPublicBackupFolderInfo();
+    setPublicFolder(info);
+  }, []);
+
+  useEffect(() => {
+    loadFolder();
+  }, [loadFolder]);
+
+  const handlePickFolder = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (Platform.OS !== 'android') {
+      showPopup({
+        title: 'Device Storage',
+        message: 'On iOS, files can be directly saved into the Files app or iCloud via the Share Sheet.',
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
+      return;
+    }
+
+    const result = await pickPublicBackupFolder();
+    if (result.granted && result.folderName) {
+      await loadFolder();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showPopup({
+        title: 'Storage Folder Linked',
+        message: `Linked folder: "${result.folderName}". All generated PDF statements will be saved here so they show up directly in your phone's File Manager.`,
+        confirmText: 'Done',
+        onConfirm: closePopup,
+      });
+    }
+  };
+
   const stats = useMemo(() => {
     let filtered: SpendingEntry[] = [];
     let label = '';
@@ -89,13 +143,10 @@ export default function ExportPDFModal() {
       label = opt ? opt.label : '';
     }
 
-    // Sort descending
     filtered = [...filtered].sort((a, b) => new Date(b.spentAt).getTime() - new Date(a.spentAt).getTime());
 
-    // Calculate total amount
     const total = filtered.reduce((sum, e) => sum + convertAmount(e.amount, e.currency), 0);
 
-    // Calculate daily average
     let avg = 0;
     if (filtered.length > 0) {
       const dayKeys = new Set(
@@ -107,7 +158,6 @@ export default function ExportPDFModal() {
       avg = dayKeys.size > 0 ? Math.round((total / dayKeys.size) * 100) / 100 : 0;
     }
 
-    // Calculate Category Breakdown
     const totalsMap = new Map<string, number>();
     filtered.forEach((entry) => {
       const amt = convertAmount(entry.amount, entry.currency);
@@ -117,7 +167,6 @@ export default function ExportPDFModal() {
       .map(([category, total]) => ({ category, total }))
       .sort((a, b) => b.total - a.total);
 
-    // Calculate Highest Spending Day
     const dayMap = new Map<string, number>();
     filtered.forEach((entry) => {
       const d = new Date(entry.spentAt);
@@ -144,15 +193,7 @@ export default function ExportPDFModal() {
     };
   }, [entries, selectedRange, startDate, endDate, getEntriesForRange, convertAmount]);
 
-  const handleExport = async () => {
-    if (stats.entries.length === 0) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return;
-    }
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setExporting(true);
-
+  const preparePDFData = (): PDFExportData => {
     const mappedSubs = subscriptions.map((s) => ({
       name: s.name,
       amount: s.amount,
@@ -190,7 +231,7 @@ export default function ExportPDFModal() {
       };
     });
 
-    const result = await exportSpendingToPDF({
+    return {
       entries: stats.entries,
       timeRangeLabel: stats.label,
       totalAmount: stats.total,
@@ -202,12 +243,87 @@ export default function ExportPDFModal() {
       subscriptions: mappedSubs,
       debts: mappedDebts,
       credits: mappedCredits,
-      includeAllSections: true,
-    });
+      includeAllSections,
+    };
+  };
 
-    setExporting(false);
-    if (result) {
-      router.back();
+  const handleSaveToDevice = async () => {
+    if (stats.entries.length === 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    setExportingAction('save');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    const pdfData = preparePDFData();
+    const result = await exportSpendingToPDF(pdfData);
+
+    if (!result || !result.filePath) {
+      setExportingAction(null);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showPopup({
+        title: 'Export Failed',
+        message: 'Could not generate PDF file.',
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
+      return;
+    }
+
+    const saveResult = await savePDFToPhoneFolder(result.filePath, result.fileName);
+    setExportingAction(null);
+
+    if (saveResult.success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showPopup({
+        title: 'Statement Saved',
+        message: `Your financial statement was saved successfully.\n\nFolder: "${saveResult.folderName}"\nFile: ${result.fileName}\n\nYou can access it anytime from your phone's File Manager.`,
+        confirmText: 'Open PDF',
+        cancelText: 'Done',
+        onCancel: () => {
+          closePopup();
+          router.back();
+        },
+        onConfirm: async () => {
+          closePopup();
+          await sharePDFFile(result.filePath, result.fileName);
+          router.back();
+        },
+      });
+    } else if (saveResult.error && saveResult.error !== 'No folder selected.') {
+      showPopup({
+        title: 'Save Failed',
+        message: saveResult.error,
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
+    }
+  };
+
+  const handleShareViaApps = async () => {
+    if (stats.entries.length === 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    setExportingAction('share');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const pdfData = preparePDFData();
+    const result = await exportSpendingToPDF(pdfData);
+    setExportingAction(null);
+
+    if (result && result.filePath) {
+      await sharePDFFile(result.filePath, result.fileName);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showPopup({
+        title: 'Export Failed',
+        message: 'Could not generate PDF file.',
+        confirmText: 'OK',
+        onConfirm: closePopup,
+      });
     }
   };
 
@@ -225,17 +341,15 @@ export default function ExportPDFModal() {
     <SafeAreaView style={styles.container}>
       <AmbientBackground />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <Ionicons name="close" size={26} color={colors.text.secondary} />
         </TouchableOpacity>
-        <Text style={styles.title}>Export PDF Report</Text>
+        <Text style={styles.title}>Export PDF Statement</Text>
         <View style={{ width: 36 }} />
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content}>
-        {/* Step 1: Select Range */}
         <Text style={styles.sectionLabel}>1. Select Time Range</Text>
         <View style={styles.rangeGrid}>
           {RANGE_OPTIONS.map((option) => {
@@ -261,7 +375,6 @@ export default function ExportPDFModal() {
           })}
         </View>
 
-        {/* Custom Date Pickers */}
         {selectedRange === 'custom' && (
           <View style={styles.customDateContainer}>
             <TouchableOpacity
@@ -298,8 +411,7 @@ export default function ExportPDFModal() {
           </View>
         )}
 
-        {/* Select PDF Design Template */}
-        <Text style={styles.sectionLabel}>2. Select Design Style</Text>
+        <Text style={styles.sectionLabel}>2. Select Document Style</Text>
         <View style={styles.rangeGrid}>
           {THEME_OPTIONS.map((option) => {
             const isActive = pdfTheme === option.key;
@@ -316,7 +428,7 @@ export default function ExportPDFModal() {
                   color={isActive ? option.activeColor : colors.text.secondary}
                   style={styles.rangeIcon}
                 />
-                <Text style={[styles.rangeLabel, isActive && { color: option.activeColor, fontWeight: '600' }]}>
+                <Text style={[styles.rangeLabel, isActive && { color: option.activeColor, fontWeight: '700' }]}>
                   {option.label}
                 </Text>
               </TouchableOpacity>
@@ -324,14 +436,57 @@ export default function ExportPDFModal() {
           })}
         </View>
 
-        {/* Step 3: Live Preview */}
-        <Text style={styles.sectionLabel}>3. Document Preview</Text>
+        <Text style={styles.sectionLabel}>3. Statement Options</Text>
+        <TouchableOpacity
+          style={styles.toggleCard}
+          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setIncludeAllSections((prev) => !prev);
+          }}
+        >
+          <View style={styles.toggleIconWrap}>
+            <Ionicons
+              name={includeAllSections ? 'checkbox' : 'square-outline'}
+              size={22}
+              color={includeAllSections ? colors.accent.purple : colors.text.muted}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.toggleTitle}>Include Active Subscriptions & Debts</Text>
+            <Text style={styles.toggleSub}>
+              Adds your recurring bills and liability ledgers to this statement report.
+            </Text>
+          </View>
+        </TouchableOpacity>
+
+        <Text style={styles.sectionLabel}>4. Storage Destination</Text>
+        <View style={styles.folderCard}>
+          <View style={styles.folderIconWrap}>
+            <Ionicons name="folder-outline" size={20} color={colors.accent.green} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.folderTitle}>Phone Storage Location</Text>
+            <Text style={styles.folderSubtitle} numberOfLines={1}>
+              {publicFolder.name ? `Linked: ${publicFolder.name}` : 'Default File Manager / Downloads'}
+            </Text>
+          </View>
+          {Platform.OS === 'android' && (
+            <TouchableOpacity onPress={handlePickFolder} style={styles.changeFolderBtn}>
+              <Text style={styles.changeFolderText}>
+                {publicFolder.name ? 'Change' : 'Set Folder'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <Text style={styles.sectionLabel}>5. Statement Preview</Text>
         <View style={styles.previewCard}>
           <View style={styles.previewHeader}>
             <Ionicons name="document-text-outline" size={20} color={colors.accent.purple} />
             <Text style={styles.previewTitle}>SubDebt Spending Ledger</Text>
             <View style={styles.previewStatus}>
-              <Text style={styles.previewStatusText}>Offline</Text>
+              <Text style={styles.previewStatusText}>Verified Offline</Text>
             </View>
           </View>
 
@@ -365,31 +520,32 @@ export default function ExportPDFModal() {
           )}
         </View>
 
-        {/* Info Box */}
-        <View style={styles.infoBox}>
-          <Ionicons name="shield-checkmark-outline" size={16} color={colors.text.secondary} />
-          <Text style={styles.infoBoxText}>
-            SubDebt-Manager exports reports with professional layout designs locally on your device.
-            Your financial data never uploads to external servers.
-          </Text>
-        </View>
-
-        {/* Export Button */}
         <View style={styles.btnContainer}>
           <GlassButton
-            title={exporting ? '' : 'Generate PDF Report'}
-            onPress={handleExport}
+            title={exportingAction === 'save' ? '' : 'Save Statement to Phone'}
+            onPress={handleSaveToDevice}
             size="large"
-            disabled={stats.entries.length === 0 || exporting}
+            disabled={stats.entries.length === 0 || exportingAction !== null}
           >
-            {exporting && <ActivityIndicator color="#FFF" size="small" />}
+            {exportingAction === 'save' && <ActivityIndicator color="#FFF" size="small" />}
           </GlassButton>
+
+          <GlassButton
+            title={exportingAction === 'share' ? '' : 'Share via Apps'}
+            variant="secondary"
+            onPress={handleShareViaApps}
+            size="large"
+            disabled={stats.entries.length === 0 || exportingAction !== null}
+          >
+            {exportingAction === 'share' && <ActivityIndicator color="#FFF" size="small" />}
+          </GlassButton>
+
           <GlassButton
             title="Cancel"
             variant="ghost"
             onPress={() => router.back()}
             size="large"
-            disabled={exporting}
+            disabled={exportingAction !== null}
           />
         </View>
       </ScrollView>
@@ -415,6 +571,19 @@ export default function ExportPDFModal() {
           setEndDate(d);
         }}
         onCancel={() => setShowEndDatePicker(false)}
+      />
+
+      <AppPopup
+        visible={!!popupConfig}
+        title={popupConfig?.title || ''}
+        message={popupConfig?.message || ''}
+        icon={popupConfig?.icon}
+        iconColor={popupConfig?.iconColor}
+        cancelText={popupConfig?.cancelText}
+        confirmText={popupConfig?.confirmText || 'OK'}
+        isDestructive={popupConfig?.isDestructive}
+        onCancel={popupConfig?.onCancel}
+        onConfirm={popupConfig?.onConfirm || closePopup}
       />
     </SafeAreaView>
   );
@@ -450,96 +619,156 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '700',
     },
     content: {
-      padding: 16,
+      paddingHorizontal: 16,
       paddingBottom: 40,
     },
     sectionLabel: {
-      color: colors.text.secondary,
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: '700',
+      color: colors.text.secondary,
       textTransform: 'uppercase',
-      letterSpacing: 1,
-      marginBottom: 12,
-      marginTop: 8,
+      letterSpacing: 0.8,
+      marginTop: 20,
+      marginBottom: 10,
     },
     rangeGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 10,
-      marginBottom: 20,
+      gap: 8,
     },
     rangeCard: {
-      flex: 1,
-      minWidth: '45%',
+      width: '48.5%',
       backgroundColor: colors.glass.card,
-      borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
-      borderRadius: 16,
-      padding: 16,
-      alignItems: 'center',
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
       flexDirection: 'row',
+      alignItems: 'center',
       gap: 10,
     },
     rangeCardActive: {
-      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
-      borderColor: colors.accent.alpha(isDark ? 0.4 : 0.3),
+      borderColor: colors.accent.purple,
+      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.15)' : 'rgba(124, 58, 237, 0.08)',
     },
     rangeIcon: {
-      width: 22,
+      marginRight: 2,
     },
     rangeLabel: {
-      color: colors.text.muted,
-      fontSize: 14,
-      fontWeight: '500',
+      fontSize: 13,
+      fontWeight: '600',
+      color: colors.text.secondary,
+      flexShrink: 1,
     },
     rangeLabelActive: {
       color: colors.accent.purple,
-      fontWeight: '600',
+      fontWeight: '700',
     },
     customDateContainer: {
       flexDirection: 'row',
-      gap: 12,
-      marginBottom: 20,
+      gap: 10,
+      marginTop: 10,
     },
     dateSelector: {
       flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
       backgroundColor: colors.glass.card,
-      borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
-      borderRadius: 16,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 10,
+      gap: 8,
     },
     dateSelectorIconWrap: {
       width: 32,
       height: 32,
       borderRadius: 8,
-      backgroundColor: colors.accent.alpha(isDark ? 0.15 : 0.08),
+      backgroundColor: isDark ? 'rgba(124, 58, 237, 0.15)' : 'rgba(124, 58, 237, 0.08)',
       justifyContent: 'center',
       alignItems: 'center',
     },
     dateSelectorLabel: {
-      color: colors.text.muted,
       fontSize: 10,
-      fontWeight: '500',
+      fontWeight: '600',
+      color: colors.text.muted,
       textTransform: 'uppercase',
     },
     dateSelectorValue: {
+      fontSize: 12,
+      fontWeight: '700',
       color: colors.text.primary,
-      fontSize: 13,
-      fontWeight: '600',
       marginTop: 2,
+    },
+    toggleCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.glass.card,
+      borderColor: colors.glass.cardBorder,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      gap: 12,
+    },
+    toggleIconWrap: {
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    toggleTitle: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    toggleSub: {
+      fontSize: 11,
+      color: colors.text.muted,
+      marginTop: 2,
+    },
+    folderCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.glass.card,
+      borderColor: colors.glass.cardBorder,
+      borderWidth: 1,
+      borderRadius: 12,
+      padding: 12,
+      gap: 12,
+    },
+    folderIconWrap: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    folderTitle: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.text.primary,
+    },
+    folderSubtitle: {
+      fontSize: 11,
+      color: colors.text.muted,
+      marginTop: 2,
+    },
+    changeFolderBtn: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    changeFolderText: {
+      fontSize: 11,
+      fontWeight: '700',
+      color: colors.accent.purple,
     },
     previewCard: {
       backgroundColor: colors.glass.card,
-      borderWidth: 0.5,
       borderColor: colors.glass.cardBorder,
-      borderRadius: 20,
-      padding: 20,
-      marginBottom: 16,
+      borderWidth: 1,
+      borderRadius: 14,
+      padding: 14,
     },
     previewHeader: {
       flexDirection: 'row',
@@ -547,94 +776,71 @@ const getStyles = (colors: any, isDark: boolean) =>
       gap: 8,
     },
     previewTitle: {
-      color: colors.text.primary,
       fontSize: 14,
       fontWeight: '700',
+      color: colors.text.primary,
       flex: 1,
     },
     previewStatus: {
-      backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.08)',
-      borderColor: isDark ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.2)',
-      borderWidth: 0.5,
       paddingHorizontal: 8,
-      paddingVertical: 2,
+      paddingVertical: 3,
       borderRadius: 6,
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : 'rgba(16, 185, 129, 0.1)',
     },
     previewStatusText: {
-      color: colors.accent.emerald || '#10B981',
       fontSize: 10,
-      fontWeight: '600',
-      textTransform: 'uppercase',
+      fontWeight: '700',
+      color: colors.accent.green,
     },
     previewDivider: {
-      height: 0.5,
+      height: 1,
       backgroundColor: colors.glass.cardBorder,
-      marginVertical: 14,
+      marginVertical: 12,
     },
     previewStatsGrid: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: 12,
     },
     previewStat: {
       flex: 1,
     },
     previewStatLabel: {
-      color: colors.text.secondary,
       fontSize: 11,
-      fontWeight: '500',
+      color: colors.text.muted,
+      marginBottom: 2,
     },
     previewStatValue: {
+      fontSize: 16,
+      fontWeight: '800',
       color: colors.text.primary,
-      fontSize: 18,
-      fontWeight: '700',
-      marginTop: 4,
     },
     previewMeta: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
-      marginTop: 6,
+      gap: 5,
+      marginTop: 10,
     },
     previewMetaText: {
+      fontSize: 11,
       color: colors.text.muted,
-      fontSize: 12,
-      fontWeight: '500',
     },
     emptyWarning: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
-      backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.05)',
-      borderColor: isDark ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.15)',
-      borderWidth: 0.5,
-      borderRadius: 10,
-      padding: 10,
-      marginTop: 14,
+      gap: 6,
+      backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : 'rgba(239, 68, 68, 0.08)',
+      padding: 8,
+      borderRadius: 8,
+      marginTop: 10,
     },
     emptyWarningText: {
+      fontSize: 11,
       color: colors.accent.red,
-      fontSize: 11,
-      fontWeight: '500',
-      flex: 1,
-    },
-    infoBox: {
-      flexDirection: 'row',
-      gap: 10,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.015)',
-      borderWidth: 0.5,
-      borderColor: colors.glass.cardBorder,
-      borderRadius: 16,
-      padding: 14,
-      marginBottom: 24,
-    },
-    infoBoxText: {
-      color: colors.text.muted,
-      fontSize: 11,
-      lineHeight: 16,
+      fontWeight: '600',
       flex: 1,
     },
     btnContainer: {
+      marginTop: 24,
       gap: 10,
     },
   });

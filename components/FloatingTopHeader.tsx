@@ -28,10 +28,8 @@ export const FloatingTopHeader: React.FC<FloatingTopHeaderProps> = ({
   return (
     <View style={[styles.floatingContainer, style]}>
       <View style={styles.topRow}>
-        {/* Left Action (if any) */}
         {leftAction && <View style={styles.leftWrap}>{leftAction}</View>}
 
-        {/* Title & Subtitle */}
         <View style={styles.titleWrap}>
           {typeof title === 'string' ? (
             <Text style={styles.titleText} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
@@ -47,11 +45,9 @@ export const FloatingTopHeader: React.FC<FloatingTopHeaderProps> = ({
           )}
         </View>
 
-        {/* Right Actions */}
         {rightActions && <View style={styles.rightActionsWrap}>{rightActions}</View>}
       </View>
 
-      {/* Optional sub-row (search bar, filter tabs, etc.) */}
       {children && <View style={styles.childWrap}>{children}</View>}
     </View>
   );

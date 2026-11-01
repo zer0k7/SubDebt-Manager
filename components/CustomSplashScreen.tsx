@@ -5,102 +5,88 @@ import {
   StyleSheet,
   Animated,
   Easing,
-  Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-
-const { width } = Dimensions.get('window');
 
 interface CustomSplashScreenProps {
+  onReady?: () => void;
   onFinish: () => void;
 }
 
-export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onFinish }) => {
+export const CustomSplashScreen: React.FC<CustomSplashScreenProps> = ({ onReady, onFinish }) => {
   const containerOpacity = useRef(new Animated.Value(1)).current;
-  const contentOpacity = useRef(new Animated.Value(0)).current;
-  const contentScale = useRef(new Animated.Value(0.92)).current;
-  const contentTranslateY = useRef(new Animated.Value(12)).current;
+  const logoScale = useRef(new Animated.Value(1)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  const textTranslateY = useRef(new Animated.Value(10)).current;
 
   useEffect(() => {
+    if (onReady) {
+      onReady();
+    }
+
     Animated.sequence([
       Animated.parallel([
-        Animated.timing(contentOpacity, {
+        Animated.timing(textOpacity, {
           toValue: 1,
-          duration: 260,
+          duration: 220,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
-        Animated.spring(contentScale, {
-          toValue: 1,
-          friction: 8,
-          tension: 60,
-          useNativeDriver: true,
-        }),
-        Animated.timing(contentTranslateY, {
+        Animated.timing(textTranslateY, {
           toValue: 0,
-          duration: 260,
+          duration: 220,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }),
       ]),
-      Animated.delay(400),
-      Animated.timing(containerOpacity, {
-        toValue: 0,
-        duration: 220,
-        easing: Easing.in(Easing.quad),
-        useNativeDriver: true,
-      }),
+      Animated.delay(350),
+      Animated.parallel([
+        Animated.timing(containerOpacity, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoScale, {
+          toValue: 1.06,
+          duration: 200,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
     ]).start(() => {
       onFinish();
     });
-  }, [containerOpacity, contentOpacity, contentScale, contentTranslateY, onFinish]);
+  }, [containerOpacity, logoScale, textOpacity, textTranslateY, onReady, onFinish]);
 
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
-      <LinearGradient
-        colors={['#000000', '#060609', '#000000']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0.5, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-      />
+      <View style={styles.centerWrapper}>
+        <Animated.View style={[styles.logoWrapper, { transform: [{ scale: logoScale }] }]}>
+          <Image
+            source={require('../assets/splash-icon.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+        </Animated.View>
 
-      <Animated.View
-        style={[
-          styles.contentWrapper,
-          {
-            opacity: contentOpacity,
-            transform: [
-              { scale: contentScale },
-              { translateY: contentTranslateY },
-            ],
-          },
-        ]}
-      >
-        <View style={styles.emblemContainer}>
-          <LinearGradient
-            colors={['#101015', '#08080c']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.emblemCard}
-          >
-            <View style={styles.emblemInner}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="wallet-outline" size={38} color="#2DD4BF" />
-              </View>
-              <View style={styles.accentDot} />
-            </View>
-          </LinearGradient>
-        </View>
-
-        <View style={styles.textContainer}>
+        <Animated.View
+          style={[
+            styles.textContainer,
+            {
+              opacity: textOpacity,
+              transform: [{ translateY: textTranslateY }],
+            },
+          ]}
+        >
           <Text style={styles.brandTitle}>SUBDEBT</Text>
           <Text style={styles.brandTagline}>FINANCIAL LEDGER & VAULT</Text>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </View>
 
-      <Animated.View style={[styles.footerBadge, { opacity: contentOpacity }]}>
-        <Ionicons name="lock-closed-outline" size={12} color="rgba(255,255,255,0.4)" />
+      <Animated.View style={[styles.footerBadge, { opacity: textOpacity }]}>
+        <Ionicons name="shield-checkmark-outline" size={12} color="rgba(255, 255, 255, 0.45)" />
         <Text style={styles.footerText}>100% PRIVATE & OFFLINE</Text>
       </Animated.View>
     </Animated.View>
@@ -115,54 +101,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 9999,
   },
-  contentWrapper: {
+  centerWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emblemContainer: {
-    marginBottom: 24,
-    shadowColor: '#2DD4BF',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  emblemCard: {
-    width: 86,
-    height: 86,
+  logoWrapper: {
+    width: 104,
+    height: 104,
     borderRadius: 24,
-    borderWidth: 1.5,
-    borderColor: 'rgba(45, 212, 191, 0.35)',
-    justifyContent: 'center',
+    overflow: 'hidden',
     alignItems: 'center',
-  },
-  emblemInner: {
-    position: 'relative',
     justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 20,
   },
-  iconCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(45, 212, 191, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  accentDot: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#2DD4BF',
+  logoImage: {
+    width: '100%',
+    height: '100%',
   },
   textContainer: {
     alignItems: 'center',
   },
   brandTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 4,

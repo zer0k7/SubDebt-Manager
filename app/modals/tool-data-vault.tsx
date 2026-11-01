@@ -217,7 +217,10 @@ export default function DataVaultToolScreen() {
             result.debtsCount +
             result.creditsCount +
             result.spendingCount +
-            result.categoriesCount;
+            result.categoriesCount +
+            (result.incomeCount || 0) +
+            (result.accountsCount || 0) +
+            (result.accountTransactionsCount || 0);
           showPopup({
             title: 'Vault Restored Successfully',
             message: `Restored ${total} entries and app preferences from snapshot ${snapshot.fileName}.`,
@@ -311,7 +314,10 @@ export default function DataVaultToolScreen() {
             result.debtsCount +
             result.creditsCount +
             result.spendingCount +
-            result.categoriesCount;
+            result.categoriesCount +
+            (result.incomeCount || 0) +
+            (result.accountsCount || 0) +
+            (result.accountTransactionsCount || 0);
           showPopup({
             title: 'Vault Restored',
             message: `Successfully imported ${totalRecords} records across all tabs and restored your settings.`,

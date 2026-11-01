@@ -4,11 +4,11 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
-import { ComprehensiveExportData } from './exportData';
+import { buildComprehensiveExportData } from './exportData';
 import { importDataObj, ImportResult } from './importData';
 
 export const VAULT_BACKUPS_DIR = `${FileSystem.documentDirectory}vault_backups/`;
-const MAX_SNAPSHOT_RETENTION = 30; // Keep up to 30 snapshots
+const MAX_SNAPSHOT_RETENTION = 30;
 
 export interface VaultSnapshotItem {
   id: string;
@@ -24,14 +24,14 @@ export interface VaultSnapshotItem {
     credits: number;
     dailySpending: number;
     customCategories: number;
+    incomeEntries?: number;
+    accounts?: number;
+    accountTransactions?: number;
     triggerType: 'auto' | 'manual';
     schemaVersion: number;
   };
 }
 
-/**
- * Ensures the dedicated vault backups folder exists in the permanent document directory.
- */
 export const ensureVaultDirectoryExists = async (): Promise<void> => {
   try {
     const dirInfo = await FileSystem.getInfoAsync(VAULT_BACKUPS_DIR);
@@ -43,9 +43,6 @@ export const ensureVaultDirectoryExists = async (): Promise<void> => {
   }
 };
 
-/**
- * Formats byte size into human readable string (KB / MB)
- */
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -54,10 +51,6 @@ const formatBytes = (bytes: number): string => {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
 };
 
-/**
- * Allows the user on Android to pick a public folder in their phone's File Manager
- * (such as Documents or Downloads) where backups will be directly visible.
- */
 export const pickPublicBackupFolder = async (): Promise<{
   granted: boolean;
   folderUri?: string;
@@ -75,7 +68,6 @@ export const pickPublicBackupFolder = async (): Promise<{
     }
 
     const folderUri = permissions.directoryUri;
-    // Extract a human-readable folder name from decoded URI
     const decoded = decodeURIComponent(folderUri);
     const parts = decoded.split(':');
     const folderName = parts.length > 1 ? parts[parts.length - 1] : 'Selected Storage Folder';
@@ -97,9 +89,6 @@ export const pickPublicBackupFolder = async (): Promise<{
   }
 };
 
-/**
- * Retrieves the currently configured public phone folder name, if any.
- */
 export const getPublicBackupFolderInfo = async (): Promise<{ uri: string | null; name: string | null }> => {
   try {
     const uri = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
@@ -110,9 +99,6 @@ export const getPublicBackupFolderInfo = async (): Promise<{ uri: string | null;
   }
 };
 
-/**
- * Clears the custom public backup folder configuration.
- */
 export const clearPublicBackupFolder = async (): Promise<void> => {
   try {
     await storage.delete(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
@@ -122,9 +108,6 @@ export const clearPublicBackupFolder = async (): Promise<void> => {
   }
 };
 
-/**
- * Exports a specific snapshot to an Android public folder or native document location.
- */
 export const exportSnapshotToPhoneFolder = async (
   filePath: string,
   fileName: string
@@ -175,90 +158,15 @@ export const exportSnapshotToPhoneFolder = async (
   }
 };
 
-/**
- * Creates an encrypted JSON snapshot backup of all local ledger records and user preferences.
- * Writes to app document sandbox AND to the user's chosen public folder (if configured on Android).
- */
 export const createVaultSnapshot = async (
   triggerType: 'auto' | 'manual' = 'manual'
 ): Promise<{ success: boolean; filePath?: string; fileName?: string; publicSaved?: boolean; error?: string }> => {
   try {
     await ensureVaultDirectoryExists();
 
-    // 1. Fetch core records from MMKV
-    const subscriptionsRaw = await storage.getString(STORAGE_KEYS.SUBSCRIPTIONS);
-    const debtsRaw = await storage.getString(STORAGE_KEYS.DEBTS);
-    const creditsRaw = await storage.getString(STORAGE_KEYS.CREDITS);
-    const dailySpendingRaw = await storage.getString(STORAGE_KEYS.DAILY_SPENDING);
-    const monthlyBudgetRaw = await storage.getString(STORAGE_KEYS.MONTHLY_BUDGET);
-    const customCategoriesRaw = await storage.getString(STORAGE_KEYS.CUSTOM_CATEGORIES);
-
-    // 2. Fetch all app settings & preferences
-    const currency = await storage.getString(STORAGE_KEYS.CURRENCY);
-    const weekStartDay = await storage.getString(STORAGE_KEYS.WEEK_START_DAY);
-    const numberFormat = await storage.getString(STORAGE_KEYS.NUMBER_FORMAT);
-    const dateFormat = await storage.getString(STORAGE_KEYS.DATE_FORMAT);
-    const cardDensityMode = await storage.getString(STORAGE_KEYS.CARD_DENSITY_MODE);
-    const defaultPaymentMethod = await storage.getString(STORAGE_KEYS.DEFAULT_PAYMENT_METHOD);
-    const autoArchiveSettledRaw = await storage.getString(STORAGE_KEYS.AUTO_ARCHIVE_SETTLED);
-    const themeMode = await storage.getString('app_theme');
-    const accentColor = await storage.getString('app_accent_color');
-    const defaultLaunchTab = await storage.getString('default_launch_tab');
-    const privacyModeRaw = await storage.getString('privacy_mode_enabled');
-    const dailyReminderRaw = await storage.getString('daily_reminder_enabled');
-    const morningTime = await storage.getString('morning_reminder_time');
-    const middayTime = await storage.getString('midday_reminder_time');
-    const biometricRaw = await storage.getString(STORAGE_KEYS.IS_BIOMETRIC_AUTH_ENABLED);
-    const hasSeenOnboardingRaw = await storage.getString(STORAGE_KEYS.HAS_SEEN_ONBOARDING);
-
-    const subscriptions = subscriptionsRaw ? JSON.parse(subscriptionsRaw) : [];
-    const debts = debtsRaw ? JSON.parse(debtsRaw) : [];
-    const credits = creditsRaw ? JSON.parse(creditsRaw) : [];
-    const dailySpending = dailySpendingRaw ? JSON.parse(dailySpendingRaw) : [];
-    const monthlyBudget = monthlyBudgetRaw ? JSON.parse(monthlyBudgetRaw) : null;
-    const customCategories = customCategoriesRaw ? JSON.parse(customCategoriesRaw) : [];
+    const exportData = await buildComprehensiveExportData(triggerType);
 
     const now = new Date();
-    const exportData: ComprehensiveExportData & { triggerType: string } = {
-      version: '2.10.0',
-      schemaVersion: 2,
-      exportedAt: now.toISOString(),
-      platform: Platform.OS,
-      triggerType,
-      metadata: {
-        totalSubscriptions: subscriptions.length,
-        totalDebts: debts.length,
-        totalCredits: credits.length,
-        totalDailySpending: dailySpending.length,
-        totalCustomCategories: customCategories.length,
-      },
-      subscriptions,
-      debts,
-      credits,
-      dailySpending,
-      monthlyBudget,
-      customCategories,
-      settings: {
-        currency: currency || undefined,
-        weekStartDay: weekStartDay || undefined,
-        numberFormat: numberFormat || undefined,
-        dateFormat: dateFormat || undefined,
-        cardDensityMode: cardDensityMode || undefined,
-        defaultPaymentMethod: defaultPaymentMethod || undefined,
-        autoArchiveSettled: autoArchiveSettledRaw ? autoArchiveSettledRaw === 'true' : undefined,
-        themeMode: themeMode || undefined,
-        accentColor: accentColor || undefined,
-        defaultLaunchTab: defaultLaunchTab || undefined,
-        privacyModeEnabled: privacyModeRaw ? privacyModeRaw === 'true' : undefined,
-        dailyRemindersEnabled: dailyReminderRaw ? dailyReminderRaw === 'true' : undefined,
-        morningReminderTime: morningTime || undefined,
-        middayReminderTime: middayTime || undefined,
-        biometricAuthEnabled: biometricRaw ? biometricRaw === 'true' : undefined,
-        hasSeenOnboarding: hasSeenOnboardingRaw ? hasSeenOnboardingRaw === 'true' : undefined,
-      },
-    };
-
-    // Standardized file naming: SubDebt_Snapshot_YYYY-MM-DD_HHmmss.json
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
@@ -270,12 +178,10 @@ export const createVaultSnapshot = async (
     const filePath = `${VAULT_BACKUPS_DIR}${fileName}`;
     const jsonString = JSON.stringify(exportData, null, 2);
 
-    // 1. Write to internal app sandbox
     await FileSystem.writeAsStringAsync(filePath, jsonString, {
       encoding: FileSystem.EncodingType.UTF8,
     });
 
-    // 2. Also write directly to user's selected public folder if configured on Android
     let publicSaved = false;
     if (Platform.OS === 'android') {
       try {
@@ -297,14 +203,12 @@ export const createVaultSnapshot = async (
       }
     }
 
-    // Update MMKV tracking
     const todayStr = `${yyyy}-${mm}-${dd}`;
     if (triggerType === 'auto') {
       await storage.set(STORAGE_KEYS.LAST_AUTO_SNAPSHOT_DATE, todayStr);
     }
     await storage.set(STORAGE_KEYS.LAST_BACKUP, now.toISOString());
 
-    // Clean up older snapshots beyond retention limit
     await enforceSnapshotRetention();
 
     return {
@@ -322,9 +226,6 @@ export const createVaultSnapshot = async (
   }
 };
 
-/**
- * Lists all existing snapshots in the vault backups folder, sorted newest first.
- */
 export const listVaultSnapshots = async (): Promise<VaultSnapshotItem[]> => {
   try {
     await ensureVaultDirectoryExists();
@@ -347,7 +248,10 @@ export const listVaultSnapshots = async (): Promise<VaultSnapshotItem[]> => {
           const credits = Array.isArray(data.credits) ? data.credits.length : 0;
           const spending = Array.isArray(data.dailySpending) ? data.dailySpending.length : 0;
           const customCats = Array.isArray(data.customCategories) ? data.customCategories.length : 0;
-          const totalRecords = subs + debts + credits + spending + customCats;
+          const income = Array.isArray(data.incomeEntries) ? data.incomeEntries.length : 0;
+          const accounts = Array.isArray(data.accounts) ? data.accounts.length : 0;
+          const accountTxs = Array.isArray(data.accountTransactions) ? data.accountTransactions.length : 0;
+          const totalRecords = subs + debts + credits + spending + customCats + income + accounts + accountTxs;
 
           const sizeBytes = fileInfo.size || content.length;
 
@@ -365,6 +269,9 @@ export const listVaultSnapshots = async (): Promise<VaultSnapshotItem[]> => {
               credits,
               dailySpending: spending,
               customCategories: customCats,
+              incomeEntries: income,
+              accounts,
+              accountTransactions: accountTxs,
               triggerType: data.triggerType || 'manual',
               schemaVersion: data.schemaVersion || 1,
             },
@@ -375,7 +282,6 @@ export const listVaultSnapshots = async (): Promise<VaultSnapshotItem[]> => {
       }
     }
 
-    // Sort descending by creation date
     return items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error) {
     console.error('Failed to list vault snapshots:', error);
@@ -383,9 +289,6 @@ export const listVaultSnapshots = async (): Promise<VaultSnapshotItem[]> => {
   }
 };
 
-/**
- * Restores a snapshot file from local vault backups.
- */
 export const restoreVaultSnapshot = async (
   filePath: string,
   mode: 'merge' | 'replace' = 'merge'
@@ -402,15 +305,15 @@ export const restoreVaultSnapshot = async (
       creditsCount: 0,
       spendingCount: 0,
       categoriesCount: 0,
+      incomeCount: 0,
+      accountsCount: 0,
+      accountTransactionsCount: 0,
       settingsRestored: false,
       error: error instanceof Error ? error.message : 'Restore failed',
     };
   }
 };
 
-/**
- * Deletes a snapshot from the vault directory.
- */
 export const deleteVaultSnapshot = async (filePath: string): Promise<boolean> => {
   try {
     await FileSystem.deleteAsync(filePath, { idempotent: true });
@@ -421,9 +324,6 @@ export const deleteVaultSnapshot = async (filePath: string): Promise<boolean> =>
   }
 };
 
-/**
- * Shares a snapshot file using the native share sheet.
- */
 export const shareVaultSnapshot = async (filePath: string, fileName: string): Promise<boolean> => {
   try {
     const isAvailable = await Sharing.isAvailableAsync();
@@ -442,9 +342,6 @@ export const shareVaultSnapshot = async (filePath: string, fileName: string): Pr
   }
 };
 
-/**
- * Enforces retention policy by keeping the most recent MAX_SNAPSHOT_RETENTION snapshots.
- */
 const enforceSnapshotRetention = async (): Promise<void> => {
   try {
     const snapshots = await listVaultSnapshots();
@@ -459,11 +356,6 @@ const enforceSnapshotRetention = async (): Promise<void> => {
   }
 };
 
-/**
- * Checks if automated daily snapshot is due:
- * 1. If current time is 10:00 PM (22:00) or later, and today hasn't been backed up -> Run today's snapshot.
- * 2. If yesterday's 10:00 PM backup was missed (app was closed), run catch-up backup immediately upon launch/resume!
- */
 export const checkAndRunScheduledSnapshot = async (): Promise<boolean> => {
   try {
     const enabledRaw = await storage.getString(STORAGE_KEYS.AUTO_SNAPSHOT_ENABLED);
@@ -478,16 +370,14 @@ export const checkAndRunScheduledSnapshot = async (): Promise<boolean> => {
 
     const lastDate = await storage.getString(STORAGE_KEYS.LAST_AUTO_SNAPSHOT_DATE);
 
-    // Already backed up today
     if (lastDate === todayStr) {
       return false;
     }
 
     const currentHour = now.getHours();
-    const isPastNightTime = currentHour >= 22; // 10:00 PM or later
+    const isPastNightTime = currentHour >= 22;
     const isMissedPreviousDay = !lastDate || lastDate < todayStr;
 
-    // Trigger if 10 PM arrived today, or if a previous day was missed
     if (isPastNightTime || isMissedPreviousDay) {
       const result = await createVaultSnapshot('auto');
       if (result.success) {
@@ -498,11 +388,9 @@ export const checkAndRunScheduledSnapshot = async (): Promise<boolean> => {
               body: `Your daily offline ledger backup was created. (${result.fileName})`,
               sound: false,
             },
-            trigger: null, // send confirmation notification immediately
+            trigger: null,
           });
-        } catch (notifErr) {
-          // Notifications should not prevent backup completion
-        }
+        } catch {}
         return true;
       }
     }

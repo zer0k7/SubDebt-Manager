@@ -28,28 +28,28 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
 
   const features = [
     {
-      icon: 'contrast-outline',
+      icon: 'business-outline',
       color: '#38BDF8',
-      title: 'Pure AMOLED Dark Theme',
-      desc: 'True pitch black surfaces across all cards, navigation, and sheets with zero murky purple tint.',
+      title: 'Multi-Bank & Cash Accounts',
+      desc: 'Track liquid reserves across multiple bank accounts, cash in hand, and digital wallets in one place.',
     },
     {
-      icon: 'albums-outline',
+      icon: 'swap-horizontal-outline',
       color: '#A855F7',
-      title: 'Instant Floating Header',
-      desc: 'Synchronous mounting eliminates top bar flickering and text overflow during tab switching.',
+      title: 'Passbook Ledger & Transfers',
+      desc: 'Record deposits, withdrawals, and inter-bank transfers with instant running balance recalculation.',
     },
     {
-      icon: 'shield-checkmark-outline',
+      icon: 'bookmark-outline',
       color: '#10B981',
-      title: 'Adaptive Layout Bounds',
-      desc: 'Auto-scaling typography and responsive containers prevent number clipping on all screen sizes.',
+      title: 'Reason Notes & Tagging',
+      desc: 'Keep complete context on why money was withdrawn or where it came from with zero guesswork.',
     },
     {
       icon: 'document-text-outline',
       color: '#F59E0B',
-      title: 'High-Contrast Reports',
-      desc: 'PDF statements updated with deep black styling, refined table lines, and enhanced legibility.',
+      title: 'Official Bank PDF Statements',
+      desc: 'Export formal bank passbook statements with debit, credit, running balance, and account metadata.',
     },
   ];
 
@@ -66,11 +66,11 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
               />
             </View>
             <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.15.1</Text>
+              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.16.0</Text>
             </View>
-            <Text style={styles.heroTitle}>Pure Dark & Performance</Text>
+            <Text style={styles.heroTitle}>Multi-Bank Passbook</Text>
             <Text style={styles.heroSubtitle}>
-              True black display optimization, seamless navigation, and responsive layout hardening.
+              Dedicated banking ledger, running balances, transfer records, and formal statement exports.
             </Text>
           </View>
 

@@ -24,52 +24,46 @@ interface QuickAddMenuProps {
 interface ActionItem {
   id: string;
   title: string;
-  label: string;
   icon: string;
   route: string;
-  colorKey: 'amber' | 'blue' | 'red' | 'green';
-  angle: number;
+  colorKey: 'amber' | 'blue' | 'purple' | 'red' | 'green';
 }
-
-const { width, height } = Dimensions.get('window');
-const SATELLITE_RADIUS = 126;
 
 const ACTION_ITEMS: ActionItem[] = [
   {
     id: 'spending',
     title: 'Daily Spend',
-    label: 'SPEND',
     icon: 'receipt-outline',
     route: '/modals/add-spending',
     colorKey: 'amber',
-    angle: 155,
   },
   {
     id: 'subscription',
     title: 'Subscription',
-    label: 'SUB',
     icon: 'card-outline',
     route: '/modals/add-subscription',
     colorKey: 'blue',
-    angle: 118,
+  },
+  {
+    id: 'account',
+    title: 'Bank / Passbook',
+    icon: 'business-outline',
+    route: '/modals/add-account-transaction',
+    colorKey: 'purple',
   },
   {
     id: 'debt',
     title: 'Borrowed Debt',
-    label: 'DEBT',
     icon: 'trending-down-outline',
     route: '/modals/add-debt',
     colorKey: 'red',
-    angle: 62,
   },
   {
     id: 'credit',
     title: 'Lent Credit',
-    label: 'LENT',
     icon: 'trending-up-outline',
     route: '/modals/add-credit',
     colorKey: 'green',
-    angle: 25,
   },
 ];
 
@@ -95,30 +89,21 @@ export const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ visible, onClose }) 
     };
   });
 
-  const promptStyle = useAnimatedStyle(() => {
-    const scale = interpolate(backdropProgress.value, [0, 1], [0.8, 1], Extrapolation.CLAMP);
-    const translateY = interpolate(backdropProgress.value, [0, 1], [10, 0], Extrapolation.CLAMP);
-    return {
-      opacity: backdropProgress.value,
-      transform: [{ scale }, { translateY }],
-    };
-  });
-
   const handleItemPress = (route: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     onClose();
     setTimeout(() => {
       router.push(route as any);
-    }, 140);
+    }, 120);
   };
 
   const navbarBottom = insets.bottom > 0 ? insets.bottom + 10 : 24;
-  const originY = height - (navbarBottom + 32);
-  const originX = width / 2;
+  const fabBottom = navbarBottom + 74;
 
   const colorTokens = {
     amber: colors.accent.amber || '#F59E0B',
     blue: colors.accent.blue || '#38BDF8',
+    purple: colors.accent.purple || '#8B5CF6',
     red: colors.accent.red || '#EF4444',
     green: colors.accent.green || '#10B981',
   };
@@ -136,39 +121,17 @@ export const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ visible, onClose }) 
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onClose} />
       </BlurView>
 
-      <Animated.View
-        style={[
-          styles.promptBadge,
-          {
-            top: originY - 44,
-            left: originX - 60,
-            backgroundColor: isDark ? 'rgba(10, 10, 14, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-          },
-          promptStyle,
-        ]}
-        pointerEvents="none"
-      >
-        <View style={[styles.promptDot, { backgroundColor: colors.accent.blue }]} />
-        <Text style={[styles.promptText, { color: colors.text.secondary }]}>RECORD ENTRY</Text>
-      </Animated.View>
-
       {ACTION_ITEMS.map((item, index) => {
-        const rad = (item.angle * Math.PI) / 180;
-        const targetX = SATELLITE_RADIUS * Math.cos(rad);
-        const targetY = -SATELLITE_RADIUS * Math.sin(rad);
+        const itemBottom = fabBottom + 66 + index * 62;
         const itemColor = colorTokens[item.colorKey];
 
         return (
-          <SatelliteItem
+          <SpeedDialRow
             key={item.id}
             item={item}
             index={index}
             visible={visible}
-            targetX={targetX}
-            targetY={targetY}
-            originX={originX}
-            originY={originY}
+            bottom={itemBottom}
             itemColor={itemColor}
             isDark={isDark}
             onPress={() => handleItemPress(item.route)}
@@ -179,27 +142,21 @@ export const QuickAddMenu: React.FC<QuickAddMenuProps> = ({ visible, onClose }) 
   );
 };
 
-interface SatelliteItemProps {
+interface SpeedDialRowProps {
   item: ActionItem;
   index: number;
   visible: boolean;
-  targetX: number;
-  targetY: number;
-  originX: number;
-  originY: number;
+  bottom: number;
   itemColor: string;
   isDark: boolean;
   onPress: () => void;
 }
 
-const SatelliteItem: React.FC<SatelliteItemProps> = ({
+const SpeedDialRow: React.FC<SpeedDialRowProps> = ({
   item,
   index,
   visible,
-  targetX,
-  targetY,
-  originX,
-  originY,
+  bottom,
   itemColor,
   isDark,
   onPress,
@@ -209,71 +166,71 @@ const SatelliteItem: React.FC<SatelliteItemProps> = ({
   useEffect(() => {
     if (visible) {
       itemProgress.value = withDelay(
-        index * 28,
-        withSpring(1, { damping: 13, stiffness: 190, mass: 0.65 })
+        index * 32,
+        withSpring(1, { damping: 14, stiffness: 210, mass: 0.6 })
       );
     } else {
-      itemProgress.value = withTiming(0, { duration: 150 });
+      itemProgress.value = withTiming(0, { duration: 140 });
     }
   }, [visible, index, itemProgress]);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const tx = interpolate(itemProgress.value, [0, 1], [0, targetX]);
-    const ty = interpolate(itemProgress.value, [0, 1], [0, targetY]);
-    const scale = interpolate(itemProgress.value, [0, 1], [0.15, 1], Extrapolation.CLAMP);
-    const opacity = interpolate(itemProgress.value, [0, 0.25, 1], [0, 0.7, 1], Extrapolation.CLAMP);
-    const rotate = interpolate(itemProgress.value, [0, 1], [-60, 0]) + 'deg';
+  const rowAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(itemProgress.value, [0, 1], [24, 0], Extrapolation.CLAMP);
+    const scale = interpolate(itemProgress.value, [0, 1], [0.35, 1], Extrapolation.CLAMP);
+    const opacity = interpolate(itemProgress.value, [0, 0.2, 1], [0, 0.6, 1], Extrapolation.CLAMP);
 
     return {
       opacity,
-      transform: [
-        { translateX: tx },
-        { translateY: ty },
-        { scale },
-        { rotate },
-      ],
+      transform: [{ translateY }, { scale }],
     };
   });
 
   return (
     <Animated.View
       style={[
-        styles.satelliteWrapper,
+        styles.rowWrapper,
         {
-          left: originX - 30,
-          top: originY - 30,
+          bottom,
+          right: 23,
         },
-        animatedStyle,
+        rowAnimatedStyle,
       ]}
     >
       <TouchableOpacity
-        style={[
-          styles.satelliteDisc,
-          {
-            backgroundColor: isDark ? '#08080c' : '#FFFFFF',
-            borderColor: itemColor,
-            shadowColor: itemColor,
-          },
-        ]}
-        activeOpacity={0.75}
+        style={styles.touchableRow}
+        activeOpacity={0.8}
         onPress={onPress}
       >
-        <View style={[styles.satelliteGlow, { backgroundColor: `${itemColor}18` }]}>
-          <Ionicons name={item.icon as any} size={24} color={itemColor} />
+        <View
+          style={[
+            styles.labelBadge,
+            {
+              backgroundColor: isDark ? 'rgba(10, 10, 14, 0.96)' : 'rgba(255, 255, 255, 0.96)',
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+            },
+          ]}
+        >
+          <View style={[styles.labelDot, { backgroundColor: itemColor }]} />
+          <Text style={[styles.labelText, { color: isDark ? '#F1F5F9' : '#0F172A' }]}>
+            {item.title}
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.circleBtn,
+            {
+              backgroundColor: isDark ? '#08080c' : '#FFFFFF',
+              borderColor: itemColor,
+              shadowColor: itemColor,
+            },
+          ]}
+        >
+          <View style={[styles.circleGlow, { backgroundColor: `${itemColor}18` }]}>
+            <Ionicons name={item.icon as any} size={22} color={itemColor} />
+          </View>
         </View>
       </TouchableOpacity>
-
-      <View
-        style={[
-          styles.labelBadge,
-          {
-            backgroundColor: isDark ? 'rgba(10, 10, 14, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-            borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-          },
-        ]}
-      >
-        <Text style={[styles.labelText, { color: itemColor }]}>{item.label}</Text>
-      </View>
     </Animated.View>
   );
 };
@@ -285,66 +242,60 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  promptBadge: {
+  rowWrapper: {
     position: 'absolute',
-    width: 120,
-    flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 5,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  promptDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  promptText: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  satelliteWrapper: {
-    position: 'absolute',
-    width: 60,
-    alignItems: 'center',
     zIndex: 101,
   },
-  satelliteDisc: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    borderWidth: 2,
+  touchableRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
+    justifyContent: 'flex-end',
+    gap: 12,
   },
-  satelliteGlow: {
+  circleBtn: {
     width: 48,
     height: 48,
     borderRadius: 24,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.38,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  circleGlow: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   labelBadge: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+  },
+  labelDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   labelText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
 });

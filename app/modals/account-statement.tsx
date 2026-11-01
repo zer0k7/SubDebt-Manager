@@ -1,0 +1,628 @@
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  FlatList,
+  Platform,
+} from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../hooks/useTheme';
+import { useAccounts, AccountTxType } from '../../hooks/useAccounts';
+import { formatCurrency } from '../../utils/dateHelpers';
+import { exportAccountStatementToPDF } from '../../utils/accountStatementExporter';
+import { AppPopup } from '../../components/AppPopup';
+import { BankLogo } from '../../components/banks/BankLogo';
+
+export default function AccountStatementModal() {
+  const { colors, isDark } = useTheme();
+  const styles = getStyles(colors, isDark);
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { accountId } = useLocalSearchParams<{ accountId: string }>();
+  const { accounts, getAccountTransactions, deleteTransaction, deleteAccount } = useAccounts();
+
+  const [filterType, setFilterType] = useState<string>('all');
+  const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
+  const [showDeleteAccountPopup, setShowDeleteAccountPopup] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const account = useMemo(() => accounts.find((a) => a.id === accountId), [accounts, accountId]);
+  const allTxs = useMemo(() => (accountId ? getAccountTransactions(accountId) : []), [getAccountTransactions, accountId]);
+
+  const filteredTxs = useMemo(() => {
+    if (filterType === 'all') return allTxs;
+    return allTxs.filter((t) => t.type === filterType);
+  }, [allTxs, filterType]);
+
+  const stats = useMemo(() => {
+    const totalDeposits = allTxs
+      .filter((t) => t.type === 'deposit' || (t.type === 'transfer' && t.toAccountId === accountId))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalWithdrawals = allTxs
+      .filter((t) => t.type === 'withdrawal' || (t.type === 'transfer' && t.accountId === accountId))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    return { totalDeposits, totalWithdrawals };
+  }, [allTxs, accountId]);
+
+  if (!account) {
+    return (
+      <View style={styles.overlay}>
+        <View style={styles.sheet}>
+          <Text style={styles.notFoundText}>Account not found</Text>
+          <TouchableOpacity style={styles.closeFullBtn} onPress={() => router.back()}>
+            <Text style={styles.closeFullBtnText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  const handleExportPDF = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsExporting(true);
+    try {
+      await exportAccountStatementToPDF({
+        account,
+        transactions: filteredTxs,
+        pdfTheme: isDark ? 'dark' : 'light',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteTxId) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      await deleteTransaction(deleteTxId);
+      setDeleteTxId(null);
+    }
+  };
+
+  const handleDeleteAccountConfirm = async () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    await deleteAccount(account.id);
+    setShowDeleteAccountPopup(false);
+    router.back();
+  };
+
+  return (
+    <View style={styles.overlay}>
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => router.back()} />
+      <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <View style={styles.handle} />
+
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <BankLogo name={account.name} fallbackColor={account.color} size={42} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.accName} numberOfLines={1}>
+                {account.name}
+              </Text>
+              <Text style={styles.accSub} numberOfLines={1}>
+                {account.accountNumberMasked ? `${account.accountNumberMasked} · ` : ''}
+                {account.accountType.toUpperCase()}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.actionIconBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push({
+                  pathname: '/modals/add-account',
+                  params: { accountId: account.id },
+                });
+              }}
+            >
+              <Ionicons name="pencil-outline" size={17} color={colors.accent.blue} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionIconBtn}
+              onPress={handleExportPDF}
+              disabled={isExporting}
+            >
+              <Ionicons name="document-text-outline" size={18} color={colors.accent.blue} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionIconBtn}
+              onPress={() => setShowDeleteAccountPopup(true)}
+            >
+              <Ionicons name="trash-outline" size={18} color={colors.accent.red} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
+              <Ionicons name="close" size={18} color={colors.text.tertiary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={[styles.heroCard, { borderColor: `${account.color}30` }]}>
+          <View style={styles.heroRow}>
+            <View>
+              <Text style={styles.heroLabel}>CURRENT LIVE BALANCE</Text>
+              <Text style={styles.heroBalance} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                {formatCurrency(account.currentBalance, account.currency)}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.quickAddTxBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push({
+                  pathname: '/modals/add-account-transaction',
+                  params: { initialAccountId: account.id },
+                });
+              }}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add" size={16} color="#FFFFFF" />
+              <Text style={styles.quickAddTxText}>Entry</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxLabel}>Total Deposits</Text>
+              <Text style={[styles.statBoxVal, { color: colors.accent.green }]} numberOfLines={1}>
+                +{formatCurrency(stats.totalDeposits, account.currency)}
+              </Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxLabel}>Total Withdrawals</Text>
+              <Text style={[styles.statBoxVal, { color: colors.accent.red }]} numberOfLines={1}>
+                -{formatCurrency(stats.totalWithdrawals, account.currency)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.filtersRow}>
+          {[
+            { key: 'all', label: 'All History' },
+            { key: 'deposit', label: 'Deposits In' },
+            { key: 'withdrawal', label: 'Withdrawals Out' },
+            { key: 'transfer', label: 'Transfers' },
+          ].map((f) => {
+            const isSelected = filterType === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[styles.filterPill, isSelected && styles.filterPillSelected]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setFilterType(f.key);
+                }}
+              >
+                <Text style={[styles.filterPillText, isSelected && styles.filterPillTextSelected]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <FlatList
+          data={filteredTxs}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyWrap}>
+              <Ionicons name="reader-outline" size={36} color={colors.text.muted} />
+              <Text style={styles.emptyTitle}>No transactions recorded</Text>
+              <Text style={styles.emptySubtitle}>Log money in, money out, or bank transfers</Text>
+            </View>
+          }
+          renderItem={({ item }) => {
+            const isDeposit = item.type === 'deposit';
+            const isTransferIn = item.type === 'transfer' && item.toAccountId === account.id;
+            const fromAccount = isTransferIn ? accounts.find((a) => a.id === item.accountId) : null;
+            const toAccount =
+              item.type === 'transfer' && item.accountId === account.id && item.toAccountId
+                ? accounts.find((a) => a.id === item.toAccountId)
+                : null;
+
+            const runningBalance = isTransferIn
+              ? (item.toAccountBalanceAfter ?? item.balanceAfter)
+              : item.balanceAfter;
+
+            const txDate = new Date(item.date).toLocaleDateString('en-IN', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+            });
+
+            const displayTitle = isTransferIn
+              ? `Transfer from ${fromAccount?.name || 'Account'}`
+              : item.type === 'transfer' && toAccount
+              ? `Transfer to ${toAccount.name}`
+              : item.category;
+
+            return (
+              <View style={styles.txItem}>
+                <View
+                  style={[
+                    styles.txIconBox,
+                    {
+                      backgroundColor:
+                        isDeposit || isTransferIn
+                          ? 'rgba(16, 185, 129, 0.12)'
+                          : 'rgba(239, 68, 68, 0.12)',
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={
+                      isDeposit
+                        ? 'arrow-down-outline'
+                        : isTransferIn
+                        ? 'swap-horizontal-outline'
+                        : item.type === 'transfer'
+                        ? 'swap-horizontal-outline'
+                        : 'arrow-up-outline'
+                    }
+                    size={16}
+                    color={isDeposit || isTransferIn ? colors.accent.green : colors.accent.red}
+                  />
+                </View>
+
+                <View style={styles.txInfo}>
+                  <Text style={styles.txCat} numberOfLines={1}>
+                    {displayTitle}
+                  </Text>
+                  {item.reasonNotes ? (
+                    <Text style={styles.txReason} numberOfLines={1}>
+                      {item.reasonNotes}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.txMeta}>
+                    {txDate} · Balance: {formatCurrency(runningBalance, account.currency)}
+                  </Text>
+                </View>
+
+                <View style={styles.txRight}>
+                  <Text
+                    style={[
+                      styles.txAmount,
+                      { color: isDeposit || isTransferIn ? colors.accent.green : colors.accent.red },
+                    ]}
+                  >
+                    {isDeposit || isTransferIn ? '+' : '-'}
+                    {formatCurrency(item.amount, account.currency)}
+                  </Text>
+
+                  <View style={styles.txRowActions}>
+                    <TouchableOpacity
+                      style={styles.txActionBtn}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        router.push({
+                          pathname: '/modals/add-account-transaction',
+                          params: {
+                            transactionId: item.id,
+                            initialAccountId: item.accountId,
+                          },
+                        });
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="pencil-outline" size={14} color={colors.accent.blue} />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.txActionBtn}
+                      onPress={() => setDeleteTxId(item.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Ionicons name="trash-outline" size={14} color={colors.accent.red} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            );
+          }}
+        />
+      </View>
+
+      <AppPopup
+        visible={!!deleteTxId}
+        title="Delete Transaction"
+        message="Are you sure you want to delete this passbook entry? Account balance will be restored accordingly."
+        icon="trash-outline"
+        iconColor={colors.accent.red}
+        cancelText="Cancel"
+        confirmText="Delete"
+        isDestructive={true}
+        onCancel={() => setDeleteTxId(null)}
+        onConfirm={handleDeleteConfirm}
+      />
+
+      <AppPopup
+        visible={showDeleteAccountPopup}
+        title="Delete Bank Account"
+        message="Permanently remove this account and all its transaction history from your device?"
+        icon="trash-outline"
+        iconColor={colors.accent.red}
+        cancelText="Cancel"
+        confirmText="Delete Account"
+        isDestructive={true}
+        onCancel={() => setShowDeleteAccountPopup(false)}
+        onConfirm={handleDeleteAccountConfirm}
+      />
+    </View>
+  );
+}
+
+const getStyles = (colors: any, isDark: boolean) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    },
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    sheet: {
+      backgroundColor: colors.background.primary,
+      borderTopLeftRadius: 28,
+      borderTopRightRadius: 28,
+      paddingHorizontal: 16,
+      paddingTop: 12,
+      maxHeight: '92%',
+      height: '92%',
+      borderTopWidth: 1,
+      borderColor: colors.glass.cardBorder,
+    },
+    handle: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(0, 0, 0, 0.16)',
+      alignSelf: 'center',
+      marginBottom: 12,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    headerLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+      minWidth: 0,
+      marginRight: 8,
+    },
+    accColorBadge: {
+      width: 36,
+      height: 36,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    accName: {
+      color: colors.text.primary,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    accSub: {
+      color: colors.text.muted,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    headerActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    actionIconBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    closeBtn: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.05)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    heroCard: {
+      backgroundColor: colors.glass.card,
+      borderRadius: 20,
+      padding: 16,
+      borderWidth: 1,
+      marginBottom: 12,
+      gap: 12,
+    },
+    heroRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    heroLabel: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.5,
+    },
+    heroBalance: {
+      color: colors.text.primary,
+      fontSize: 26,
+      fontWeight: '800',
+      marginTop: 2,
+    },
+    quickAddTxBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.accent.blue,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+      borderRadius: 12,
+    },
+    quickAddTxText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '700',
+    },
+    statsRow: {
+      flexDirection: 'row',
+      borderTopWidth: 1,
+      borderColor: colors.glass.cardBorder,
+      paddingTop: 10,
+    },
+    statBox: {
+      flex: 1,
+    },
+    statBoxLabel: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    statBoxVal: {
+      fontSize: 13,
+      fontWeight: '700',
+      marginTop: 2,
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: colors.glass.cardBorder,
+      marginHorizontal: 10,
+    },
+    filtersRow: {
+      flexDirection: 'row',
+      gap: 6,
+      marginBottom: 10,
+    },
+    filterPill: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: colors.glass.card,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+    },
+    filterPillSelected: {
+      backgroundColor: `${colors.accent.blue}18`,
+      borderColor: colors.accent.blue,
+    },
+    filterPillText: {
+      color: colors.text.muted,
+      fontSize: 11,
+      fontWeight: '600',
+    },
+    filterPillTextSelected: {
+      color: colors.accent.blue,
+      fontWeight: '800',
+    },
+    listContent: {
+      paddingBottom: 20,
+      gap: 8,
+    },
+    txItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.glass.card,
+      borderRadius: 14,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+      gap: 10,
+    },
+    txIconBox: {
+      width: 34,
+      height: 34,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    txInfo: {
+      flex: 1,
+      minWidth: 0,
+    },
+    txCat: {
+      color: colors.text.primary,
+      fontSize: 13,
+      fontWeight: '700',
+    },
+    txReason: {
+      color: colors.text.secondary,
+      fontSize: 11,
+      marginTop: 1,
+    },
+    txMeta: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '500',
+      marginTop: 2,
+    },
+    txRight: {
+      alignItems: 'flex-end',
+      gap: 4,
+    },
+    txAmount: {
+      fontSize: 14,
+      fontWeight: '800',
+    },
+    txRowActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 2,
+    },
+    txActionBtn: {
+      padding: 4,
+    },
+    emptyWrap: {
+      alignItems: 'center',
+      paddingVertical: 40,
+      gap: 6,
+    },
+    emptyTitle: {
+      color: colors.text.secondary,
+      fontSize: 14,
+      fontWeight: '700',
+    },
+    emptySubtitle: {
+      color: colors.text.muted,
+      fontSize: 12,
+    },
+    notFoundText: {
+      color: colors.text.primary,
+      fontSize: 16,
+      textAlign: 'center',
+      marginVertical: 40,
+    },
+    closeFullBtn: {
+      backgroundColor: colors.accent.blue,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    closeFullBtnText: {
+      color: '#FFFFFF',
+      fontWeight: '700',
+    },
+  });

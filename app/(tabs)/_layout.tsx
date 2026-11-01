@@ -24,12 +24,12 @@ export default function TabsLayout() {
         )}
       >
         <Tabs.Screen name="home" />
+        <Tabs.Screen name="accounts" />
         <Tabs.Screen name="subscriptions" />
         <Tabs.Screen name="owed" />
         <Tabs.Screen name="spending" />
       </Tabs>
 
-      {/* Standalone FAB - Fixed touch blocking and 4-tab perfect symmetry */}
       <CenteredFAB
         onPress={() => setIsMenuOpen(!isMenuOpen)}
         isMenuOpen={isMenuOpen}

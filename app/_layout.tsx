@@ -140,6 +140,9 @@ function AppLayout() {
       <Stack.Screen name="modals/spending-explorer" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/add-income" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modals/financial-snapshot" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modals/add-account" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modals/add-account-transaction" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modals/account-statement" options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }} />
     </Stack>
 
       {showLockOverlay && (
@@ -180,9 +183,12 @@ export default function RootLayout() {
   const [splashFinished, setSplashFinished] = useState(false);
 
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
     hydrateStorage();
   }, []);
+
+  const handleSplashReady = () => {
+    SplashScreen.hideAsync().catch(() => {});
+  };
 
   return (
     <ThemeProvider>
@@ -190,7 +196,10 @@ export default function RootLayout() {
         <CategoryProvider>
           <AuthLockProvider>
             {!splashFinished ? (
-              <CustomSplashScreen onFinish={() => setSplashFinished(true)} />
+              <CustomSplashScreen
+                onReady={handleSplashReady}
+                onFinish={() => setSplashFinished(true)}
+              />
             ) : (
               <AppLayout />
             )}

@@ -16,6 +16,7 @@ interface TabConfig {
 
 const tabs: TabConfig[] = [
   { key: 'home', name: 'home', label: 'Home', icon: 'home-outline', activeIcon: 'home' },
+  { key: 'accounts', name: 'accounts', label: 'Banks', icon: 'business-outline', activeIcon: 'business' },
   { key: 'subscriptions', name: 'subscriptions', label: 'Subs', icon: 'card-outline', activeIcon: 'card' },
   { key: 'owed', name: 'owed', label: 'Owed', icon: 'swap-horizontal-outline', activeIcon: 'swap-horizontal' },
   { key: 'spending', name: 'spending', label: 'Spend', icon: 'receipt-outline', activeIcon: 'receipt' },
@@ -53,29 +54,32 @@ export const FloatingNavBar: React.FC<CustomTabBarProps> = ({ state, descriptors
           };
 
           return (
-            <React.Fragment key={route.key}>
-              {index === 2 && <View style={styles.spacer} />}
-              
-              <TouchableOpacity
-                style={styles.tab}
-                onPress={onPress}
-                activeOpacity={0.7}
-              >
-                {/* Material 3 Style Active Pill Indicator */}
-                <View style={styles.iconContainer}>
-                  {isFocused && <View style={styles.activePill} />}
-                  <Ionicons
-                    name={(isFocused ? tabConfig.activeIcon : tabConfig.icon) as any}
-                    size={22}
-                    color={isFocused ? colors.accent.blue : colors.text.tertiary}
-                  />
-                </View>
-                
-                <Text style={[styles.label, isFocused && styles.labelActive, !isFocused && { color: colors.text.tertiary }]}>
+            <TouchableOpacity
+              key={route.key}
+              style={styles.tab}
+              onPress={onPress}
+              activeOpacity={0.7}
+            >
+              <View style={styles.tabContent}>
+                <Ionicons
+                  name={(isFocused ? tabConfig.activeIcon : tabConfig.icon) as any}
+                  size={isFocused ? 22 : 20}
+                  color={isFocused ? colors.accent.blue : colors.text.tertiary}
+                />
+                <Text
+                  style={[styles.label, isFocused && styles.labelActive]}
+                  numberOfLines={1}
+                >
                   {tabConfig.label}
                 </Text>
-              </TouchableOpacity>
-            </React.Fragment>
+                <View
+                  style={[
+                    styles.activeIndicator,
+                    { backgroundColor: isFocused ? colors.accent.blue : 'transparent' },
+                  ]}
+                />
+              </View>
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -110,7 +114,7 @@ export const CenteredFAB: React.FC<{ onPress: () => void; isMenuOpen: boolean }>
   };
 
   const navbarBottom = insets.bottom > 0 ? insets.bottom + 10 : 24;
-  const fabBottom = navbarBottom + 64 / 2 - 58 / 2;
+  const fabBottom = navbarBottom + 74;
   const activeColor = isMenuOpen ? colors.accent.red : colors.accent.blue;
 
   return (
@@ -159,54 +163,48 @@ const getStyles = (colors: any, isDark: boolean) => StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 4,
   },
-  spacer: {
-    width: 60,
-  },
   tab: {
     flex: 1,
-    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 4,
   },
-  iconContainer: {
-    width: 60,
-    height: 32,
+  tabContent: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    gap: 2,
   },
-  activePill: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    borderRadius: 16,
-    backgroundColor: colors.accent.alpha ? colors.accent.alpha(isDark ? 0.16 : 0.1) : (isDark ? 'rgba(79, 195, 247, 0.16)' : 'rgba(2, 132, 199, 0.1)'),
+  activeIndicator: {
+    width: 14,
+    height: 3,
+    borderRadius: 2,
+    marginTop: 2,
   },
   label: {
     color: colors.text.tertiary,
     fontSize: 10,
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   labelActive: {
     color: colors.accent.blue,
-    fontWeight: '700',
+    fontWeight: '800',
   },
 });
 
 const styles = StyleSheet.create({
   fabWrapper: {
     position: 'absolute',
-    alignSelf: 'center',
-    width: 58,
-    height: 58,
+    right: 20,
+    width: 54,
+    height: 54,
     alignItems: 'center',
     zIndex: 100,
   },
   fab: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 6 },
