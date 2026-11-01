@@ -46,6 +46,41 @@ export default function AccountsScreen() {
 
   const activeAccounts = useMemo(() => accounts.filter((a) => !a.isArchived), [accounts]);
 
+  const monthlyFlow = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const monthTxs = transactions.filter((t) => {
+      const d = new Date(t.date);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+
+    const totalInflow = monthTxs
+      .filter((t) => t.type === 'deposit')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalOutflow = monthTxs
+      .filter((t) => t.type === 'withdrawal')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const netFlow = totalInflow - totalOutflow;
+    const totalVolume = totalInflow + totalOutflow;
+    const inflowPercent = totalVolume > 0 ? Math.round((totalInflow / totalVolume) * 100) : 50;
+    const outflowPercent = totalVolume > 0 ? 100 - inflowPercent : 50;
+    const monthName = now.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
+    return {
+      totalInflow,
+      totalOutflow,
+      netFlow,
+      inflowPercent,
+      outflowPercent,
+      monthName,
+      hasEntries: monthTxs.length > 0,
+    };
+  }, [transactions]);
+
   const recentTransactions = useMemo(() => {
     return transactions.slice(0, 10);
   }, [transactions]);
@@ -168,6 +203,83 @@ export default function AccountsScreen() {
                 <Text style={styles.quickActionLabel}>Transfer</Text>
               </TouchableOpacity>
             </View>
+          </View>
+
+          <View style={styles.monthlyFlowCard}>
+            <View style={styles.flowCardHeader}>
+              <View style={styles.flowCardTitleGroup}>
+                <Ionicons name="stats-chart-outline" size={14} color={colors.accent.blue} />
+                <Text style={styles.flowCardTitle}>
+                  MONTHLY CASH FLOW ({monthlyFlow.monthName.toUpperCase()})
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.netPill,
+                  {
+                    backgroundColor:
+                      monthlyFlow.netFlow >= 0
+                        ? 'rgba(16, 185, 129, 0.12)'
+                        : 'rgba(239, 68, 68, 0.12)',
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={monthlyFlow.netFlow >= 0 ? 'trending-up-outline' : 'trending-down-outline'}
+                  size={12}
+                  color={monthlyFlow.netFlow >= 0 ? colors.accent.green : colors.accent.red}
+                />
+                <Text
+                  style={[
+                    styles.netPillText,
+                    {
+                      color: monthlyFlow.netFlow >= 0 ? colors.accent.green : colors.accent.red,
+                    },
+                  ]}
+                >
+                  Net: {monthlyFlow.netFlow >= 0 ? '+' : '-'}
+                  {formatCurrency(Math.abs(monthlyFlow.netFlow), currencyCode)}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.flowMetricsRow}>
+              <View style={styles.flowMetricCol}>
+                <Text style={styles.flowMetricLabel}>Deposits In</Text>
+                <Text style={[styles.flowMetricValue, { color: colors.accent.green }]}>
+                  +{formatCurrency(monthlyFlow.totalInflow, currencyCode)}
+                </Text>
+              </View>
+              <View style={styles.flowDivider} />
+              <View style={styles.flowMetricCol}>
+                <Text style={styles.flowMetricLabel}>Withdrawals Out</Text>
+                <Text style={[styles.flowMetricValue, { color: colors.accent.red }]}>
+                  -{formatCurrency(monthlyFlow.totalOutflow, currencyCode)}
+                </Text>
+              </View>
+            </View>
+
+            {monthlyFlow.hasEntries ? (
+              <View style={styles.flowRatioTrack}>
+                <View
+                  style={[
+                    styles.flowRatioInflow,
+                    { flex: Math.max(monthlyFlow.inflowPercent, 5), backgroundColor: colors.accent.green },
+                  ]}
+                />
+                <View style={styles.flowRatioGap} />
+                <View
+                  style={[
+                    styles.flowRatioOutflow,
+                    { flex: Math.max(monthlyFlow.outflowPercent, 5), backgroundColor: colors.accent.red },
+                  ]}
+                />
+              </View>
+            ) : (
+              <View style={styles.flowEmptyTrack}>
+                <Text style={styles.flowEmptyText}>No account transactions recorded this month</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.sectionTitleRow}>
@@ -446,6 +558,95 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.secondary,
       fontSize: 11,
       fontWeight: '700',
+    },
+    monthlyFlowCard: {
+      backgroundColor: colors.glass.card,
+      borderRadius: 18,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+      gap: 12,
+    },
+    flowCardHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    flowCardTitleGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+    },
+    flowCardTitle: {
+      color: colors.text.muted,
+      fontSize: 10.5,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+    },
+    netPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    netPillText: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    flowMetricsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    flowMetricCol: {
+      flex: 1,
+    },
+    flowMetricLabel: {
+      color: colors.text.muted,
+      fontSize: 10.5,
+      fontWeight: '500',
+    },
+    flowMetricValue: {
+      fontSize: 14,
+      fontWeight: '800',
+      marginTop: 2,
+    },
+    flowDivider: {
+      width: 1,
+      height: 24,
+      backgroundColor: colors.glass.cardBorder,
+      marginHorizontal: 12,
+    },
+    flowRatioTrack: {
+      flexDirection: 'row',
+      height: 6,
+      borderRadius: 3,
+      overflow: 'hidden',
+    },
+    flowRatioInflow: {
+      borderTopLeftRadius: 3,
+      borderBottomLeftRadius: 3,
+    },
+    flowRatioGap: {
+      width: 2,
+    },
+    flowRatioOutflow: {
+      borderTopRightRadius: 3,
+      borderBottomRightRadius: 3,
+    },
+    flowEmptyTrack: {
+      height: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 6,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)',
+    },
+    flowEmptyText: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '500',
     },
     sectionTitleRow: {
       flexDirection: 'row',

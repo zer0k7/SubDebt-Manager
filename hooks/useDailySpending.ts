@@ -15,6 +15,8 @@ export interface SpendingEntry {
   spentAt: string;
   notes?: string;
   receiptImage?: string;
+  paidFromAccountId?: string;
+  paidFromAccountName?: string;
   createdAt: string;
 }
 
@@ -26,6 +28,8 @@ export interface SpendingInput {
   spentAt: string;
   notes?: string;
   receiptImage?: string;
+  paidFromAccountId?: string;
+  paidFromAccountName?: string;
 }
 
 export interface WeeklyDayData {

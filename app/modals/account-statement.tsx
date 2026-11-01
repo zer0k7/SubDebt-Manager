@@ -7,6 +7,7 @@ import {
   ScrollView,
   FlatList,
   Platform,
+  TextInput,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +29,7 @@ export default function AccountStatementModal() {
   const { accounts, getAccountTransactions, deleteTransaction, deleteAccount } = useAccounts();
 
   const [filterType, setFilterType] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
   const [showDeleteAccountPopup, setShowDeleteAccountPopup] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -36,9 +38,65 @@ export default function AccountStatementModal() {
   const allTxs = useMemo(() => (accountId ? getAccountTransactions(accountId) : []), [getAccountTransactions, accountId]);
 
   const filteredTxs = useMemo(() => {
-    if (filterType === 'all') return allTxs;
-    return allTxs.filter((t) => t.type === filterType);
-  }, [allTxs, filterType]);
+    let list = allTxs;
+    if (filterType !== 'all') {
+      list = list.filter((t) => t.type === filterType);
+    }
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((t) => {
+        const matchCat = t.category?.toLowerCase().includes(q);
+        const matchReason = t.reasonNotes?.toLowerCase().includes(q);
+        const matchAmt = t.amount.toString().includes(q);
+        let matchTransfer = false;
+        if (t.type === 'transfer') {
+          const fromAcc = accounts.find((a) => a.id === t.accountId);
+          const toAcc = accounts.find((a) => a.id === t.toAccountId);
+          matchTransfer =
+            (fromAcc && fromAcc.name.toLowerCase().includes(q)) ||
+            (toAcc && toAcc.name.toLowerCase().includes(q)) ||
+            false;
+        }
+        return matchCat || matchReason || matchAmt || matchTransfer;
+      });
+    }
+    return list;
+  }, [allTxs, filterType, searchQuery, accounts]);
+
+  const monthlyCashFlow = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const currentMonthTxs = allTxs.filter((t) => {
+      const d = new Date(t.date);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+
+    const inflow = currentMonthTxs
+      .filter((t) => t.type === 'deposit' || (t.type === 'transfer' && t.toAccountId === accountId))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const outflow = currentMonthTxs
+      .filter((t) => t.type === 'withdrawal' || (t.type === 'transfer' && t.accountId === accountId))
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const netFlow = inflow - outflow;
+    const totalVol = inflow + outflow;
+    const inflowPercent = totalVol > 0 ? Math.round((inflow / totalVol) * 100) : 50;
+    const outflowPercent = totalVol > 0 ? 100 - inflowPercent : 50;
+    const monthLabel = now.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
+    return {
+      inflow,
+      outflow,
+      netFlow,
+      inflowPercent,
+      outflowPercent,
+      monthLabel,
+      hasEntries: currentMonthTxs.length > 0,
+    };
+  }, [allTxs, accountId]);
 
   const stats = useMemo(() => {
     const totalDeposits = allTxs
@@ -190,29 +248,133 @@ export default function AccountStatementModal() {
           </View>
         </View>
 
-        <View style={styles.filtersRow}>
-          {[
-            { key: 'all', label: 'All History' },
-            { key: 'deposit', label: 'Deposits In' },
-            { key: 'withdrawal', label: 'Withdrawals Out' },
-            { key: 'transfer', label: 'Transfers' },
-          ].map((f) => {
-            const isSelected = filterType === f.key;
-            return (
-              <TouchableOpacity
-                key={f.key}
-                style={[styles.filterPill, isSelected && styles.filterPillSelected]}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setFilterType(f.key);
-                }}
+        <View style={styles.cashFlowCard}>
+          <View style={styles.cashFlowHeader}>
+            <View style={styles.cashFlowTitleGroup}>
+              <Ionicons name="bar-chart-outline" size={14} color={colors.accent.blue} />
+              <Text style={styles.cashFlowSectionTitle}>
+                CASH FLOW ({monthlyCashFlow.monthLabel.toUpperCase()})
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.netBadge,
+                {
+                  backgroundColor:
+                    monthlyCashFlow.netFlow >= 0
+                      ? 'rgba(16, 185, 129, 0.12)'
+                      : 'rgba(239, 68, 68, 0.12)',
+                },
+              ]}
+            >
+              <Ionicons
+                name={monthlyCashFlow.netFlow >= 0 ? 'trending-up-outline' : 'trending-down-outline'}
+                size={12}
+                color={monthlyCashFlow.netFlow >= 0 ? colors.accent.green : colors.accent.red}
+              />
+              <Text
+                style={[
+                  styles.netBadgeText,
+                  {
+                    color: monthlyCashFlow.netFlow >= 0 ? colors.accent.green : colors.accent.red,
+                  },
+                ]}
               >
-                <Text style={[styles.filterPillText, isSelected && styles.filterPillTextSelected]}>
-                  {f.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+                Net: {monthlyCashFlow.netFlow >= 0 ? '+' : '-'}
+                {formatCurrency(Math.abs(monthlyCashFlow.netFlow), account.currency)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cashFlowMetricsRow}>
+            <View style={styles.cashFlowMetric}>
+              <Text style={styles.cashFlowMetricLabel}>Inflow (In)</Text>
+              <Text style={[styles.cashFlowMetricVal, { color: colors.accent.green }]}>
+                +{formatCurrency(monthlyCashFlow.inflow, account.currency)}
+              </Text>
+            </View>
+            <View style={styles.cashFlowMetricDivider} />
+            <View style={styles.cashFlowMetric}>
+              <Text style={styles.cashFlowMetricLabel}>Outflow (Out)</Text>
+              <Text style={[styles.cashFlowMetricVal, { color: colors.accent.red }]}>
+                -{formatCurrency(monthlyCashFlow.outflow, account.currency)}
+              </Text>
+            </View>
+          </View>
+
+          {monthlyCashFlow.hasEntries ? (
+            <View style={styles.ratioBarContainer}>
+              <View
+                style={[
+                  styles.ratioBarInflow,
+                  { flex: Math.max(monthlyCashFlow.inflowPercent, 5), backgroundColor: colors.accent.green },
+                ]}
+              />
+              <View style={styles.ratioBarSpacer} />
+              <View
+                style={[
+                  styles.ratioBarOutflow,
+                  { flex: Math.max(monthlyCashFlow.outflowPercent, 5), backgroundColor: colors.accent.red },
+                ]}
+              />
+            </View>
+          ) : (
+            <View style={styles.ratioBarEmpty}>
+              <Text style={styles.ratioBarEmptyText}>No transactions this month</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.searchBarContainer}>
+          <Ionicons name="search-outline" size={16} color={colors.text.muted} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search category, notes, amount..."
+            placeholderTextColor={colors.text.muted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={16} color={colors.text.muted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.filtersWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
+            {[
+              { key: 'all', label: 'All History' },
+              { key: 'deposit', label: 'Deposits In' },
+              { key: 'withdrawal', label: 'Withdrawals Out' },
+              { key: 'transfer', label: 'Transfers' },
+            ].map((f) => {
+              const isSelected = filterType === f.key;
+              return (
+                <TouchableOpacity
+                  key={f.key}
+                  style={[styles.filterPill, isSelected && styles.filterPillSelected]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setFilterType(f.key);
+                  }}
+                >
+                  <Text style={[styles.filterPillText, isSelected && styles.filterPillTextSelected]}>
+                    {f.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+          <View style={styles.resultsBadge}>
+            <Text style={styles.resultsBadgeText}>
+              {filteredTxs.length} {filteredTxs.length === 1 ? 'entry' : 'entries'}
+            </Text>
+          </View>
         </View>
 
         <FlatList
@@ -222,9 +384,27 @@ export default function AccountStatementModal() {
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <Ionicons name="reader-outline" size={36} color={colors.text.muted} />
-              <Text style={styles.emptyTitle}>No transactions recorded</Text>
-              <Text style={styles.emptySubtitle}>Log money in, money out, or bank transfers</Text>
+              <Ionicons
+                name={searchQuery ? 'search-outline' : 'reader-outline'}
+                size={36}
+                color={colors.text.muted}
+              />
+              <Text style={styles.emptyTitle}>
+                {searchQuery ? 'No matching transactions' : 'No transactions recorded'}
+              </Text>
+              <Text style={styles.emptySubtitle}>
+                {searchQuery
+                  ? `No entry matches "${searchQuery}"`
+                  : 'Log money in, money out, or bank transfers'}
+              </Text>
+              {searchQuery ? (
+                <TouchableOpacity
+                  style={styles.clearSearchBtn}
+                  onPress={() => setSearchQuery('')}
+                >
+                  <Text style={styles.clearSearchBtnText}>Clear Search</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           }
           renderItem={({ item }) => {
@@ -511,10 +691,149 @@ const getStyles = (colors: any, isDark: boolean) =>
       backgroundColor: colors.glass.cardBorder,
       marginHorizontal: 10,
     },
+    cashFlowCard: {
+      backgroundColor: colors.glass.card,
+      borderRadius: 16,
+      padding: 12,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+      marginBottom: 10,
+      gap: 8,
+    },
+    cashFlowHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    cashFlowTitleGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+    },
+    cashFlowSectionTitle: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '700',
+      letterSpacing: 0.4,
+    },
+    netBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 8,
+      paddingVertical: 3,
+      borderRadius: 8,
+    },
+    netBadgeText: {
+      fontSize: 10.5,
+      fontWeight: '700',
+    },
+    cashFlowMetricsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    cashFlowMetric: {
+      flex: 1,
+    },
+    cashFlowMetricLabel: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '500',
+    },
+    cashFlowMetricVal: {
+      fontSize: 12.5,
+      fontWeight: '700',
+      marginTop: 1,
+    },
+    cashFlowMetricDivider: {
+      width: 1,
+      height: 20,
+      backgroundColor: colors.glass.cardBorder,
+      marginHorizontal: 8,
+    },
+    ratioBarContainer: {
+      flexDirection: 'row',
+      height: 5,
+      borderRadius: 3,
+      overflow: 'hidden',
+      marginTop: 2,
+    },
+    ratioBarInflow: {
+      borderTopLeftRadius: 3,
+      borderBottomLeftRadius: 3,
+    },
+    ratioBarSpacer: {
+      width: 2,
+    },
+    ratioBarOutflow: {
+      borderTopRightRadius: 3,
+      borderBottomRightRadius: 3,
+    },
+    ratioBarEmpty: {
+      height: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 4,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)',
+    },
+    ratioBarEmptyText: {
+      color: colors.text.muted,
+      fontSize: 9.5,
+      fontWeight: '500',
+    },
+    searchBarContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.glass.card,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 38,
+      marginBottom: 8,
+    },
+    searchInput: {
+      flex: 1,
+      color: colors.text.primary,
+      fontSize: 12,
+      paddingVertical: 0,
+    },
+    filtersWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+      gap: 6,
+    },
     filtersRow: {
       flexDirection: 'row',
       gap: 6,
-      marginBottom: 10,
+      alignItems: 'center',
+    },
+    resultsBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+    },
+    resultsBadgeText: {
+      color: colors.text.muted,
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    clearSearchBtn: {
+      marginTop: 6,
+      paddingHorizontal: 14,
+      paddingVertical: 6,
+      borderRadius: 10,
+      backgroundColor: `${colors.accent.blue}18`,
+    },
+    clearSearchBtnText: {
+      color: colors.accent.blue,
+      fontSize: 12,
+      fontWeight: '700',
     },
     filterPill: {
       paddingHorizontal: 10,

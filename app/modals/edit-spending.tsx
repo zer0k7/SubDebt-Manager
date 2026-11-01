@@ -97,6 +97,8 @@ export default function EditSpendingModal() {
       spentAt: spentAt.toISOString(),
       notes: notes.trim() || undefined,
       receiptImage: receiptImage || undefined,
+      paidFromAccountId: entry.paidFromAccountId,
+      paidFromAccountName: entry.paidFromAccountName,
     });
     router.back();
   };

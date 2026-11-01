@@ -24,8 +24,10 @@ import { AppDatePicker } from '../../components/AppDatePicker';
 import { useDailySpending } from '../../hooks/useDailySpending';
 import { useCurrency } from '../../hooks/useCurrency';
 import { useCredits } from '../../hooks/useCredits';
-import { formatShortDate } from '../../utils/dateHelpers';
+import { formatShortDate, formatCurrency } from '../../utils/dateHelpers';
 import { useCategoryManager } from '../../hooks/useCategoryManager';
+import { useAccounts } from '../../hooks/useAccounts';
+import { BankLogo } from '../../components/banks/BankLogo';
 import { pickReceiptFromGallery, takeReceiptPhoto } from '../../utils/receiptHelper';
 import { ReceiptVaultModal } from '../../components/ReceiptVaultModal';
 import { predictCategory } from '../../utils/smartCategorizer';
@@ -43,8 +45,12 @@ export default function AddSpendingModal() {
   const router = useRouter();
   const { addEntry } = useDailySpending();
   const { addCredit } = useCredits();
+  const { accounts, addTransaction } = useAccounts();
   const { currencyCode: defaultCurrency } = useCurrency();
   const { allCategories } = useCategoryManager();
+
+  const activeAccounts = React.useMemo(() => accounts.filter((a) => !a.isArchived), [accounts]);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
@@ -204,6 +210,22 @@ export default function AddSpendingModal() {
       }
     }
 
+    const chosenAccount = selectedAccountId
+      ? activeAccounts.find((a) => a.id === selectedAccountId)
+      : undefined;
+
+    if (chosenAccount) {
+      const deductionAmount = totalAmountNum > 0 ? totalAmountNum : finalSpendingAmount;
+      await addTransaction({
+        accountId: chosenAccount.id,
+        type: 'withdrawal',
+        amount: deductionAmount,
+        category,
+        reasonNotes: `Spending: ${title.trim()}`,
+        date: spentAt.toISOString(),
+      });
+    }
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     addEntry({
       title: title.trim(),
@@ -213,6 +235,8 @@ export default function AddSpendingModal() {
       spentAt: spentAt.toISOString(),
       notes: finalNotes || undefined,
       receiptImage: receiptImage || undefined,
+      paidFromAccountId: chosenAccount?.id,
+      paidFromAccountName: chosenAccount?.name,
     });
     router.back();
   };
@@ -273,7 +297,7 @@ export default function AddSpendingModal() {
               <Text style={styles.sectionLabel}>Category</Text>
               {isAutoSuggested && (
                 <View style={styles.autoSuggestBadge}>
-                  <Text style={styles.autoSuggestText}>✨ Auto-Selected</Text>
+                  <Text style={styles.autoSuggestText}>Auto-Selected</Text>
                 </View>
               )}
             </View>
@@ -347,6 +371,82 @@ export default function AddSpendingModal() {
             <Text style={styles.dateLabel}>Spent Date</Text>
             <Text style={styles.dateValue}>{formatShortDate(spentAt)}</Text>
           </TouchableOpacity>
+
+          <View style={styles.paymentSourceSection}>
+            <View style={styles.paymentSourceHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="card-outline" size={16} color={colors.accent.blue} />
+                <Text style={styles.sectionLabel}>Payment Source</Text>
+              </View>
+              {selectedAccountId ? (
+                <Text style={styles.accountBalanceHint}>
+                  Auto-deducts from bank passbook
+                </Text>
+              ) : null}
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.accountChipsRow}>
+              <TouchableOpacity
+                style={[
+                  styles.accountChip,
+                  !selectedAccountId && styles.accountChipActive,
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setSelectedAccountId(null);
+                }}
+                activeOpacity={0.75}
+              >
+                <Ionicons
+                  name="cash-outline"
+                  size={15}
+                  color={!selectedAccountId ? colors.accent.blue : colors.text.muted}
+                />
+                <Text
+                  style={[
+                    styles.accountChipText,
+                    !selectedAccountId && styles.accountChipTextActive,
+                  ]}
+                >
+                  Cash / Unlinked
+                </Text>
+              </TouchableOpacity>
+
+              {activeAccounts.map((acc) => {
+                const isSelected = selectedAccountId === acc.id;
+                return (
+                  <TouchableOpacity
+                    key={acc.id}
+                    style={[
+                      styles.accountChip,
+                      isSelected && [
+                        styles.accountChipActive,
+                        { borderColor: acc.color, backgroundColor: `${acc.color}18` },
+                      ],
+                    ]}
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setSelectedAccountId(acc.id);
+                    }}
+                    activeOpacity={0.75}
+                  >
+                    <BankLogo name={acc.name} fallbackColor={acc.color} size={18} />
+                    <Text
+                      style={[
+                        styles.accountChipText,
+                        isSelected && [styles.accountChipTextActive, { color: acc.color }],
+                      ]}
+                    >
+                      {acc.name}
+                    </Text>
+                    <Text style={styles.accountChipBalance}>
+                      ({formatCurrency(acc.currentBalance, acc.currency)})
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
 
           {/* Split Bill With Friends Section */}
           <View style={styles.splitToggleCard}>
@@ -885,6 +985,55 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.accent.blue,
       fontSize: 11.5,
       fontWeight: '700',
+    },
+    paymentSourceSection: {
+      marginTop: 14,
+      marginBottom: 10,
+    },
+    paymentSourceHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    accountBalanceHint: {
+      color: colors.text.muted,
+      fontSize: 11,
+      fontWeight: '500',
+    },
+    accountChipsRow: {
+      flexDirection: 'row',
+      gap: 8,
+      paddingVertical: 2,
+    },
+    accountChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+      borderRadius: 14,
+      backgroundColor: colors.glass.card,
+      borderWidth: 1,
+      borderColor: colors.glass.cardBorder,
+    },
+    accountChipActive: {
+      borderColor: colors.accent.blue,
+      backgroundColor: `${colors.accent.blue}18`,
+    },
+    accountChipText: {
+      color: colors.text.secondary,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    accountChipTextActive: {
+      color: colors.accent.blue,
+      fontWeight: '700',
+    },
+    accountChipBalance: {
+      color: colors.text.muted,
+      fontSize: 11,
+      fontWeight: '600',
     },
     btns: { gap: 10, marginTop: 24 },
   });

@@ -1,11 +1,12 @@
-# SubDebt Manager v2.16.0
+# SubDebt Manager v2.17.0
 
 ### Release Metadata
 
 | Attribute | Specification |
 | :--- | :--- |
-| Version | `2.16.0` |
-| Build Code | `42` |
+| Version | `2.17.0` |
+| Build Code | `43` |
+| Release Date | `01-Nov-2026` |
 | Architecture | `arm64-v8a` |
 | Package | `com.subdebt.app` |
 
@@ -13,23 +14,23 @@
 
 | Component | Scope | Function |
 | :--- | :--- | :--- |
-| Bank Accounts Tab | Screen | Track multiple bank accounts, digital wallets, and cash reserves in a unified ledger |
-| Passbook History | Modal | Complete transaction logs per account with date, reason, category, and running balance |
-| Transaction Entry | Modal | Record deposits in, withdrawals out, and inter-bank transfers with instant balance updates |
-| Bank Statement Exporter | Utility | Export clean bank statements to PDF with debit and credit ledgers |
-| Floating Navigation Bar | Component | 5-tab symmetrical navigation bar with responsive bottom-right action trigger |
+| Multi-Bank Accounts & Passbook Ledger | Tab & Modals | Complete bank account tracking with live balance cards, deposits, withdrawals, and account-to-account transfers |
+| Cross-Tab Payment Source Integration | Spending Modal | Link daily expenses directly to bank accounts with one-tap balance deduction and automatic passbook record generation |
+| Monthly Cash Flow Analytics | Passbook & Accounts Tab | Visual Inflow versus Outflow comparison bar with net surplus or deficit badge and segmented progress tracking |
+| Passbook Search Engine | Passbook Modal | Real-time live query search across notes, categories, amounts, and transfer counterparties with query clear action |
+| Indian Banking Vector Suite | Component | High-fidelity vector branding for major Indian banking institutions with dynamic recognition and quick selection chips |
+| Native Splash Handshake | Engine | Frame-synchronized cold launch sequence matching native window background and vector icon dimensions |
+| Executive PDF & Voucher Suite | Export Engine | Official vector emblem branding in PDF statements with direct file storage saving and clean settlement receipts |
 
 ### Technical Highlights
 
-1. **Multi-Bank Ledger Engine**: Added local MMKV persistent storage keys for bank accounts and transaction history. Balances recalculate on every deposit, withdrawal, or transfer.
-2. **Double-Entry Account Transfers**: Transferring funds from Bank A to Bank B deducts from the origin account and credits the target account. Reversing or deleting a transaction restores balances accurately.
-3. **Formal Passbook PDF Exporter**: Generates structured bank statements using sandboxed cache and Android FileProvider. Displays debit, credit, running balance columns, opening balance, and closing balance without third-party branding.
-4. **Ergonomic Quick Action Menu**: Updated speed-dial action menu to bloom across five entries with direct shortcuts to Bank Passbook, Subscriptions, Debts, Credits, and Daily Spend.
-5. **Full Data Vault & Backup Synchronization**: Integrated bank accounts and passbook transaction records into JSON backup export and merge/replace restoration workflows.
-6. **Account Modification & Live Balance Tracking**: Added account editing support from passbook header, interactive transaction timeline navigation, and dynamic balance hints during transaction entry.
-7. **Passbook Entry Editing & Custom Tag Manager**: Edit past bank transactions with automatic ledger balance adjustments. Create, select, and manage custom transaction tags and categories directly in the entry form.
-8. **Indian Banking SVG Suite & Recognition Engine**: Added dedicated vector icons and alias matching for major Indian banks including J&K Bank, SBI, Slice, IPPB, Kotak Mahindra, HDFC, ICICI, Axis, PNB, Bank of Baroda, Paytm, Airtel, Canara, Union Bank, IndusInd, Yes Bank, Federal Bank, and IDFC FIRST Bank with dynamic recognition and quick selection chips.
-9. **Unified Vault Snapshot & Complete Backup Engine**: Consolidated manual JSON export and automated daily background snapshot generators into a single canonical pipeline. Backs up subscriptions, debts, credits, daily spending, income entries, bank accounts, transaction logs, customized categories, and complete user preferences. Hardened merge and replace import engines with identifier resolution and safety parsing.
-10. **Synchronized Native-to-JS Splash Screen Handshake**: Coordinated Android OS window splash display with React Native mounting lifecycle using synchronous readiness signals. Displays matching icon dimensions and background tokens on cold start, eliminating dual-logo transitions, black blinks, and layout shifts.
-11. **Authentic Vector App Icon & Direct Storage PDF Exporter**: Embedded official SubDebt vector emblem into PDF header, replacing placeholder icons. Redesigned export flow with dual actions: direct file manager download with directory verification feedback, and external application sharing.
-12. **Minimalist Settlement Voucher & Receipt Overhaul**: Replaced decorative neon gradients, background orbs, fake certificate stamps, and lightning bolt marks with a clean, executive financial voucher. Features real app branding, high-contrast typography, itemized transaction metadata, and structured reference codes.
+1. **Multi-Bank Double-Entry Ledger**: Built local MMKV persistence models for bank accounts and transactional passbooks. Tracks live balances across deposits, withdrawals, and inter-bank transfers with automatic reversal on record modifications.
+2. **Cross-Module Bank Payment Source Selector**: Added payment source chips in the daily expense logger. Selecting a registered bank account logs an outward withdrawal in the account passbook, deducts the live balance, and records cross-referenced account metadata.
+3. **Monthly Inflow and Outflow Analytics Bar**: Integrated dynamic monthly cash flow calculation engines in both individual passbooks and the consolidated bank tab. Computes monthly deposits against withdrawals, calculates net surplus or deficit, and renders a segmented ratio indicator.
+4. **Passbook Search and Multi-Criteria Filtering**: Added a real-time search engine in the passbook modal. Filters entries dynamically by category, transaction notes, numeric amounts, and transfer counterparty names, coupled with interactive type pills and dynamic entry count indicators.
+5. **Passbook Modification and Custom Categories**: Edit past bank transactions with automatic ledger balance adjustments. Create, select, and manage custom transaction tags and categories directly within the transaction form.
+6. **Indian Banking SVG Suite and Alias Matcher**: Integrated vector icons and alias recognition for J&K Bank, State Bank of India, Slice, India Post Payments Bank, Kotak Mahindra Bank, HDFC Bank, ICICI Bank, Axis Bank, Punjab National Bank, Bank of Baroda, Paytm Payments Bank, Airtel Payments Bank, Canara Bank, Union Bank of India, IndusInd Bank, Yes Bank, Federal Bank, and IDFC FIRST Bank.
+7. **Synchronized Native-to-JS Splash Screen Handshake**: Coordinated Android OS window splash display with React Native mounting lifecycle using synchronous readiness signals. Displays matching icon dimensions and background tokens on cold start, eliminating dual-logo transitions, black blinks, and layout shifts.
+8. **Formal Passbook and Expense PDF Exporters**: Embedded official SubDebt vector emblem into PDF headers. Implemented dual-action export workflows allowing direct device saving with directory verification feedback and external application sharing via Android FileProvider.
+9. **Minimalist Settlement Voucher Overhaul**: Replaced decorative neon gradients, background orbs, fake certificate stamps, and lightning bolt marks with a clean, executive financial voucher. Features real app branding, high-contrast typography, itemized transaction metadata, and structured reference codes.
+10. **Unified Vault Snapshot and Complete Backup Engine**: Consolidated manual JSON export and automated daily background snapshot generators into a single canonical pipeline. Backs up subscriptions, debts, credits, daily spending, income entries, bank accounts, transaction logs, customized categories, and complete user preferences with collision-safe restore routines.

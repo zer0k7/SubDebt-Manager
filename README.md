@@ -37,6 +37,14 @@ All records are stored locally on your device. The application requires no user 
 
 ## Key Features
 
+### Multi-Bank Accounts & Passbook Ledger
+* **Liquid Reserve Management:** Track balances across multiple checking, savings, digital wallets, and physical cash reserves.
+* **Double-Entry Transfers:** Transfer funds between accounts with atomic balance updates and audit logs.
+* **Passbook History & Live Search:** Itemized transaction passbooks with live search across categories, notes, and counterparties.
+* **Monthly Cash Flow Analytics:** Real-time inflow versus outflow metrics, net surplus/deficit tracking, and segmented progress bars.
+* **Official Bank Statement Exporter:** Export formatted PDF bank statements directly to local storage or external applications.
+* **Indian Banking Vector Suite:** High-fidelity native vector branding for major Indian banking institutions.
+
 ### Subscription Management
 * **Recurring Billing Schedules:** Track services across weekly, monthly, quarterly, and yearly billing cycles.
 * **Renewal Projections:** Real-time countdowns, renewal date calculation, and monthly burn rate aggregation.
