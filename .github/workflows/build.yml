@@ -68,18 +68,21 @@ jobs:
         run: |
           GRADLE_FILE="android/app/build.gradle"
           PROGUARD_FILE="android/app/proguard-rules.pro"
+          PROPERTIES_FILE="android/gradle.properties"
+
+          echo "android.enableProguardInReleaseBuilds=true" >> "$PROPERTIES_FILE"
 
           cat >> "$PROGUARD_FILE" << 'PROGUARD_RULES'
+          -keepattributes *Annotation*,InnerClasses,Signature,EnclosingMethod
+          -dontwarn **
           -keep class com.swmansion.reanimated.** { *; }
           -keep class com.facebook.react.turbomodule.** { *; }
           -keep class com.facebook.jni.** { *; }
           -dontwarn com.swmansion.reanimated.**
-          -keep class expo.modules.notifications.** { *; }
-          -dontwarn expo.modules.notifications.**
-          -keep class expo.modules.localauthentication.** { *; }
-          -dontwarn expo.modules.localauthentication.**
-          -keep class expo.modules.intentlauncher.** { *; }
-          -dontwarn expo.modules.intentlauncher.**
+          -keep class expo.modules.** { *; }
+          -dontwarn expo.modules.**
+          -keep class fr.greweb.reactnativeviewshot.** { *; }
+          -keep class com.horcrux.svg.** { *; }
           PROGUARD_RULES
 
           cat >> "$GRADLE_FILE" << 'GRADLE_PATCH'
@@ -154,6 +157,11 @@ jobs:
               echo "Collected AAB: release-artifacts/$new_name"
             fi
           done
+
+          if [ -f "android/app/build/outputs/mapping/release/mapping.txt" ]; then
+            cp "android/app/build/outputs/mapping/release/mapping.txt" "release-artifacts/SubDebt-mapping.txt"
+            echo "Collected Mapping File: release-artifacts/SubDebt-mapping.txt"
+          fi
 
       - name: Verify Build Artifacts
         run: |
