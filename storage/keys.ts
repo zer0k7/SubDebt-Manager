@@ -27,6 +27,8 @@ export const STORAGE_KEYS = {
   NOTIF_SUBSCRIPTIONS_ENABLED: 'notif_subscriptions_enabled',
   NOTIF_SPENDING_ENABLED: 'notif_spending_enabled',
   NOTIF_CREDITS_ENABLED: 'notif_credits_enabled',
+  NOTIF_ACCOUNTS_ENABLED: 'notif_accounts_enabled',
+  NOTIF_SMART_TIMING_ENABLED: 'notif_smart_timing_enabled',
   INCOME_ENTRIES: 'income_entries_v1',
   COACH_MARK_SETTINGS_SEEN: 'coach_mark_settings_seen_v1',
   COACH_MARK_SETTINGS_LAST_TS: 'coach_mark_settings_last_ts_v1',

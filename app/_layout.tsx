@@ -12,7 +12,7 @@ SplashScreen.preventAutoHideAsync();
 import { StatusBar } from 'expo-status-bar';
 import { ThemeProvider, useTheme } from '../hooks/useTheme';
 import { AuthLockProvider } from '../context/AuthLockContext';
-import { registerForPushNotificationsAsync } from '../utils/notificationHelpers';
+import { registerForPushNotificationsAsync, rescheduleDailyReminder } from '../utils/notificationHelpers';
 import { authenticate } from '../utils/authHelpers';
 import { checkForUpdate, UpdateInfo } from '../utils/updateChecker';
 import { checkAndRunScheduledSnapshot } from '../utils/vaultSnapshots';
@@ -44,6 +44,7 @@ function AppLayout() {
     initTelemetry();
     logEvent('app_started');
     registerForPushNotificationsAsync();
+    rescheduleDailyReminder();
     handleAuth(false);
     checkAndRunScheduledSnapshot();
 
@@ -51,6 +52,7 @@ function AppLayout() {
       if (nextAppState === 'active') {
         handleAuth(true);
         checkAndRunScheduledSnapshot();
+        rescheduleDailyReminder();
       }
     });
 

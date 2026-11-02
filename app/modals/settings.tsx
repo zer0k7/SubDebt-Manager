@@ -33,7 +33,14 @@ import { exportAllData } from '../../utils/exportData';
 import { exportSpendingCSV } from '../../utils/backupRestore';
 import { SPENDING_CATEGORIES, getCategoryIcon } from '../../constants/categories';
 import { hasBiometrics, toggleBiometricAuth } from '../../utils/authHelpers';
-import { rescheduleDailyReminder } from '../../utils/notificationHelpers';
+import {
+  rescheduleDailyReminder,
+  cancelAllNotifications,
+  cancelDebtNotifications,
+  cancelSubscriptionNotifications,
+  cancelSpendingNotifications,
+  cancelAccountNotifications,
+} from '../../utils/notificationHelpers';
 import Constants from 'expo-constants';
 
 export default function SettingsModal() {
@@ -64,6 +71,8 @@ export default function SettingsModal() {
   const [subsNotifEnabled, setSubsNotifEnabled] = useState(true);
   const [spendingNotifEnabled, setSpendingNotifEnabled] = useState(true);
   const [creditsNotifEnabled, setCreditsNotifEnabled] = useState(true);
+  const [accountsNotifEnabled, setAccountsNotifEnabled] = useState(true);
+  const [smartTimingEnabled, setSmartTimingEnabled] = useState(true);
   const [morningTime, setMorningTime] = useState('09:00');
   const [middayTime, setMiddayTime] = useState('14:00');
 
@@ -113,6 +122,12 @@ export default function SettingsModal() {
 
         const cNotif = await storage.getString(STORAGE_KEYS.NOTIF_CREDITS_ENABLED);
         setCreditsNotifEnabled(cNotif !== 'false');
+
+        const aNotif = await storage.getString(STORAGE_KEYS.NOTIF_ACCOUNTS_ENABLED);
+        setAccountsNotifEnabled(aNotif !== 'false');
+
+        const stNotif = await storage.getString(STORAGE_KEYS.NOTIF_SMART_TIMING_ENABLED);
+        setSmartTimingEnabled(stNotif !== 'false');
 
         const mTime = await storage.getString('morning_reminder_time');
         if (mTime) setMorningTime(mTime);
@@ -200,13 +215,20 @@ export default function SettingsModal() {
     const newVal = !dailyRemindersEnabled;
     setDailyRemindersEnabled(newVal);
     await storage.set('daily_reminder_enabled', newVal ? 'true' : 'false');
-    await rescheduleDailyReminder();
+    if (!newVal) {
+      await cancelAllNotifications();
+    } else {
+      await rescheduleDailyReminder();
+    }
   };
 
   const handleToggleDebtsNotif = async (val: boolean) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setDebtsNotifEnabled(val);
     await storage.set(STORAGE_KEYS.NOTIF_DEBTS_ENABLED, val ? 'true' : 'false');
+    if (!val) {
+      await cancelDebtNotifications();
+    }
     await rescheduleDailyReminder();
   };
 
@@ -214,6 +236,9 @@ export default function SettingsModal() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSubsNotifEnabled(val);
     await storage.set(STORAGE_KEYS.NOTIF_SUBSCRIPTIONS_ENABLED, val ? 'true' : 'false');
+    if (!val) {
+      await cancelSubscriptionNotifications();
+    }
     await rescheduleDailyReminder();
   };
 
@@ -221,6 +246,19 @@ export default function SettingsModal() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setSpendingNotifEnabled(val);
     await storage.set(STORAGE_KEYS.NOTIF_SPENDING_ENABLED, val ? 'true' : 'false');
+    if (!val) {
+      await cancelSpendingNotifications();
+    }
+    await rescheduleDailyReminder();
+  };
+
+  const handleToggleAccountsNotif = async (val: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setAccountsNotifEnabled(val);
+    await storage.set(STORAGE_KEYS.NOTIF_ACCOUNTS_ENABLED, val ? 'true' : 'false');
+    if (!val) {
+      await cancelAccountNotifications();
+    }
     await rescheduleDailyReminder();
   };
 
@@ -228,6 +266,13 @@ export default function SettingsModal() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCreditsNotifEnabled(val);
     await storage.set(STORAGE_KEYS.NOTIF_CREDITS_ENABLED, val ? 'true' : 'false');
+    await rescheduleDailyReminder();
+  };
+
+  const handleToggleSmartTiming = async (val: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setSmartTimingEnabled(val);
+    await storage.set(STORAGE_KEYS.NOTIF_SMART_TIMING_ENABLED, val ? 'true' : 'false');
     await rescheduleDailyReminder();
   };
 
@@ -631,8 +676,25 @@ export default function SettingsModal() {
                 />
               </View>
 
+              {/* Bank Accounts & Cash Flow */}
+              <View style={styles.subNotifRow}>
+                <View style={[styles.subNotifIconBox, { backgroundColor: 'rgba(2, 132, 199, 0.15)' }]}>
+                  <Ionicons name="business-outline" size={15} color={colors.accent.blue} />
+                </View>
+                <View style={styles.settingMeta}>
+                  <Text style={styles.subNotifTitle}>Bank Accounts & Cash Flow</Text>
+                  <Text style={styles.subNotifSub}>Liquid reserve pulses & monthly account balance tracking</Text>
+                </View>
+                <Switch
+                  value={accountsNotifEnabled}
+                  onValueChange={handleToggleAccountsNotif}
+                  trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.blue }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
               {/* Credit Returns */}
-              <View style={[styles.subNotifRow, { borderBottomWidth: 0 }]}>
+              <View style={styles.subNotifRow}>
                 <View style={[styles.subNotifIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
                   <Ionicons name="people-outline" size={15} color={colors.accent.blue} />
                 </View>
@@ -644,6 +706,23 @@ export default function SettingsModal() {
                   value={creditsNotifEnabled}
                   onValueChange={handleToggleCreditsNotif}
                   trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.blue }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
+
+              {/* Natural Smart Timing */}
+              <View style={[styles.subNotifRow, { borderBottomWidth: 0 }]}>
+                <View style={[styles.subNotifIconBox, { backgroundColor: 'rgba(217, 119, 6, 0.15)' }]}>
+                  <Ionicons name="time-outline" size={15} color={colors.accent.amber} />
+                </View>
+                <View style={styles.settingMeta}>
+                  <Text style={styles.subNotifTitle}>Natural Smart Timing</Text>
+                  <Text style={styles.subNotifSub}>Dynamic time variance (+/- 15 mins) and weekend schedule shifts</Text>
+                </View>
+                <Switch
+                  value={smartTimingEnabled}
+                  onValueChange={handleToggleSmartTiming}
+                  trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.amber }}
                   thumbColor="#FFFFFF"
                 />
               </View>
@@ -724,7 +803,26 @@ export default function SettingsModal() {
             <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
           </TouchableOpacity>
 
-          {/* Export JSON Backup Direct */}
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/modals/user-manual');
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={styles.settingMeta}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.settingTitle}>User Handbook & Operational Wiki</Text>
+                <View style={{ backgroundColor: 'rgba(13, 148, 136, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: '#0D9488', fontSize: 10, fontWeight: '800' }}>9 Chapters</Text>
+                </View>
+              </View>
+              <Text style={styles.settingSub}>Complete offline guide to SubDebt system mechanics</Text>
+            </View>
+            <Ionicons name="book-outline" size={18} color="#0D9488" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={handleExportData} activeOpacity={0.8} disabled={exporting}>
             <View style={styles.settingMeta}>
               <Text style={styles.settingTitle}>Export Ledger JSON File</Text>

@@ -78,7 +78,6 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
         });
       }
     } catch (err) {
-      // Fallback
     } finally {
       setSharing(false);
     }
@@ -88,7 +87,6 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
-          {/* Modal Close Button */}
           <View style={styles.topActions}>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={22} color={colors.text.secondary} />
@@ -97,7 +95,6 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
             <View style={{ width: 36 }} />
           </View>
 
-          {/* ViewShot Receipt Container */}
           <ViewShot ref={receiptRef} options={{ format: 'png', quality: 1.0 }} style={styles.receiptContainer}>
             <View style={styles.receiptHeader}>
               <View style={styles.brandRow}>
@@ -172,7 +169,6 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
             </View>
           </ViewShot>
 
-          {/* Share Action CTA */}
           <TouchableOpacity style={styles.shareBtn} onPress={handleShareReceipt} disabled={sharing} activeOpacity={0.85}>
             {sharing ? (
               <ActivityIndicator color="#FFFFFF" size="small" />

@@ -1,12 +1,12 @@
-# SubDebt Manager v2.17.0
+# SubDebt Manager v2.18.0
 
 ### Release Metadata
 
 | Attribute | Specification |
 | :--- | :--- |
-| Version | `2.17.0` |
-| Build Code | `43` |
-| Release Date | `01-Nov-2026` |
+| Version | `2.18.0` |
+| Build Code | `44` |
+| Release Date | `02-Nov-2026` |
 | Architecture | `arm64-v8a` |
 | Package | `com.subdebt.app` |
 
@@ -14,23 +14,19 @@
 
 | Component | Scope | Function |
 | :--- | :--- | :--- |
-| Multi-Bank Accounts & Passbook Ledger | Tab & Modals | Complete bank account tracking with live balance cards, deposits, withdrawals, and account-to-account transfers |
-| Cross-Tab Payment Source Integration | Spending Modal | Link daily expenses directly to bank accounts with one-tap balance deduction and automatic passbook record generation |
-| Monthly Cash Flow Analytics | Passbook & Accounts Tab | Visual Inflow versus Outflow comparison bar with net surplus or deficit badge and segmented progress tracking |
-| Passbook Search Engine | Passbook Modal | Real-time live query search across notes, categories, amounts, and transfer counterparties with query clear action |
-| Indian Banking Vector Suite | Component | High-fidelity vector branding for major Indian banking institutions with dynamic recognition and quick selection chips |
-| Native Splash Handshake | Engine | Frame-synchronized cold launch sequence matching native window background and vector icon dimensions |
-| Executive PDF & Voucher Suite | Export Engine | Official vector emblem branding in PDF statements with direct file storage saving and clean settlement receipts |
+| Smart Notification Engine | System Service | Native Android notification architecture with 4 discrete notification channels and granular category toggles |
+| Dynamic Schedule Variance | Notification Scheduler | Time variance algorithm with weekday timing variation and weekend schedule shift to prevent repetitive notification alerts |
+| Context-Aware Notification Copy | Notification Templates | Dynamic message rotating engine that evaluates logged daily records, remaining allowance, and due dates before dispatch |
+| In-App User Handbook & Wiki | Help & Reference Modal | Complete offline operational reference documentation covering all 9 application modules and financial mechanics |
+| Real-Time Handbook Search | Wiki Search Engine | Instant keyword search across chapter topics, operational rules, calculation formulas, and storage policies |
 
 ### Technical Highlights
 
-1. **Multi-Bank Double-Entry Ledger**: Built local MMKV persistence models for bank accounts and transactional passbooks. Tracks live balances across deposits, withdrawals, and inter-bank transfers with automatic reversal on record modifications.
-2. **Cross-Module Bank Payment Source Selector**: Added payment source chips in the daily expense logger. Selecting a registered bank account logs an outward withdrawal in the account passbook, deducts the live balance, and records cross-referenced account metadata.
-3. **Monthly Inflow and Outflow Analytics Bar**: Integrated dynamic monthly cash flow calculation engines in both individual passbooks and the consolidated bank tab. Computes monthly deposits against withdrawals, calculates net surplus or deficit, and renders a segmented ratio indicator.
-4. **Passbook Search and Multi-Criteria Filtering**: Added a real-time search engine in the passbook modal. Filters entries dynamically by category, transaction notes, numeric amounts, and transfer counterparty names, coupled with interactive type pills and dynamic entry count indicators.
-5. **Passbook Modification and Custom Categories**: Edit past bank transactions with automatic ledger balance adjustments. Create, select, and manage custom transaction tags and categories directly within the transaction form.
-6. **Indian Banking SVG Suite and Alias Matcher**: Integrated vector icons and alias recognition for J&K Bank, State Bank of India, Slice, India Post Payments Bank, Kotak Mahindra Bank, HDFC Bank, ICICI Bank, Axis Bank, Punjab National Bank, Bank of Baroda, Paytm Payments Bank, Airtel Payments Bank, Canara Bank, Union Bank of India, IndusInd Bank, Yes Bank, Federal Bank, and IDFC FIRST Bank.
-7. **Synchronized Native-to-JS Splash Screen Handshake**: Coordinated Android OS window splash display with React Native mounting lifecycle using synchronous readiness signals. Displays matching icon dimensions and background tokens on cold start, eliminating dual-logo transitions, black blinks, and layout shifts.
-8. **Formal Passbook and Expense PDF Exporters**: Embedded official SubDebt vector emblem into PDF headers. Implemented dual-action export workflows allowing direct device saving with directory verification feedback and external application sharing via Android FileProvider.
-9. **Minimalist Settlement Voucher Overhaul**: Replaced decorative neon gradients, background orbs, fake certificate stamps, and lightning bolt marks with a clean, executive financial voucher. Features real app branding, high-contrast typography, itemized transaction metadata, and structured reference codes.
-10. **Unified Vault Snapshot and Complete Backup Engine**: Consolidated manual JSON export and automated daily background snapshot generators into a single canonical pipeline. Backs up subscriptions, debts, credits, daily spending, income entries, bank accounts, transaction logs, customized categories, and complete user preferences with collision-safe restore routines.
+1. **Native Android Notification Channels**: Registered 4 dedicated Android system notification channels: Debts & Liabilities, Active Subscriptions, Daily Spending & Budget Caps, and Bank Accounts & Cash Flow. Users can manage or silence individual categories through app settings or native Android system notification settings.
+2. **Granular Category Toggles with Instant Cancellation**: Updated settings toggles to trigger targeted cancellation sweeps for specific notification categories immediately upon toggling off. Prevents queued background triggers from firing after a category is disabled.
+3. **Dynamic Slot Variance Engine**: Implemented a randomized schedule variance system that applies a plus or minus 15-minute time variation on weekdays and shifts morning reminders forward on weekends. Eliminates mechanical daily alerts.
+4. **Context-Driven Notification Evaluation**: Rewrote background daily reminder jobs to evaluate real-time financial states. Morning slot calculates daily available spending allowance or reports zero-debt balance status. Midday slot checks upcoming debt due dates and subscription renewal dates, canceling the alert if no items are due. Evening slot inspects logged transactions and displays transaction counts for logged days or a reminder for unlogged days.
+5. **App Lifecycle Notification Rescheduling**: Integrated notification recalculation routines into application cold start and foreground resume events. Notification triggers refresh automatically with updated financial balances whenever the application is opened.
+6. **In-App User Handbook & Operational Wiki**: Built a 9-chapter offline documentation engine covering Multi-Bank Accounts, Daily Spending & Bill Splitting, Debts Ledger, Lent Credits Ledger, Subscriptions & Free Trial Tracking, Monthly Budget Caps, Data Vault & Scoped Storage, Smart Notification Engine, and Financial Tools & PDF Exporters.
+7. **Offline Handbook Navigation and Search**: Implemented horizontal category selector pills, chapter jump buttons, collapsible chapter cards, structured operational steps, and real-time text query filtering across all handbook content.
+8. **Minimalist Settlement Receipt Modernization**: Streamlined debt and credit settlement voucher modal. Removed decorative effects, glowing graphics, and artificial certificate labels, replacing them with standard typography, transaction identifiers, and high-contrast receipt layouts.
