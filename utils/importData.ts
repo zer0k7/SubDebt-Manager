@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
 import { rescheduleDailyReminder, checkAndTriggerBudgetAlerts } from './notificationHelpers';
+import { ensureReceiptDirectoryExists } from './receiptHelper';
 
 export interface ImportResult {
   success: boolean;
@@ -105,6 +106,38 @@ export const pickAndImportData = async (mode: 'merge' | 'replace' = 'merge'): Pr
   }
 };
 
+const restoreReceiptImages = async (receiptImagesMap?: Record<string, string>): Promise<void> => {
+  if (!receiptImagesMap || typeof receiptImagesMap !== 'object') return;
+  try {
+    await ensureReceiptDirectoryExists();
+    const entries = Object.entries(receiptImagesMap);
+    for (const [fileName, base64Data] of entries) {
+      if (fileName && typeof base64Data === 'string') {
+        const targetUri = `${FileSystem.documentDirectory}receipts/${fileName}`;
+        await FileSystem.writeAsStringAsync(targetUri, base64Data, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+      }
+    }
+  } catch {}
+};
+
+const sanitizeDailySpending = (items: any[]): any[] => {
+  const receiptsDir = `${FileSystem.documentDirectory}receipts/`;
+  return items.map((item) => {
+    if (item && item.receiptImage && typeof item.receiptImage === 'string') {
+      const fileName = item.receiptImage.split('/').pop();
+      if (fileName) {
+        return {
+          ...item,
+          receiptImage: `${receiptsDir}${fileName}`,
+        };
+      }
+    }
+    return item;
+  });
+};
+
 export const importDataObj = async (data: any, mode: 'merge' | 'replace' = 'merge'): Promise<ImportResult> => {
   try {
     if (!data || typeof data !== 'object') {
@@ -123,10 +156,13 @@ export const importDataObj = async (data: any, mode: 'merge' | 'replace' = 'merg
       };
     }
 
+    await restoreReceiptImages(data.receiptImages);
+
     const subscriptions = Array.isArray(data.subscriptions) ? data.subscriptions : [];
     const debts = Array.isArray(data.debts) ? data.debts : [];
     const credits = Array.isArray(data.credits) ? data.credits : [];
-    const dailySpending = Array.isArray(data.dailySpending) ? data.dailySpending : [];
+    const rawDailySpending = Array.isArray(data.dailySpending) ? data.dailySpending : [];
+    const dailySpending = sanitizeDailySpending(rawDailySpending);
     const customCategories = Array.isArray(data.customCategories) ? data.customCategories : [];
     const incomeEntries = Array.isArray(data.incomeEntries) ? data.incomeEntries : [];
     const accounts = Array.isArray(data.accounts) ? data.accounts : [];

@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Platform,
   Image,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ViewShot, { captureRef } from 'react-native-view-shot';
@@ -49,6 +50,7 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
   const { formatCurrency: fmtCurr, formatDate: fmtDate } = useSettings();
   const receiptRef = useRef<View>(null);
   const [sharing, setSharing] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const receiptId = `RCP-${date ? date.slice(0, 10).replace(/-/g, '') : '2026'}-${Math.floor(1000 + Math.random() * 9000)}`;
 
@@ -88,86 +90,100 @@ export const DigitalReceiptModal: React.FC<DigitalReceiptModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
           <View style={styles.topActions}>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
               <Ionicons name="close" size={22} color={colors.text.secondary} />
             </TouchableOpacity>
             <Text style={styles.modalHeading}>TRANSACTION RECEIPT</Text>
             <View style={{ width: 36 }} />
           </View>
 
-          <ViewShot ref={receiptRef} options={{ format: 'png', quality: 1.0 }} style={styles.receiptContainer}>
-            <View style={styles.receiptHeader}>
-              <View style={styles.brandRow}>
-                <Ionicons name="wallet" size={24} color={colors.accent.purple} />
-                <Text style={styles.brandName}>SubDebt Manager</Text>
-              </View>
-              <View style={[styles.statusBadge, { backgroundColor: `${getBadgeColor()}18`, borderColor: `${getBadgeColor()}40` }]}>
-                <Text style={[styles.statusText, { color: getBadgeColor() }]}>
-                  {statusText || (type === 'spending' ? 'EXPENSE' : type === 'debt' ? 'DEBT RECORD' : 'CREDIT RECORD')}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.amountBox}>
-              <Text style={styles.receiptAmount}>{fmtCurr(amount, currency)}</Text>
-              <Text style={styles.receiptTitle}>{title}</Text>
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.detailsGrid}>
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>
-                  {type === 'spending' ? 'Category' : type === 'subscription' ? 'Plan' : 'Person / Counterparty'}
-                </Text>
-                <Text style={styles.detailVal}>{categoryOrPerson}</Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Date</Text>
-                <Text style={styles.detailVal}>{fmtDate(date)}</Text>
-              </View>
-
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Receipt ID</Text>
-                <Text style={styles.detailValMonospace}>{receiptId}</Text>
-              </View>
-
-              <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.detailLabel}>Verification</Text>
-                <Text style={[styles.detailVal, { color: colors.accent.green }]}>100% Offline Verified</Text>
-              </View>
-            </View>
-
-            {notes ? (
-              <View style={styles.notesContainer}>
-                <View style={styles.notesHeaderRow}>
-                  <Ionicons name="document-text-outline" size={14} color={isDark ? 'rgba(255, 255, 255, 0.6)' : '#64748B'} />
-                  <Text style={styles.notesHeading}>NOTES & REMARKS</Text>
+          <ScrollView
+            style={styles.scrollWrapper}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <ViewShot ref={receiptRef} options={{ format: 'png', quality: 1.0 }} style={styles.receiptContainer}>
+              <View style={styles.receiptHeader}>
+                <View style={styles.brandRow}>
+                  <Ionicons name="wallet" size={24} color={colors.accent.purple} />
+                  <Text style={styles.brandName}>SubDebt Manager</Text>
                 </View>
-                <Text style={styles.notesContent}>{notes}</Text>
-              </View>
-            ) : null}
-
-            {receiptImage ? (
-              <View style={styles.imageContainer}>
-                <View style={styles.imageHeaderRow}>
-                  <Ionicons name="camera-outline" size={13} color={colors.accent.blue} />
-                  <Text style={styles.imageHeading}>ATTACHED RECEIPT PHOTO</Text>
+                <View style={[styles.statusBadge, { backgroundColor: `${getBadgeColor()}18`, borderColor: `${getBadgeColor()}40` }]}>
+                  <Text style={[styles.statusText, { color: getBadgeColor() }]}>
+                    {statusText || (type === 'spending' ? 'EXPENSE' : type === 'debt' ? 'DEBT RECORD' : 'CREDIT RECORD')}
+                  </Text>
                 </View>
-                <Image
-                  source={{ uri: receiptImage }}
-                  style={styles.attachedImage}
-                  resizeMode="cover"
-                />
               </View>
-            ) : null}
 
-            <View style={styles.footerNote}>
-              <Ionicons name="shield-checkmark" size={14} color={colors.accent.purple} />
-              <Text style={styles.footerNoteText}>Encrypted On-Device Private Financial Receipt</Text>
-            </View>
-          </ViewShot>
+              <View style={styles.amountBox}>
+                <Text style={styles.receiptAmount}>{fmtCurr(amount, currency)}</Text>
+                <Text style={styles.receiptTitle}>{title}</Text>
+              </View>
+
+              <View style={styles.divider} />
+
+              <View style={styles.detailsGrid}>
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>
+                    {type === 'spending' ? 'Category' : type === 'subscription' ? 'Plan' : 'Person / Counterparty'}
+                  </Text>
+                  <Text style={styles.detailVal}>{categoryOrPerson}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Date</Text>
+                  <Text style={styles.detailVal}>{fmtDate(date)}</Text>
+                </View>
+
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Receipt ID</Text>
+                  <Text style={styles.detailValMonospace}>{receiptId}</Text>
+                </View>
+
+                <View style={[styles.detailRow, { borderBottomWidth: 0 }]}>
+                  <Text style={styles.detailLabel}>Verification</Text>
+                  <Text style={[styles.detailVal, { color: colors.accent.green }]}>100% Offline Verified</Text>
+                </View>
+              </View>
+
+              {notes ? (
+                <View style={styles.notesContainer}>
+                  <View style={styles.notesHeaderRow}>
+                    <Ionicons name="document-text-outline" size={14} color={isDark ? 'rgba(255, 255, 255, 0.6)' : '#64748B'} />
+                    <Text style={styles.notesHeading}>NOTES & REMARKS</Text>
+                  </View>
+                  <Text style={styles.notesContent}>{notes}</Text>
+                </View>
+              ) : null}
+
+              {receiptImage ? (
+                <View style={styles.imageContainer}>
+                  <View style={styles.imageHeaderRow}>
+                    <Ionicons name="camera-outline" size={13} color={colors.accent.blue} />
+                    <Text style={styles.imageHeading}>ATTACHED RECEIPT PHOTO</Text>
+                  </View>
+                  {!imageError ? (
+                    <Image
+                      source={{ uri: receiptImage }}
+                      style={styles.attachedImage}
+                      resizeMode="contain"
+                      onError={() => setImageError(true)}
+                    />
+                  ) : (
+                    <View style={styles.imageFallbackBox}>
+                      <Ionicons name="image-outline" size={24} color={colors.text.muted} />
+                      <Text style={styles.imageFallbackText}>Photo unavailable on this device</Text>
+                    </View>
+                  )}
+                </View>
+              ) : null}
+
+              <View style={styles.footerNote}>
+                <Ionicons name="shield-checkmark" size={14} color={colors.accent.purple} />
+                <Text style={styles.footerNoteText}>Encrypted On-Device Private Financial Receipt</Text>
+              </View>
+            </ViewShot>
+          </ScrollView>
 
           <TouchableOpacity style={styles.shareBtn} onPress={handleShareReceipt} disabled={sharing} activeOpacity={0.85}>
             {sharing ? (
@@ -197,12 +213,19 @@ const getStyles = (colors: any, isDark: boolean) =>
     modalCard: {
       width: '100%',
       maxWidth: 400,
+      maxHeight: '90%',
       backgroundColor: colors.bg,
       borderRadius: 26,
-      padding: 20,
+      padding: 16,
       borderWidth: 1,
       borderColor: colors.glass.cardBorder,
-      gap: 16,
+      gap: 12,
+    },
+    scrollWrapper: {
+      flexShrink: 1,
+    },
+    scrollContent: {
+      paddingBottom: 4,
     },
     topActions: {
       flexDirection: 'row',
@@ -354,9 +377,25 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     attachedImage: {
       width: '100%',
-      height: 120,
-      borderRadius: 10,
+      height: 160,
+      borderRadius: 12,
       backgroundColor: isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    imageFallbackBox: {
+      height: 80,
+      borderRadius: 12,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+      borderStyle: 'dashed',
+    },
+    imageFallbackText: {
+      color: colors.text.muted,
+      fontSize: 11,
+      fontWeight: '500',
     },
     footerNote: {
       flexDirection: 'row',

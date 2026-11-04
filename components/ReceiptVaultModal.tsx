@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -44,6 +44,11 @@ export const ReceiptVaultModal: React.FC<ReceiptVaultModalProps> = ({
 }) => {
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors, isDark);
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (visible) setHasError(false);
+  }, [visible, imageUri]);
 
   if (!visible) return null;
 
@@ -107,11 +112,12 @@ export const ReceiptVaultModal: React.FC<ReceiptVaultModalProps> = ({
 
         {/* Center Image Container */}
         <View style={styles.imageContainer}>
-          {imageUri ? (
+          {imageUri && !hasError ? (
             <Image
               source={{ uri: imageUri }}
               style={styles.receiptImage}
               resizeMode="contain"
+              onError={() => setHasError(true)}
             />
           ) : (
             <View style={styles.noImageWrap}>

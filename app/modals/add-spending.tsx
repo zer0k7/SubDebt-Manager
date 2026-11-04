@@ -31,6 +31,7 @@ import { BankLogo } from '../../components/banks/BankLogo';
 import { pickReceiptFromGallery, takeReceiptPhoto } from '../../utils/receiptHelper';
 import { ReceiptVaultModal } from '../../components/ReceiptVaultModal';
 import { BankDeductionConfirmModal } from '../../components/BankDeductionConfirmModal';
+import { ReceiptAttachmentCard } from '../../components/ReceiptAttachmentCard';
 import { predictCategory } from '../../utils/smartCategorizer';
 import { extractReceiptData } from '../../utils/receiptScanner';
 
@@ -263,7 +264,7 @@ export default function AddSpendingModal() {
         <Text style={styles.title}>Add Spending</Text>
         <View style={{ width: 36 }} />
       </View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <GlassInput
             label="Spent On"
@@ -553,72 +554,14 @@ export default function AddSpendingModal() {
             </View>
           )}
 
-          {/* Receipt Photo Vault & Scanner Section */}
           <Text style={styles.sectionLabel}>Receipt Photo Vault</Text>
-          {receiptImage ? (
-            <View style={styles.receiptAttachedCard}>
-              <TouchableOpacity
-                style={styles.receiptThumbWrap}
-                onPress={() => setShowReceiptVault(true)}
-                activeOpacity={0.85}
-              >
-                <Image source={{ uri: receiptImage }} style={styles.receiptThumb} />
-                <View style={styles.viewBadge}>
-                  <Ionicons name="scan-outline" size={12} color="#FFFFFF" />
-                  <Text style={styles.viewBadgeText}>VIEW</Text>
-                </View>
-              </TouchableOpacity>
-              <View style={styles.receiptActions}>
-                <Text style={styles.receiptStatusText}>Receipt Attached 🧾</Text>
-                <View style={styles.receiptActionBtns}>
-                  <TouchableOpacity
-                    style={styles.receiptMiniBtn}
-                    onPress={() => setShowReceiptVault(true)}
-                  >
-                    <Ionicons name="eye-outline" size={14} color={colors.accent.blue} />
-                    <Text style={styles.receiptMiniBtnText}>Inspect</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.receiptMiniBtn, { backgroundColor: 'rgba(239, 83, 80, 0.15)' }]}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                      setReceiptImage(null);
-                    }}
-                  >
-                    <Ionicons name="trash-outline" size={14} color={colors.accent.red} />
-                    <Text style={[styles.receiptMiniBtnText, { color: colors.accent.red }]}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.receiptPickerBox}>
-              <TouchableOpacity
-                style={styles.receiptUploadBtn}
-                onPress={handleTakePhoto}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="camera-outline" size={18} color={colors.accent.blue} />
-                <Text style={styles.receiptUploadBtnText}>Camera</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.receiptUploadBtn}
-                onPress={handlePickGallery}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="images-outline" size={18} color={colors.accent.purple} />
-                <Text style={styles.receiptUploadBtnText}>Gallery</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.receiptUploadBtn, { borderColor: colors.accent.blue }]}
-                onPress={handleScanAndAutoFill}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="scan-outline" size={18} color={colors.accent.blue} />
-                <Text style={[styles.receiptUploadBtnText, { color: colors.accent.blue }]}>Scan & Fill</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <ReceiptAttachmentCard
+            receiptImage={receiptImage}
+            onTakePhoto={handleTakePhoto}
+            onPickGallery={handlePickGallery}
+            onRemove={() => setReceiptImage(null)}
+            onInspect={() => setShowReceiptVault(true)}
+          />
 
           <GlassInput label="Notes (Optional)" placeholder="Add any details..." value={notes} onChangeText={setNotes} />
 
@@ -689,9 +632,9 @@ const getStyles = (colors: any, isDark: boolean) =>
     closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: colors.glass.card, justifyContent: 'center', alignItems: 'center' },
     title: { color: colors.text.primary, fontSize: 18, fontWeight: '700' },
     content: { padding: 16, paddingBottom: 40 },
-    row: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
-    amountCol: { flex: 1 },
-    currBox: { width: 110, marginBottom: 14 },
+    row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+    amountCol: { flex: 1, minWidth: 0 },
+    currBox: { width: 96, flexShrink: 0, marginBottom: 14 },
     fieldLabel: { color: colors.text.secondary, fontSize: 13, marginBottom: 8, fontWeight: '500' },
     currPill: {
       flexDirection: 'row',

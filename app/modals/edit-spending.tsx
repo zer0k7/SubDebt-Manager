@@ -16,6 +16,7 @@ import { formatShortDate } from '../../utils/dateHelpers';
 import { useCategoryManager } from '../../hooks/useCategoryManager';
 import { pickReceiptFromGallery, takeReceiptPhoto } from '../../utils/receiptHelper';
 import { ReceiptVaultModal } from '../../components/ReceiptVaultModal';
+import { ReceiptAttachmentCard } from '../../components/ReceiptAttachmentCard';
 
 export default function EditSpendingModal() {
   const { colors, isDark } = useTheme();
@@ -122,7 +123,7 @@ export default function EditSpendingModal() {
           <Ionicons name="trash-outline" size={22} color={colors.accent.red} />
         </TouchableOpacity>
       </View>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <GlassInput label="Spent On" placeholder="Tea, groceries, fuel..." value={title} onChangeText={setTitle} error={errors.title} />
           <GlassInput label="Amount" placeholder="0.00" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" error={errors.amount} />
@@ -212,50 +213,14 @@ export default function EditSpendingModal() {
             <Text style={styles.dateValue}>{formatShortDate(spentAt)}</Text>
           </TouchableOpacity>
 
-          {/* Receipt Photo Vault Section */}
           <Text style={styles.sectionLabel}>Receipt Photo Vault</Text>
-          {receiptImage ? (
-            <View style={styles.receiptAttachedCard}>
-              <TouchableOpacity
-                style={styles.receiptThumbWrap}
-                onPress={() => setShowReceiptVault(true)}
-                activeOpacity={0.85}
-              >
-                <Image source={{ uri: receiptImage }} style={styles.receiptThumb} />
-                <View style={styles.viewBadge}>
-                  <Ionicons name="scan-outline" size={12} color="#FFFFFF" />
-                  <Text style={styles.viewBadgeText}>VIEW</Text>
-                </View>
-              </TouchableOpacity>
-              <View style={styles.receiptActions}>
-                <Text style={styles.receiptStatusText}>Receipt Attached 🧾</Text>
-                <View style={styles.receiptActionBtns}>
-                  <TouchableOpacity style={styles.receiptMiniBtn} onPress={handlePickGallery}>
-                    <Ionicons name="images-outline" size={13} color={colors.accent.blue} />
-                    <Text style={styles.receiptMiniBtnText}>Replace</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.receiptMiniBtn, { backgroundColor: 'rgba(239, 68, 68, 0.12)' }]}
-                    onPress={() => setReceiptImage(null)}
-                  >
-                    <Ionicons name="trash-outline" size={13} color={colors.accent.red} />
-                    <Text style={[styles.receiptMiniBtnText, { color: colors.accent.red }]}>Remove</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.receiptPickerBox}>
-              <TouchableOpacity style={styles.receiptUploadBtn} onPress={handlePickGallery} activeOpacity={0.7}>
-                <Ionicons name="images-outline" size={20} color={colors.accent.blue} />
-                <Text style={styles.receiptUploadBtnText}>Gallery</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.receiptUploadBtn} onPress={handleTakePhoto} activeOpacity={0.7}>
-                <Ionicons name="camera-outline" size={20} color={colors.accent.purple} />
-                <Text style={styles.receiptUploadBtnText}>Camera</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+          <ReceiptAttachmentCard
+            receiptImage={receiptImage}
+            onTakePhoto={handleTakePhoto}
+            onPickGallery={handlePickGallery}
+            onRemove={() => setReceiptImage(null)}
+            onInspect={() => setShowReceiptVault(true)}
+          />
 
           <GlassInput label="Notes (Optional)" placeholder="Additional details..." value={notes} onChangeText={setNotes} multiline numberOfLines={3} />
           <View style={styles.btns}>

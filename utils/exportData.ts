@@ -18,6 +18,7 @@ export interface ComprehensiveExportData {
     totalIncomeEntries: number;
     totalAccounts: number;
     totalAccountTransactions: number;
+    totalReceiptImages?: number;
   };
   subscriptions: any[];
   debts: any[];
@@ -30,6 +31,7 @@ export interface ComprehensiveExportData {
   accounts: any[];
   accountTransactions: any[];
   accountCustomCategories: string[];
+  receiptImages?: Record<string, string>;
   settings: {
     currency?: string;
     weekStartDay?: string;
@@ -124,9 +126,29 @@ export const buildComprehensiveExportData = async (
   const accountTransactions = safeParseArray<any>(accountTxsRaw);
   const accountCustomCategories = safeParseArray<string>(accountCustomCategoriesRaw);
 
+  const receiptImages: Record<string, string> = {};
+  for (const item of dailySpending) {
+    if (item && item.receiptImage && typeof item.receiptImage === 'string') {
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(item.receiptImage);
+        if (fileInfo.exists) {
+          const fileName = item.receiptImage.split('/').pop();
+          if (fileName) {
+            const base64 = await FileSystem.readAsStringAsync(item.receiptImage, {
+              encoding: FileSystem.EncodingType.Base64,
+            });
+            receiptImages[fileName] = base64;
+          }
+        }
+      } catch {}
+    }
+  }
+
+  const receiptImagesCount = Object.keys(receiptImages).length;
+
   return {
-    version: '2.16.0',
-    schemaVersion: 4,
+    version: '2.19.0',
+    schemaVersion: 5,
     exportedAt: new Date().toISOString(),
     platform: Platform.OS,
     triggerType,
@@ -139,6 +161,7 @@ export const buildComprehensiveExportData = async (
       totalIncomeEntries: incomeEntries.length,
       totalAccounts: accounts.length,
       totalAccountTransactions: accountTransactions.length,
+      totalReceiptImages: receiptImagesCount,
     },
     subscriptions,
     debts,
@@ -151,6 +174,7 @@ export const buildComprehensiveExportData = async (
     accounts,
     accountTransactions,
     accountCustomCategories,
+    receiptImages: receiptImagesCount > 0 ? receiptImages : undefined,
     settings: {
       currency: currency || undefined,
       weekStartDay: weekStartDay || undefined,
