@@ -209,9 +209,14 @@ export default function AccountStatementModal() {
 
         <View style={[styles.heroCard, { borderColor: `${account.color}30` }]}>
           <View style={styles.heroRow}>
-            <View>
-              <Text style={styles.heroLabel}>CURRENT LIVE BALANCE</Text>
-              <Text style={styles.heroBalance} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+            <View style={{ flex: 1, minWidth: 0, marginRight: 12 }}>
+              <Text style={styles.heroLabel} numberOfLines={1}>CURRENT LIVE BALANCE</Text>
+              <Text
+                style={styles.heroBalance}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.55}
+              >
                 {formatCurrency(account.currentBalance, account.currency)}
               </Text>
             </View>
@@ -234,14 +239,24 @@ export default function AccountStatementModal() {
           <View style={styles.statsRow}>
             <View style={styles.statBox}>
               <Text style={styles.statBoxLabel}>Total Deposits</Text>
-              <Text style={[styles.statBoxVal, { color: colors.accent.green }]} numberOfLines={1}>
+              <Text
+                style={[styles.statBoxVal, { color: colors.accent.green }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
                 +{formatCurrency(stats.totalDeposits, account.currency)}
               </Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
               <Text style={styles.statBoxLabel}>Total Withdrawals</Text>
-              <Text style={[styles.statBoxVal, { color: colors.accent.red }]} numberOfLines={1}>
+              <Text
+                style={[styles.statBoxVal, { color: colors.accent.red }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.65}
+              >
                 -{formatCurrency(stats.totalWithdrawals, account.currency)}
               </Text>
             </View>
@@ -252,7 +267,7 @@ export default function AccountStatementModal() {
           <View style={styles.cashFlowHeader}>
             <View style={styles.cashFlowTitleGroup}>
               <Ionicons name="bar-chart-outline" size={14} color={colors.accent.blue} />
-              <Text style={styles.cashFlowSectionTitle}>
+              <Text style={styles.cashFlowSectionTitle} numberOfLines={1}>
                 CASH FLOW ({monthlyCashFlow.monthLabel.toUpperCase()})
               </Text>
             </View>
@@ -279,6 +294,7 @@ export default function AccountStatementModal() {
                     color: monthlyCashFlow.netFlow >= 0 ? colors.accent.green : colors.accent.red,
                   },
                 ]}
+                numberOfLines={1}
               >
                 Net: {monthlyCashFlow.netFlow >= 0 ? '+' : '-'}
                 {formatCurrency(Math.abs(monthlyCashFlow.netFlow), account.currency)}
@@ -289,14 +305,24 @@ export default function AccountStatementModal() {
           <View style={styles.cashFlowMetricsRow}>
             <View style={styles.cashFlowMetric}>
               <Text style={styles.cashFlowMetricLabel}>Inflow (In)</Text>
-              <Text style={[styles.cashFlowMetricVal, { color: colors.accent.green }]}>
+              <Text
+                style={[styles.cashFlowMetricVal, { color: colors.accent.green }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
                 +{formatCurrency(monthlyCashFlow.inflow, account.currency)}
               </Text>
             </View>
             <View style={styles.cashFlowMetricDivider} />
             <View style={styles.cashFlowMetric}>
               <Text style={styles.cashFlowMetricLabel}>Outflow (Out)</Text>
-              <Text style={[styles.cashFlowMetricVal, { color: colors.accent.red }]}>
+              <Text
+                style={[styles.cashFlowMetricVal, { color: colors.accent.red }]}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
                 -{formatCurrency(monthlyCashFlow.outflow, account.currency)}
               </Text>
             </View>
@@ -480,6 +506,9 @@ export default function AccountStatementModal() {
                       styles.txAmount,
                       { color: isDeposit || isTransferIn ? colors.accent.green : colors.accent.red },
                     ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
                   >
                     {isDeposit || isTransferIn ? '+' : '-'}
                     {formatCurrency(item.amount, account.currency)}
@@ -652,6 +681,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontSize: 26,
       fontWeight: '800',
       marginTop: 2,
+      paddingRight: 2,
     },
     quickAddTxBtn: {
       flexDirection: 'row',
@@ -661,6 +691,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingHorizontal: 12,
       paddingVertical: 7,
       borderRadius: 12,
+      flexShrink: 0,
     },
     quickAddTxText: {
       color: '#FFFFFF',
@@ -709,6 +740,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
+      flex: 1,
+      minWidth: 0,
+      marginRight: 8,
     },
     cashFlowSectionTitle: {
       color: colors.text.muted,
@@ -723,6 +757,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 8,
+      flexShrink: 0,
     },
     netBadgeText: {
       fontSize: 10.5,
@@ -899,11 +934,16 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     txRight: {
       alignItems: 'flex-end',
+      justifyContent: 'center',
+      flexShrink: 0,
+      paddingRight: 2,
       gap: 4,
     },
     txAmount: {
       fontSize: 14,
       fontWeight: '800',
+      paddingRight: 3,
+      letterSpacing: -0.2,
     },
     txRowActions: {
       flexDirection: 'row',

@@ -59,7 +59,12 @@ export const CreditCard: React.FC<CreditCardProps> = ({ credit, onMarkReturned, 
         </View>
 
         <View style={styles.amountWrap}>
-          <Text style={[styles.amount, credit.isReturned ? styles.amountReturned : styles.amountPending, credit.isReturned && styles.strike]}>
+          <Text
+            style={[styles.amount, credit.isReturned ? styles.amountReturned : styles.amountPending, credit.isReturned && styles.strike]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
             {formatCurrency(credit.amount, credit.currency)}
           </Text>
           <View style={styles.badgeRow}>
@@ -194,8 +199,8 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
   personName: { color: colors.text.primary, fontSize: 16, fontWeight: '700' },
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   phone: { color: isDark ? colors.text.muted : '#64748B', fontSize: 12 },
-  amountWrap: { alignItems: 'flex-end' },
-  amount: { fontSize: 20, fontWeight: '800', letterSpacing: -0.5 },
+  amountWrap: { alignItems: 'flex-end', flexShrink: 0, paddingRight: 2 },
+  amount: { fontSize: 20, fontWeight: '800', letterSpacing: -0.2, paddingRight: 3 },
   amountPending: { color: isDark ? colors.accent.green : '#059669' },
   amountReturned: { color: isDark ? colors.text.muted : '#94A3B8' },
   strike: { textDecorationLine: 'line-through', color: isDark ? colors.text.muted : '#94A3B8' },

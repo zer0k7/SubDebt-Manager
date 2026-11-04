@@ -167,6 +167,6 @@ const getStyles = (colors: any, isCompact: boolean = false, isDark: boolean = tr
   },
   meta: { color: colors.text.secondary, fontSize: isCompact ? 11 : 12, marginTop: isCompact ? 1 : 3 },
   notes: { color: colors.text.muted, fontSize: 12, marginTop: 3, fontStyle: 'italic' },
-  amountWrap: { alignItems: 'flex-end', gap: isCompact ? 4 : 8, maxWidth: '44%', flexShrink: 0 },
-  amount: { color: colors.accent.purple, fontSize: isCompact ? 15 : 17, fontWeight: '800' },
+  amountWrap: { alignItems: 'flex-end', gap: isCompact ? 4 : 8, maxWidth: '44%', flexShrink: 0, paddingRight: 2 },
+  amount: { color: colors.accent.purple, fontSize: isCompact ? 15 : 17, fontWeight: '800', paddingRight: 3, letterSpacing: -0.2 },
 });

@@ -236,6 +236,7 @@ export default function AccountsScreen() {
                       color: monthlyFlow.netFlow >= 0 ? colors.accent.green : colors.accent.red,
                     },
                   ]}
+                  numberOfLines={1}
                 >
                   Net: {monthlyFlow.netFlow >= 0 ? '+' : '-'}
                   {formatCurrency(Math.abs(monthlyFlow.netFlow), currencyCode)}
@@ -246,14 +247,24 @@ export default function AccountsScreen() {
             <View style={styles.flowMetricsRow}>
               <View style={styles.flowMetricCol}>
                 <Text style={styles.flowMetricLabel}>Deposits In</Text>
-                <Text style={[styles.flowMetricValue, { color: colors.accent.green }]}>
+                <Text
+                  style={[styles.flowMetricValue, { color: colors.accent.green }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
                   +{formatCurrency(monthlyFlow.totalInflow, currencyCode)}
                 </Text>
               </View>
               <View style={styles.flowDivider} />
               <View style={styles.flowMetricCol}>
                 <Text style={styles.flowMetricLabel}>Withdrawals Out</Text>
-                <Text style={[styles.flowMetricValue, { color: colors.accent.red }]}>
+                <Text
+                  style={[styles.flowMetricValue, { color: colors.accent.red }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
                   -{formatCurrency(monthlyFlow.totalOutflow, currencyCode)}
                 </Text>
               </View>
@@ -332,28 +343,28 @@ export default function AccountsScreen() {
                     <View style={styles.accCardTop}>
                       <View style={styles.accCardBrand}>
                         <BankLogo name={acc.name} fallbackColor={acc.color} size={38} />
-                        <View style={{ flex: 1 }}>
+                        <View style={{ flex: 1, minWidth: 0 }}>
                           <Text style={styles.accCardName} numberOfLines={1}>
                             {acc.name}
                           </Text>
-                          <Text style={styles.accCardType}>
+                          <Text style={styles.accCardType} numberOfLines={1}>
                             {acc.accountNumberMasked ? `${acc.accountNumberMasked} · ` : ''}
                             {acc.accountType.toUpperCase()}
                           </Text>
                         </View>
                       </View>
 
-                      <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
+                      <Ionicons name="chevron-forward" size={18} color={colors.text.muted} style={{ flexShrink: 0 }} />
                     </View>
 
                     <View style={styles.accCardBottom}>
-                      <View>
+                      <View style={styles.accBalanceWrap}>
                         <Text style={styles.accBalanceLabel}>Current Balance</Text>
                         <Text
                           style={styles.accBalanceVal}
                           numberOfLines={1}
                           adjustsFontSizeToFit
-                          minimumFontScale={0.7}
+                          minimumFontScale={0.55}
                         >
                           {formatCurrency(acc.currentBalance, acc.currency)}
                         </Text>
@@ -449,11 +460,14 @@ export default function AccountsScreen() {
                           styles.txAmountText,
                           { color: isDeposit ? colors.accent.green : isTransfer ? colors.accent.blue : colors.text.primary },
                         ]}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.8}
                       >
                         {isDeposit ? '+' : isTransfer ? '⇄ ' : '-'}
                         {formatCurrency(tx.amount, acc?.currency || currencyCode)}
                       </Text>
-                      <Text style={styles.txDateText}>{txDate}</Text>
+                      <Text style={styles.txDateText} numberOfLines={1}>{txDate}</Text>
                     </View>
                   </TouchableOpacity>
                 );
@@ -576,6 +590,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
+      flex: 1,
+      minWidth: 0,
+      marginRight: 8,
     },
     flowCardTitle: {
       color: colors.text.muted,
@@ -590,6 +607,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 8,
+      flexShrink: 0,
     },
     netPillText: {
       fontSize: 11,
@@ -716,6 +734,11 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderColor: colors.glass.cardBorder,
       paddingTop: 10,
     },
+    accBalanceWrap: {
+      flex: 1,
+      minWidth: 0,
+      marginRight: 10,
+    },
     accBalanceLabel: {
       color: colors.text.muted,
       fontSize: 10,
@@ -726,6 +749,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontSize: 18,
       fontWeight: '800',
       marginTop: 2,
+      paddingRight: 2,
     },
     statementTag: {
       flexDirection: 'row',
@@ -735,6 +759,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       paddingHorizontal: 8,
       paddingVertical: 5,
       borderRadius: 8,
+      flexShrink: 0,
     },
     statementTagText: {
       color: colors.accent.blue,
@@ -794,7 +819,8 @@ const getStyles = (colors: any, isDark: boolean) =>
       flexDirection: 'row',
       alignItems: 'center',
       backgroundColor: colors.glass.card,
-      padding: 12,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
       borderRadius: 14,
       borderWidth: 1,
       borderColor: colors.glass.cardBorder,
@@ -806,6 +832,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderRadius: 12,
       alignItems: 'center',
       justifyContent: 'center',
+      flexShrink: 0,
     },
     txMeta: {
       flex: 1,
@@ -823,14 +850,20 @@ const getStyles = (colors: any, isDark: boolean) =>
     },
     txRight: {
       alignItems: 'flex-end',
+      justifyContent: 'center',
+      flexShrink: 0,
+      paddingRight: 2,
       gap: 2,
     },
     txAmountText: {
-      fontSize: 13,
+      fontSize: 13.5,
       fontWeight: '800',
+      paddingRight: 3,
+      letterSpacing: -0.2,
     },
     txDateText: {
       color: colors.text.muted,
       fontSize: 10,
+      paddingRight: 3,
     },
   });

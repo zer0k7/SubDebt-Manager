@@ -68,11 +68,16 @@ export const DebtCard: React.FC<DebtCardProps> = ({ debt, onTogglePaid, onPress,
 
         {/* Amount + badge */}
         <View style={styles.amountWrap}>
-          <Text style={[
-            styles.amount,
-            debt.isPaid ? styles.amountPaid : overdue ? styles.amountOverdue : styles.amountPending,
-            debt.isPaid && styles.strike,
-          ]}>
+          <Text
+            style={[
+              styles.amount,
+              debt.isPaid ? styles.amountPaid : overdue ? styles.amountOverdue : styles.amountPending,
+              debt.isPaid && styles.strike,
+            ]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.7}
+          >
             {formatCurrency(debt.amount, debt.currency)}
           </Text>
           <View style={styles.badgeWrap}>
@@ -280,11 +285,13 @@ const getStyles = (colors: any, isDark: boolean, isCompact: boolean = false) => 
     gap: 5,
     paddingTop: 2,
     flexShrink: 0,
+    paddingRight: 2,
   },
   amount: {
     fontSize: 20,
     fontWeight: '800',
-    letterSpacing: -0.5,
+    letterSpacing: -0.2,
+    paddingRight: 3,
   },
   amountPending: {
     color: isDark ? '#FB7185' : '#E11D48',

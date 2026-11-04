@@ -374,12 +374,12 @@ export default function AddSpendingModal() {
 
           <View style={styles.paymentSourceSection}>
             <View style={styles.paymentSourceHeader}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                 <Ionicons name="card-outline" size={16} color={colors.accent.blue} />
                 <Text style={styles.sectionLabel}>Payment Source</Text>
               </View>
               {selectedAccountId ? (
-                <Text style={styles.accountBalanceHint}>
+                <Text style={styles.accountBalanceHint} numberOfLines={1}>
                   Auto-deducts from bank passbook
                 </Text>
               ) : null}
@@ -1000,6 +1000,9 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.muted,
       fontSize: 11,
       fontWeight: '500',
+      flexShrink: 1,
+      textAlign: 'right',
+      marginLeft: 8,
     },
     accountChipsRow: {
       flexDirection: 'row',

@@ -274,8 +274,8 @@ export default function AddAccountTransactionModal() {
 
           {activeAccount && (
             <View style={styles.balanceBadgeRow}>
-              <Ionicons name="wallet-outline" size={13} color={colors.accent.blue} />
-              <Text style={styles.balanceBadgeText}>
+              <Ionicons name="wallet-outline" size={13} color={colors.accent.blue} style={{ flexShrink: 0 }} />
+              <Text style={styles.balanceBadgeText} numberOfLines={1} ellipsizeMode="tail">
                 {activeAccount.name} Live Balance: {formatCurrency(activeAccount.currentBalance, activeAccount.currency)}
               </Text>
             </View>
@@ -633,11 +633,13 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderRadius: 8,
       backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
       alignSelf: 'flex-start',
+      maxWidth: '100%',
     },
     balanceBadgeText: {
       color: colors.text.secondary,
       fontSize: 11,
       fontWeight: '600',
+      flexShrink: 1,
     },
     sectionHeaderRow: {
       flexDirection: 'row',
