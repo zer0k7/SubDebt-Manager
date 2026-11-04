@@ -28,6 +28,7 @@ import { STORAGE_KEYS } from '../../storage/keys';
 import { useAuthLock } from '../../context/AuthLockContext';
 import { checkForUpdate, UpdateInfo } from '../../utils/updateChecker';
 import { UpdatePrompt } from '../../components/UpdatePrompt';
+import { checkAndTriggerPlayUpdate } from '../../utils/playUpdateManager';
 import { WhatsNewModal } from '../../components/WhatsNewModal';
 import { exportAllData } from '../../utils/exportData';
 import { exportSpendingCSV } from '../../utils/backupRestore';
@@ -302,6 +303,10 @@ export default function SettingsModal() {
     setCheckingUpdate(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     try {
+      const playUpdateTriggered = await checkAndTriggerPlayUpdate(true);
+      if (playUpdateTriggered) {
+        return;
+      }
       const info = await checkForUpdate(true);
       if (info && info.available) {
         setUpdateInfo(info);

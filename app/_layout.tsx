@@ -17,6 +17,8 @@ import { authenticate } from '../utils/authHelpers';
 import { checkForUpdate, UpdateInfo } from '../utils/updateChecker';
 import { checkAndRunScheduledSnapshot } from '../utils/vaultSnapshots';
 import { UpdatePrompt } from '../components/UpdatePrompt';
+import { UpdateDownloadedBanner } from '../components/UpdateDownloadedBanner';
+import { usePlayInAppUpdate } from '../hooks/usePlayInAppUpdate';
 import { initTelemetry, logEvent } from '../utils/telemetry';
 
 function AppLayout() {
@@ -26,6 +28,8 @@ function AppLayout() {
   const [showLockOverlay, setShowLockOverlay] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+  const { isUpdateReady, installDownloadedUpdate } = usePlayInAppUpdate();
+  const [showDownloadedBanner, setShowDownloadedBanner] = useState(true);
   
   const handleAuth = async (isResume = false) => {
     if (isResume) {
@@ -172,6 +176,12 @@ function AppLayout() {
           onDismiss={() => setShowUpdatePrompt(false)}
         />
       )}
+
+      <UpdateDownloadedBanner
+        visible={isUpdateReady && showDownloadedBanner}
+        onRestart={installDownloadedUpdate}
+        onDismiss={() => setShowDownloadedBanner(false)}
+      />
     </>
   );
 }

@@ -83,6 +83,8 @@ jobs:
           -dontwarn expo.modules.**
           -keep class fr.greweb.reactnativeviewshot.** { *; }
           -keep class com.horcrux.svg.** { *; }
+          -keep class com.google.android.play.core.** { *; }
+          -keep class in.mfl.inappupdates.** { *; }
           PROGUARD_RULES
 
           cat >> "$GRADLE_FILE" << 'GRADLE_PATCH'

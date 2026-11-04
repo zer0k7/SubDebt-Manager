@@ -36,4 +36,5 @@ export const STORAGE_KEYS = {
   ACCOUNTS: 'accounts_v1',
   ACCOUNT_TRANSACTIONS: 'account_transactions_v1',
   ACCOUNT_CUSTOM_CATEGORIES: 'account_custom_categories_v1',
+  LAST_PLAY_UPDATE_CHECK: 'last_play_update_check',
 } as const;
