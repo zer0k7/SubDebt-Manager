@@ -30,6 +30,7 @@ import { useAccounts } from '../../hooks/useAccounts';
 import { BankLogo } from '../../components/banks/BankLogo';
 import { pickReceiptFromGallery, takeReceiptPhoto } from '../../utils/receiptHelper';
 import { ReceiptVaultModal } from '../../components/ReceiptVaultModal';
+import { BankDeductionConfirmModal } from '../../components/BankDeductionConfirmModal';
 import { predictCategory } from '../../utils/smartCategorizer';
 import { extractReceiptData } from '../../utils/receiptScanner';
 
@@ -70,6 +71,7 @@ export default function AddSpendingModal() {
   const [showReceiptVault, setShowReceiptVault] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCurrencyPicker, setShowCurrencyPicker] = useState(false);
+  const [showBankDeductConfirm, setShowBankDeductConfirm] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Bill Splitting State
@@ -175,16 +177,28 @@ export default function AddSpendingModal() {
     setSplitFriends(splitFriends.map((f) => (f.id === id ? { ...f, amount: val } : f)));
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!validate()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
+    const chosenAccount = selectedAccountId
+      ? activeAccounts.find((a) => a.id === selectedAccountId)
+      : undefined;
+
+    if (chosenAccount) {
+      setShowBankDeductConfirm(true);
+      return;
+    }
+
+    executeSave(false, 0);
+  };
+
+  const executeSave = async (shouldDeductFromBank: boolean, deductionAmount: number) => {
     let finalSpendingAmount = Number(amount);
     let finalNotes = notes.trim();
 
-    // If bill splitting is enabled, log user's actual share as the expense and create credits for friends
     if (isSplitEnabled && splitFriends.length > 0) {
       finalSpendingAmount = Number(myNetShare.toFixed(2));
       const splitSummary = splitFriends
@@ -194,7 +208,6 @@ export default function AddSpendingModal() {
         ? `${finalNotes}\n[Split Bill (${totalAmountNum} total): You paid for ${splitSummary}]`
         : `[Split Bill (${totalAmountNum} total): You paid for ${splitSummary}]`;
 
-      // Automatically create Credit entries (Owed to Me) for each friend!
       for (const friend of splitFriends) {
         const friendAmt = parseFloat(friend.amount) || 0;
         if (friendAmt > 0) {
@@ -214,8 +227,7 @@ export default function AddSpendingModal() {
       ? activeAccounts.find((a) => a.id === selectedAccountId)
       : undefined;
 
-    if (chosenAccount) {
-      const deductionAmount = totalAmountNum > 0 ? totalAmountNum : finalSpendingAmount;
+    if (chosenAccount && shouldDeductFromBank && deductionAmount > 0) {
       await addTransaction({
         accountId: chosenAccount.id,
         type: 'withdrawal',
@@ -380,7 +392,7 @@ export default function AddSpendingModal() {
               </View>
               {selectedAccountId ? (
                 <Text style={styles.accountBalanceHint} numberOfLines={1}>
-                  Auto-deducts from bank passbook
+                  Deduction prompt on save
                 </Text>
               ) : null}
             </View>
@@ -647,6 +659,24 @@ export default function AddSpendingModal() {
         category={category}
         date={spentAt.toISOString()}
         notes={notes}
+      />
+
+      <BankDeductionConfirmModal
+        visible={showBankDeductConfirm}
+        account={selectedAccountId ? activeAccounts.find((a) => a.id === selectedAccountId) || null : null}
+        amount={amount}
+        currency={currency}
+        isSplitEnabled={isSplitEnabled}
+        splitFriends={splitFriends}
+        onConfirmDeduct={(deductionAmt) => {
+          setShowBankDeductConfirm(false);
+          executeSave(true, deductionAmt);
+        }}
+        onConfirmSkipDeduct={() => {
+          setShowBankDeductConfirm(false);
+          executeSave(false, 0);
+        }}
+        onCancel={() => setShowBankDeductConfirm(false)}
       />
     </SafeAreaView>
   );
