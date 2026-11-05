@@ -11,6 +11,7 @@ import {
   Switch,
   Alert,
   Image,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -828,6 +829,26 @@ export default function SettingsModal() {
             <Ionicons name="book-outline" size={18} color="#0D9488" />
           </TouchableOpacity>
 
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              Linking.openURL('https://subdebt.zer0k7lab.tech/');
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={styles.settingMeta}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.settingTitle}>Official Web Portal & Online Wiki</Text>
+                <View style={{ backgroundColor: 'rgba(59, 130, 246, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: colors.accent.blue, fontSize: 10, fontWeight: '800' }}>Live Web</Text>
+                </View>
+              </View>
+              <Text style={styles.settingSub}>subdebt.zer0k7lab.tech · Documentation, security & guides</Text>
+            </View>
+            <Ionicons name="globe-outline" size={18} color={colors.accent.blue} />
+          </TouchableOpacity>
+
           <TouchableOpacity style={[styles.settingRow, { borderBottomWidth: 0 }]} onPress={handleExportData} activeOpacity={0.8} disabled={exporting}>
             <View style={styles.settingMeta}>
               <Text style={styles.settingTitle}>Export Ledger JSON File</Text>
@@ -898,9 +919,17 @@ export default function SettingsModal() {
             </Text>
           </View>
 
-          <Text style={styles.aboutMadeWith}>
-            Built by zer0k7 Lab
-          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              Linking.openURL('https://subdebt.zer0k7lab.tech/');
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.aboutMadeWith}>
+              Built by zer0k7 Lab · subdebt.zer0k7lab.tech
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

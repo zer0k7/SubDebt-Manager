@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -75,7 +76,17 @@ export default function UserManualModal() {
           <Text style={styles.headerTitle}>User Handbook & Wiki</Text>
           <Text style={styles.headerSub}>Complete Offline Guide to SubDebt Architecture</Text>
         </View>
-        <View style={{ width: 36 }} />
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            Linking.openURL('https://subdebt.zer0k7lab.tech/wiki.html');
+          }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="globe-outline" size={19} color={colors.accent.blue} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
