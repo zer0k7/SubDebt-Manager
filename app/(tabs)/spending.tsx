@@ -35,6 +35,7 @@ import { useCurrency } from '../../hooks/useCurrency';
 import { useBudget } from '../../hooks/useBudget';
 import { useCategoryManager } from '../../hooks/useCategoryManager';
 import { formatCurrency } from '../../utils/dateHelpers';
+import { exportDailySpendingToCSV } from '../../utils/csvExporter';
 
 type ViewMode = 'overview' | 'entries';
 
@@ -83,6 +84,7 @@ export default function SpendingScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [timeRange, setTimeRange] = useState<TimeRange>('7d');
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
 
   const todayTotal = getTotalForDay(new Date(), convertAmount);
   const weekTotal = getTotalForWeek(convertAmount);
@@ -173,6 +175,17 @@ export default function SpendingScreen() {
   const handleAddPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push('/modals/add-spending');
+  };
+
+  const handleExportCSV = async () => {
+    if (entries.length === 0) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsExportingCSV(true);
+    try {
+      await exportDailySpendingToCSV(entries, currencyCode);
+    } finally {
+      setIsExportingCSV(false);
+    }
   };
 
   const handleEdit = (entry: SpendingEntry) => {
@@ -311,31 +324,46 @@ export default function SpendingScreen() {
 
   const renderOverviewHeader = () => (
     <>
-      {/* Time Range Filter */}
       {renderTimeRangeFilter()}
 
-      {/* Explorer Shortcut Banner */}
-      <TouchableOpacity
-        style={styles.explorerBanner}
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push('/modals/spending-explorer');
-        }}
-        activeOpacity={0.8}
-      >
-        <View style={styles.explorerBannerLeft}>
+      <View style={styles.actionBannersRow}>
+        <TouchableOpacity
+          style={styles.explorerBannerTile}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            router.push('/modals/spending-explorer');
+          }}
+          activeOpacity={0.8}
+        >
           <View style={styles.explorerIconCircle}>
-            <Ionicons name="search" size={14} color={colors.accent.purple} />
+            <Ionicons name="funnel-outline" size={14} color={colors.accent.purple} />
           </View>
-          <View>
-            <Text style={styles.explorerBannerTitle}>Deep Spending Explorer</Text>
-            <Text style={styles.explorerBannerSubtitle}>Filter by Category, Dates & Export CSV</Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.explorerBannerTitle} numberOfLines={1}>Explorer</Text>
+            <Text style={styles.explorerBannerSubtitle} numberOfLines={1}>Filter & Search</Text>
           </View>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={colors.accent.purple} />
-      </TouchableOpacity>
+          <Ionicons name="chevron-forward" size={13} color={colors.accent.purple} />
+        </TouchableOpacity>
 
-      {/* Monthly Budget Card */}
+        <TouchableOpacity
+          style={styles.csvBannerTile}
+          onPress={handleExportCSV}
+          activeOpacity={0.8}
+          disabled={isExportingCSV}
+        >
+          <View style={[styles.explorerIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.12)' }]}>
+            <Ionicons name="grid-outline" size={14} color={colors.accent.green} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.explorerBannerTitle} numberOfLines={1}>CSV / Excel</Text>
+            <Text style={styles.explorerBannerSubtitle} numberOfLines={1}>
+              {isExportingCSV ? 'Exporting...' : 'One-Click Export'}
+            </Text>
+          </View>
+          <Ionicons name="share-outline" size={13} color={colors.accent.green} />
+        </TouchableOpacity>
+      </View>
+
       {budget.amount > 0 && (
         <View style={styles.budgetCard}>
           <View style={styles.budgetHeader}>
@@ -858,39 +886,55 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '700',
     },
 
-    // Explorer Banner
-    explorerBanner: {
+    actionBannersRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      gap: 10,
       marginHorizontal: 20,
       marginBottom: 14,
-      padding: 12,
+    },
+    explorerBannerTile: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 10,
       borderRadius: 16,
       backgroundColor: isDark ? 'rgba(171, 71, 188, 0.1)' : 'rgba(171, 71, 188, 0.07)',
       borderWidth: 0.5,
       borderColor: isDark ? 'rgba(171, 71, 188, 0.25)' : 'rgba(171, 71, 188, 0.18)',
     },
-    explorerBannerLeft: {
+    csvBannerTile: {
+      flex: 1,
+      minWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
+      gap: 8,
+      paddingVertical: 10,
+      paddingHorizontal: 10,
+      borderRadius: 16,
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.1)' : 'rgba(16, 185, 129, 0.07)',
+      borderWidth: 0.5,
+      borderColor: isDark ? 'rgba(16, 185, 129, 0.25)' : 'rgba(16, 185, 129, 0.18)',
     },
     explorerIconCircle: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
       backgroundColor: isDark ? 'rgba(171, 71, 188, 0.2)' : 'rgba(171, 71, 188, 0.12)',
       justifyContent: 'center',
       alignItems: 'center',
+      flexShrink: 0,
     },
     explorerBannerTitle: {
-      fontSize: 13,
+      fontSize: 12,
       fontWeight: '700',
       color: colors.text.primary,
     },
     explorerBannerSubtitle: {
-      fontSize: 11,
+      fontSize: 10,
       color: colors.text.tertiary,
     },
 

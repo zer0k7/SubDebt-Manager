@@ -370,9 +370,30 @@ export default function AccountsScreen() {
                         </Text>
                       </View>
 
-                      <View style={styles.statementTag}>
-                        <Ionicons name="receipt-outline" size={13} color={colors.accent.blue} />
-                        <Text style={styles.statementTagText}>Passbook</Text>
+                      <View style={styles.accCardBottomActions}>
+                        {activeAccounts.length > 1 && (
+                          <TouchableOpacity
+                            style={styles.transferTag}
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                              router.push({
+                                pathname: '/modals/add-account-transaction',
+                                params: { initialAccountId: acc.id, initialType: 'transfer' },
+                              });
+                            }}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                          >
+                            <Ionicons name="swap-horizontal" size={13} color={colors.accent.purple} />
+                            <Text style={styles.transferTagText}>Transfer</Text>
+                          </TouchableOpacity>
+                        )}
+
+                        <View style={styles.statementTag}>
+                          <Ionicons name="receipt-outline" size={13} color={colors.accent.blue} />
+                          <Text style={styles.statementTagText}>Passbook</Text>
+                        </View>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -750,6 +771,27 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontWeight: '800',
       marginTop: 2,
       paddingRight: 2,
+    },
+    accCardBottomActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flexShrink: 0,
+    },
+    transferTag: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: `${colors.accent.purple}15`,
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderRadius: 8,
+      flexShrink: 0,
+    },
+    transferTagText: {
+      color: colors.accent.purple,
+      fontSize: 11,
+      fontWeight: '700',
     },
     statementTag: {
       flexDirection: 'row',

@@ -54,7 +54,9 @@ export default function AddAccountTransactionModal() {
     accounts.find((a) => a.id !== (initialAccountId || (accounts[0]?.id || '')))?.id || ''
   );
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(QUICK_CATEGORIES.deposit[0]);
+  const [category, setCategory] = useState(
+    QUICK_CATEGORIES[initialType === 'withdrawal' || initialType === 'transfer' ? (initialType as AccountTxType) : 'deposit'][0]
+  );
   const [reasonNotes, setReasonNotes] = useState('');
   const [date, setDate] = useState(new Date().toISOString());
   const [showDatePicker, setShowDatePicker] = useState(false);

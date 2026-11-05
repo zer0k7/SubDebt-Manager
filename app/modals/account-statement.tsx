@@ -17,6 +17,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAccounts, AccountTxType } from '../../hooks/useAccounts';
 import { formatCurrency } from '../../utils/dateHelpers';
 import { exportAccountStatementToPDF } from '../../utils/accountStatementExporter';
+import { exportAccountPassbookToCSV } from '../../utils/csvExporter';
 import { AppPopup } from '../../components/AppPopup';
 import { BankLogo } from '../../components/banks/BankLogo';
 
@@ -29,10 +30,12 @@ export default function AccountStatementModal() {
   const { accounts, getAccountTransactions, deleteTransaction, deleteAccount } = useAccounts();
 
   const [filterType, setFilterType] = useState<string>('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState<'all' | 'month' | 'last_month' | '90d'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTxId, setDeleteTxId] = useState<string | null>(null);
   const [showDeleteAccountPopup, setShowDeleteAccountPopup] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isExportingCSV, setIsExportingCSV] = useState(false);
 
   const account = useMemo(() => accounts.find((a) => a.id === accountId), [accounts, accountId]);
   const allTxs = useMemo(() => (accountId ? getAccountTransactions(accountId) : []), [getAccountTransactions, accountId]);
@@ -41,6 +44,29 @@ export default function AccountStatementModal() {
     let list = allTxs;
     if (filterType !== 'all') {
       list = list.filter((t) => t.type === filterType);
+    }
+    if (dateRangeFilter !== 'all') {
+      const now = new Date();
+      const curYear = now.getFullYear();
+      const curMonth = now.getMonth();
+
+      if (dateRangeFilter === 'month') {
+        list = list.filter((t) => {
+          const d = new Date(t.date);
+          return d.getFullYear() === curYear && d.getMonth() === curMonth;
+        });
+      } else if (dateRangeFilter === 'last_month') {
+        const lastMonthYear = curMonth === 0 ? curYear - 1 : curYear;
+        const lastMonth = curMonth === 0 ? 11 : curMonth - 1;
+        list = list.filter((t) => {
+          const d = new Date(t.date);
+          return d.getFullYear() === lastMonthYear && d.getMonth() === lastMonth;
+        });
+      } else if (dateRangeFilter === '90d') {
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        list = list.filter((t) => new Date(t.date) >= ninetyDaysAgo);
+      }
     }
     const q = searchQuery.trim().toLowerCase();
     if (q) {
@@ -61,7 +87,7 @@ export default function AccountStatementModal() {
       });
     }
     return list;
-  }, [allTxs, filterType, searchQuery, accounts]);
+  }, [allTxs, filterType, dateRangeFilter, searchQuery, accounts]);
 
   const monthlyCashFlow = useMemo(() => {
     const now = new Date();
@@ -137,6 +163,16 @@ export default function AccountStatementModal() {
     }
   };
 
+  const handleExportCSV = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsExportingCSV(true);
+    try {
+      await exportAccountPassbookToCSV(account, filteredTxs, accounts);
+    } finally {
+      setIsExportingCSV(false);
+    }
+  };
+
   const handleDeleteConfirm = async () => {
     if (deleteTxId) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -190,8 +226,18 @@ export default function AccountStatementModal() {
               style={styles.actionIconBtn}
               onPress={handleExportPDF}
               disabled={isExporting}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             >
-              <Ionicons name="document-text-outline" size={18} color={colors.accent.blue} />
+              <Ionicons name="document-text-outline" size={17} color={colors.accent.blue} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionIconBtn}
+              onPress={handleExportCSV}
+              disabled={isExportingCSV}
+              hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            >
+              <Ionicons name="grid-outline" size={16} color={colors.accent.purple} />
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -369,6 +415,34 @@ export default function AccountStatementModal() {
               <Ionicons name="close-circle" size={16} color={colors.text.muted} />
             </TouchableOpacity>
           )}
+        </View>
+
+        <View style={styles.dateFilterContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersRow}>
+            {[
+              { key: 'all', label: 'All Dates' },
+              { key: 'month', label: 'This Month' },
+              { key: 'last_month', label: 'Last Month' },
+              { key: '90d', label: 'Last 90 Days' },
+            ].map((d) => {
+              const isSelected = dateRangeFilter === d.key;
+              return (
+                <TouchableOpacity
+                  key={d.key}
+                  style={[styles.dateFilterPill, isSelected && styles.dateFilterPillSelected]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setDateRangeFilter(d.key as any);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.dateFilterPillText, isSelected && styles.dateFilterPillTextSelected]}>
+                    {d.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
         </View>
 
         <View style={styles.filtersWrapper}>
@@ -834,6 +908,30 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.text.primary,
       fontSize: 12,
       paddingVertical: 0,
+    },
+    dateFilterContainer: {
+      marginBottom: 6,
+    },
+    dateFilterPill: {
+      paddingHorizontal: 9,
+      paddingVertical: 4.5,
+      borderRadius: 8,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
+      borderWidth: 1,
+      borderColor: 'transparent',
+    },
+    dateFilterPillSelected: {
+      backgroundColor: `${colors.accent.purple}18`,
+      borderColor: colors.accent.purple,
+    },
+    dateFilterPillText: {
+      color: colors.text.muted,
+      fontSize: 10.5,
+      fontWeight: '600',
+    },
+    dateFilterPillTextSelected: {
+      color: colors.accent.purple,
+      fontWeight: '800',
     },
     filtersWrapper: {
       flexDirection: 'row',
