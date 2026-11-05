@@ -1,12 +1,12 @@
-# SubDebt Manager v2.19.0
+# SubDebt Manager v2.20.0
 
 ### Release Metadata
 
 | Attribute | Specification |
 | :--- | :--- |
-| Version | `2.19.0` |
-| Build Code | `45` |
-| Release Date | `04-Nov-2026` |
+| Version | `2.20.0` |
+| Build Code | `46` |
+| Release Date | `05-Nov-2026` |
 | Architecture | `arm64-v8a` |
 | Package | `com.subdebt.app` |
 
@@ -14,15 +14,16 @@
 
 | Component | Scope | Function |
 | :--- | :--- | :--- |
-| Google Play In-App Updates | System Service | Native Play Core App-Update API integration triggering in-app Google update sheets directly |
-| Centralized Update Mode Switch | Configuration | Centralized mode definition in `constants/updateConfig.ts` with support for flexible and immediate update flows |
-| Background Download Banner | UI Component | Non-intrusive floating restart banner notifying users when background download completes |
-| R8 Optimization Suite | CI/CD Pipeline | Comprehensive Proguard rules preserving Play Core, Reanimated, ViewShot, and Expo modules with mapping file generation |
+| Encrypted Cloud Vault | Data Security | Password protection with PBKDF2 key derivation and AES-256-GCM encryption |
+| Google Drive Sync Flow | Data Storage | Direct storage linking via Storage Access Framework for automated cloud mirroring |
+| Cloud Restore Engine | Data Migration | Direct restoration of encrypted and standard ledger backups from Google Drive |
+| App Switcher Privacy Shield | System Privacy | Automatic balance and ledger obscuration during multitasking and task switching |
+| Snapshot Notification Fix | Reliability | Corrected backup alerts to eliminate false positives when no storage folder is linked |
 
-### Technical Highlights
+### Release Highlights
 
-1. **Google Play Core App-Update API**: Integrated `sp-react-native-in-app-updates` connected to Google Play Core SDK. Automatically queries Google Play version metadata on launch without remote API servers.
-2. **Centralized Update Switch**: Defined `constants/updateConfig.ts` as the single source of truth for update presentation modes. Set to `FLEXIBLE` by default for silent background downloads, switchable to `IMMEDIATE` for mandatory full-screen updates.
-3. **Background Download Completion Handshake**: Built `components/UpdateDownloadedBanner.tsx` and `hooks/usePlayInAppUpdate.ts` listening for `DOWNLOADED` installation status events and providing a 1-tap restart trigger.
-4. **Dual-Engine Fallback**: Updated manual version checking in settings to attempt Google Play Core first and gracefully fall back to direct GitHub Releases API for sideloaded installations.
-5. **R8 Proguard Rules**: Configured keep rules for `com.google.android.play.core.**` and `in.mfl.inappupdates.**` in `.github/workflows/build.yml` to prevent reflection stripping during release minification.
+1. **AES-256 Cloud Vault Encryption**: Password-protect ledger exports and automated snapshots using PBKDF2 key derivation (100,000 rounds) and AES-256-GCM authenticated encryption.
+2. **Google Drive and Cloud Sync**: Connect cloud storage folders using Android Storage Access Framework for automated off-device backup mirroring.
+3. **One-Tap Cloud Restore**: Restore ledger databases and preferences directly from Google Drive or local storage on clean installations.
+4. **Recent Apps Privacy Shield**: Automatically obscure account balances and ledger entries when switching applications or viewing Android multitasking cards.
+5. **Accurate Backup Notifications**: Ensure backup completion alerts only fire when snapshots are successfully mirrored to external storage.

@@ -63,9 +63,12 @@ All records are stored locally on your device. The application requires no user 
 
 ### Privacy, Security, and Portability
 * **100% Offline Persistence:** High-performance local storage with zero cloud dependencies.
+* **AES-256 Vault Encryption:** Military-grade PBKDF2 (100,000 iterations) + AES-256-GCM password encryption for exports and automated backups.
+* **Google Drive & Cloud Sync:** Direct folder linking via Android SAF to mirror snapshots to Google Drive or local directories with 1-tap restore.
+* **App Switcher Privacy Shield:** Automatically obscures account balances and financial records in recent apps task view.
 * **Biometric Lock:** Secure application access using hardware-backed Fingerprint, Face ID, or system PIN.
 * **Complete Backup & Restore:** Export and import full database state via JSON files for device migration.
-* **Data Export:** Export spending and ledger data directly to CSV.
+* **Data Export:** Export spending and ledger data directly to CSV or PDF statements.
 
 ---
 
