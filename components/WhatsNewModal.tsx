@@ -28,28 +28,34 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
 
   const features = [
     {
-      icon: 'business-outline',
-      color: '#38BDF8',
-      title: 'Multi-Bank & Cash Accounts',
-      desc: 'Track liquid reserves across multiple bank accounts, cash in hand, and digital wallets in one place.',
-    },
-    {
-      icon: 'swap-horizontal-outline',
-      color: '#A855F7',
-      title: 'Passbook Ledger & Transfers',
-      desc: 'Record deposits, withdrawals, and inter-bank transfers with instant running balance recalculation.',
-    },
-    {
-      icon: 'bookmark-outline',
+      icon: 'shield-checkmark-outline',
       color: '#10B981',
-      title: 'Reason Notes & Tagging',
-      desc: 'Keep complete context on why money was withdrawn or where it came from with zero guesswork.',
+      title: 'AES-256 Vault Encryption',
+      desc: 'Password-protect your exports and snapshots with PBKDF2 (100,000 rounds) + AES-256-GCM authenticated encryption.',
     },
     {
-      icon: 'document-text-outline',
+      icon: 'cloud-outline',
+      color: '#38BDF8',
+      title: 'Google Drive & Cloud Sync',
+      desc: 'Connect your Google Drive folder using Android SAF for automatic off-device backup mirroring.',
+    },
+    {
+      icon: 'download-outline',
+      color: '#A855F7',
+      title: 'One-Tap Cloud Restore',
+      desc: 'Restore encrypted and standard ledger snapshots directly from Google Drive on clean installs or device transfers.',
+    },
+    {
+      icon: 'eye-off-outline',
       color: '#F59E0B',
-      title: 'Official Bank PDF Statements',
-      desc: 'Export formal bank passbook statements with debit, credit, running balance, and account metadata.',
+      title: 'Recent Apps Privacy Shield',
+      desc: 'Automatically obscure sensitive account balances and ledger entries when switching apps or viewing recent tasks.',
+    },
+    {
+      icon: 'stats-chart-outline',
+      color: '#EC4899',
+      title: 'Spending CSV Exporter',
+      desc: 'Export your daily expense ledger directly to CSV spreadsheets compatible with Google Sheets and Microsoft Excel.',
     },
   ];
 
@@ -66,11 +72,11 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
               />
             </View>
             <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.16.0</Text>
+              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.20.0</Text>
             </View>
-            <Text style={styles.heroTitle}>Multi-Bank Passbook</Text>
+            <Text style={styles.heroTitle}>Cloud Vault & Privacy</Text>
             <Text style={styles.heroSubtitle}>
-              Dedicated banking ledger, running balances, transfer records, and formal statement exports.
+              AES-256 encrypted backups, Google Drive cloud sync, and recent apps privacy shield.
             </Text>
           </View>
 
