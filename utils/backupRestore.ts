@@ -1,15 +1,20 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { exportAllData } from './exportData';
-import { pickAndImportData, ImportResult } from './importData';
+import { pickAndImportData, importEncryptedPayload, ImportResult } from './importData';
 
-export const exportDatabaseBackup = async (): Promise<boolean> => {
-  return await exportAllData();
+export const exportDatabaseBackup = async (password?: string): Promise<boolean> => {
+  return await exportAllData(password);
 };
 
-export const importDatabaseBackup = async (mode: 'merge' | 'replace' = 'merge'): Promise<ImportResult> => {
-  return await pickAndImportData(mode);
+export const importDatabaseBackup = async (
+  mode: 'merge' | 'replace' = 'merge',
+  password?: string
+): Promise<ImportResult> => {
+  return await pickAndImportData(mode, password);
 };
+
+export { importEncryptedPayload };
 
 export const exportSpendingCSV = async (entries: any[], currencyCode: string): Promise<boolean> => {
   try {

@@ -6,6 +6,7 @@ import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
 import { buildComprehensiveExportData } from './exportData';
 import { importDataObj, ImportResult } from './importData';
+import { encryptVaultData, decryptVaultData, isEncryptedVaultPayload } from './cryptoVault';
 
 export const VAULT_BACKUPS_DIR = `${FileSystem.documentDirectory}vault_backups/`;
 const MAX_SNAPSHOT_RETENTION = 30;
@@ -176,7 +177,16 @@ export const createVaultSnapshot = async (
 
     const fileName = `SubDebt_Snapshot_${yyyy}-${mm}-${dd}_${hh}${min}${ss}.json`;
     const filePath = `${VAULT_BACKUPS_DIR}${fileName}`;
-    const jsonString = JSON.stringify(exportData, null, 2);
+
+    const encEnabled = (await storage.getString(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED)) === 'true';
+    const masterPassword = await storage.getString(STORAGE_KEYS.BACKUP_MASTER_PASSWORD);
+
+    let jsonString = JSON.stringify(exportData, null, 2);
+    let isEncrypted = false;
+    if (encEnabled && masterPassword) {
+      jsonString = await encryptVaultData(jsonString, masterPassword);
+      isEncrypted = true;
+    }
 
     await FileSystem.writeAsStringAsync(filePath, jsonString, {
       encoding: FileSystem.EncodingType.UTF8,
@@ -291,11 +301,35 @@ export const listVaultSnapshots = async (): Promise<VaultSnapshotItem[]> => {
 
 export const restoreVaultSnapshot = async (
   filePath: string,
-  mode: 'merge' | 'replace' = 'merge'
+  mode: 'merge' | 'replace' = 'merge',
+  password?: string
 ): Promise<ImportResult> => {
   try {
-    const content = await FileSystem.readAsStringAsync(filePath);
-    const data = JSON.parse(content);
+    let content = await FileSystem.readAsStringAsync(filePath);
+    let data = JSON.parse(content);
+
+    if (isEncryptedVaultPayload(data)) {
+      if (!password) {
+        return {
+          success: false,
+          subscriptionsCount: 0,
+          debtsCount: 0,
+          creditsCount: 0,
+          spendingCount: 0,
+          categoriesCount: 0,
+          incomeCount: 0,
+          accountsCount: 0,
+          accountTransactionsCount: 0,
+          settingsRestored: false,
+          isEncrypted: true,
+          encryptedContent: content,
+          error: 'ENCRYPTED_VAULT_PASSWORD_REQUIRED',
+        };
+      }
+      content = await decryptVaultData(content, password);
+      data = JSON.parse(content);
+    }
+
     return await importDataObj(data, mode);
   } catch (error) {
     return {
@@ -379,17 +413,31 @@ export const checkAndRunScheduledSnapshot = async (): Promise<boolean> => {
     const isMissedPreviousDay = !lastDate || lastDate < todayStr;
 
     if (isPastNightTime || isMissedPreviousDay) {
+      const publicFolderUri = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_URI);
+      const publicFolderName = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_NAME);
+
       const result = await createVaultSnapshot('auto');
       if (result.success) {
         try {
-          await Notifications.scheduleNotificationAsync({
-            content: {
-              title: 'Vault Snapshot Secured',
-              body: `Your daily offline ledger backup was created. (${result.fileName})`,
-              sound: false,
-            },
-            trigger: null,
-          });
+          if (publicFolderUri && result.publicSaved) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'Cloud Snapshot Secured',
+                body: `Daily backup saved to ${publicFolderName || 'linked cloud folder'}.`,
+                sound: false,
+              },
+              trigger: null,
+            });
+          } else if (!publicFolderUri) {
+            await Notifications.scheduleNotificationAsync({
+              content: {
+                title: 'Link Cloud / Device Folder',
+                body: 'Link Google Drive or a device folder in Settings to save daily offline backups.',
+                sound: false,
+              },
+              trigger: null,
+            });
+          }
         } catch {}
         return true;
       }

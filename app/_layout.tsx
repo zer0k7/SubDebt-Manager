@@ -18,6 +18,7 @@ import { checkForUpdate, UpdateInfo } from '../utils/updateChecker';
 import { checkAndRunScheduledSnapshot } from '../utils/vaultSnapshots';
 import { UpdatePrompt } from '../components/UpdatePrompt';
 import { UpdateDownloadedBanner } from '../components/UpdateDownloadedBanner';
+import { PrivacyScreenShield } from '../components/PrivacyScreenShield';
 import { usePlayInAppUpdate } from '../hooks/usePlayInAppUpdate';
 import { initTelemetry, logEvent } from '../utils/telemetry';
 
@@ -182,6 +183,8 @@ function AppLayout() {
         onRestart={installDownloadedUpdate}
         onDismiss={() => setShowDownloadedBanner(false)}
       />
+
+      <PrivacyScreenShield />
     </>
   );
 }

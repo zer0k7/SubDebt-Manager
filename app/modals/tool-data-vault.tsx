@@ -6,7 +6,9 @@ import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../hooks/useTheme';
 import { AmbientBackground } from '../../components/AmbientBackground';
-import { exportDatabaseBackup, importDatabaseBackup, exportSpendingCSV } from '../../utils/backupRestore';
+import { exportDatabaseBackup, importDatabaseBackup, importEncryptedPayload, exportSpendingCSV } from '../../utils/backupRestore';
+import { ImportResult } from '../../utils/importData';
+import { MasterPasswordModal } from '../../components/MasterPasswordModal';
 import {
   createVaultSnapshot,
   listVaultSnapshots,
@@ -33,11 +35,21 @@ export default function DataVaultToolScreen() {
   const [snapshots, setSnapshots] = useState<VaultSnapshotItem[]>([]);
   const [publicFolder, setPublicFolder] = useState<{ uri: string | null; name: string | null }>({ uri: null, name: null });
 
+  const [encryptedBackupsEnabled, setEncryptedBackupsEnabled] = useState(false);
+  const [hasMasterPassword, setHasMasterPassword] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordModalMode, setPasswordModalMode] = useState<'setup' | 'decrypt'>('setup');
+  const [passwordModalError, setPasswordModalError] = useState('');
+  const [pendingDecryptTarget, setPendingDecryptTarget] = useState<{
+    type: 'snapshot' | 'external';
+    pathOrContent: string;
+    mode: 'merge' | 'replace';
+  } | null>(null);
+
   const [popupConfig, setPopupConfig] = useState<any>(null);
   const showPopup = (config: any) => setPopupConfig(config);
   const closePopup = () => setPopupConfig(null);
 
-  // Load initial settings, custom folder, and snapshot list
   const loadVaultData = useCallback(async () => {
     try {
       const enabledRaw = await storage.getString(STORAGE_KEYS.AUTO_SNAPSHOT_ENABLED);
@@ -45,6 +57,11 @@ export default function DataVaultToolScreen() {
 
       const folderInfo = await getPublicBackupFolderInfo();
       setPublicFolder(folderInfo);
+
+      const encRaw = await storage.getString(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED);
+      setEncryptedBackupsEnabled(encRaw === 'true');
+      const pass = await storage.getString(STORAGE_KEYS.BACKUP_MASTER_PASSWORD);
+      setHasMasterPassword(Boolean(pass && pass.length >= 6));
 
       const list = await listVaultSnapshots();
       setSnapshots(list);
@@ -195,6 +212,89 @@ export default function DataVaultToolScreen() {
     }
   };
 
+  const handleToggleEncryption = async (value: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (value && !hasMasterPassword) {
+      setPasswordModalMode('setup');
+      setPasswordModalError('');
+      setShowPasswordModal(true);
+      return;
+    }
+    setEncryptedBackupsEnabled(value);
+    await storage.set(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED, value ? 'true' : 'false');
+  };
+
+  const handleSaveMasterPassword = async (pass: string) => {
+    await storage.set(STORAGE_KEYS.BACKUP_MASTER_PASSWORD, pass);
+    await storage.set(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED, 'true');
+    setHasMasterPassword(true);
+    setEncryptedBackupsEnabled(true);
+    setShowPasswordModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showPopup({
+      title: 'Master Password Active',
+      message: 'AES-256-GCM encryption is now enabled. All new vault snapshots and shared backups will be encrypted with your password.',
+      icon: 'shield-checkmark-outline',
+      iconColor: colors.accent.green,
+      confirmText: 'Done',
+      onConfirm: closePopup,
+    });
+  };
+
+  const handleDisableMasterPassword = async () => {
+    await storage.set(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED, 'false');
+    await storage.delete(STORAGE_KEYS.BACKUP_MASTER_PASSWORD);
+    setHasMasterPassword(false);
+    setEncryptedBackupsEnabled(false);
+    setShowPasswordModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const handlePasswordSubmit = async (password: string) => {
+    if (passwordModalMode === 'setup') {
+      await handleSaveMasterPassword(password);
+      return;
+    }
+
+    if (!pendingDecryptTarget) return;
+    setLoading(true);
+    let result: ImportResult;
+    if (pendingDecryptTarget.type === 'snapshot') {
+      result = await restoreVaultSnapshot(pendingDecryptTarget.pathOrContent, pendingDecryptTarget.mode, password);
+    } else {
+      result = await importEncryptedPayload(pendingDecryptTarget.pathOrContent, password, pendingDecryptTarget.mode);
+    }
+    setLoading(false);
+
+    if (result.success) {
+      setShowPasswordModal(false);
+      setPendingDecryptTarget(null);
+      setPasswordModalError('');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const total =
+        result.subscriptionsCount +
+        result.debtsCount +
+        result.creditsCount +
+        result.spendingCount +
+        result.categoriesCount +
+        (result.incomeCount || 0) +
+        (result.accountsCount || 0) +
+        (result.accountTransactionsCount || 0);
+      showPopup({
+        title: 'Vault Restored Successfully',
+        message: `Decrypted and restored ${total} records across all tabs.`,
+        icon: 'checkmark-circle-outline',
+        iconColor: colors.accent.green,
+        confirmText: 'Done',
+        onConfirm: closePopup,
+      });
+      await loadVaultData();
+    } else {
+      setPasswordModalError(result.error || 'Decryption failed. Please check password.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+  };
+
   const handleRestoreSnapshot = (snapshot: VaultSnapshotItem) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     showPopup({
@@ -210,6 +310,15 @@ export default function DataVaultToolScreen() {
         setLoading(true);
         const result = await restoreVaultSnapshot(snapshot.filePath, 'merge');
         setLoading(false);
+
+        if (result.isEncrypted && result.error === 'ENCRYPTED_VAULT_PASSWORD_REQUIRED') {
+          setPendingDecryptTarget({ type: 'snapshot', pathOrContent: snapshot.filePath, mode: 'merge' });
+          setPasswordModalMode('decrypt');
+          setPasswordModalError('');
+          setShowPasswordModal(true);
+          return;
+        }
+
         if (result.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           const total =
@@ -295,7 +404,7 @@ export default function DataVaultToolScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     showPopup({
       title: 'Import External Backup?',
-      message: 'Select an external JSON backup file to merge with your current offline ledger data.',
+      message: 'Select a JSON backup file (from Google Drive, Downloads, or local files) to restore your offline ledger data.',
       icon: 'download-outline',
       iconColor: colors.accent.blue,
       confirmText: 'Choose File',
@@ -307,6 +416,15 @@ export default function DataVaultToolScreen() {
         setLoading(true);
         const result = await importDatabaseBackup('merge');
         setLoading(false);
+
+        if (result.isEncrypted && result.encryptedContent) {
+          setPendingDecryptTarget({ type: 'external', pathOrContent: result.encryptedContent, mode: 'merge' });
+          setPasswordModalMode('decrypt');
+          setPasswordModalError('');
+          setShowPasswordModal(true);
+          return;
+        }
+
         if (result.success) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           const totalRecords =
@@ -327,6 +445,15 @@ export default function DataVaultToolScreen() {
             onConfirm: closePopup,
           });
           await loadVaultData();
+        } else if (!result.cancelled && result.error) {
+          showPopup({
+            title: 'Import Failed',
+            message: result.error,
+            icon: 'alert-circle-outline',
+            iconColor: colors.accent.red,
+            confirmText: 'OK',
+            onConfirm: closePopup,
+          });
         }
       },
     });
@@ -383,7 +510,6 @@ export default function DataVaultToolScreen() {
     <SafeAreaView style={styles.container}>
       <AmbientBackground />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <Ionicons name="arrow-back" size={24} color={colors.text.secondary} />
@@ -393,14 +519,13 @@ export default function DataVaultToolScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Hero Card */}
         <View style={styles.heroBox}>
           <View style={styles.heroIconBox}>
             <Ionicons name="shield-checkmark" size={32} color={colors.accent.blue} />
           </View>
           <Text style={styles.heroTitle}>Offline Data Vault</Text>
           <Text style={styles.heroSubtitle}>
-            Encrypted JSON backups of your financial ledger. Automatic backups run daily at 10:00 PM IST, and can be saved directly to your phone's File Manager.
+            Offline financial ledger snapshots with optional AES-256 PBKDF2 encryption and Google Drive / cloud storage sync.
           </Text>
         </View>
 
@@ -411,7 +536,100 @@ export default function DataVaultToolScreen() {
           </View>
         )}
 
-        {/* Automated Daily Snapshots Schedule Card */}
+        <Text style={styles.sectionLabel}>GOOGLE DRIVE & CLOUD SYNC</Text>
+        <View style={styles.scheduledCard}>
+          <View style={styles.scheduledHeader}>
+            <View style={[styles.scheduledIconBox, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+              <Ionicons name="cloud-outline" size={22} color={colors.accent.blue} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.scheduledTitle}>Google Drive & Storage Sync</Text>
+              <Text style={styles.scheduledDesc}>
+                Link a Google Drive folder or device folder. Auto-snapshots sync directly so you can restore your data across devices.
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.statusBadge, { backgroundColor: publicFolder.name ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)' }]}>
+            <Ionicons
+              name={publicFolder.name ? 'checkmark-circle' : 'alert-circle'}
+              size={13}
+              color={publicFolder.name ? colors.accent.green : colors.accent.amber}
+            />
+            <Text style={[styles.statusBadgeText, { color: publicFolder.name ? colors.accent.green : colors.accent.amber }]}>
+              {publicFolder.name ? `Linked Folder: ${publicFolder.name}` : 'Not Linked (Sandbox Only)'}
+            </Text>
+          </View>
+
+          <View style={styles.folderBtnRow}>
+            <TouchableOpacity style={styles.folderPickerBtn} onPress={handlePickFolder} activeOpacity={0.8}>
+              <Ionicons name="folder-open-outline" size={16} color={colors.accent.blue} />
+              <Text style={styles.folderPickerBtnText}>
+                {publicFolder.name ? 'Change Folder' : 'Link Google Drive / Folder'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cloudRestoreBtn} onPress={handleImportExternalJSON} activeOpacity={0.8}>
+              <Ionicons name="download-outline" size={16} color={colors.accent.green} />
+              <Text style={styles.cloudRestoreBtnText}>Restore from Drive</Text>
+            </TouchableOpacity>
+
+            {publicFolder.name && (
+              <TouchableOpacity style={styles.clearFolderBtn} onPress={handleClearFolder} activeOpacity={0.8}>
+                <Ionicons name="close-circle-outline" size={16} color={colors.text.muted} />
+                <Text style={styles.clearFolderBtnText}>Reset</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        <Text style={styles.sectionLabel}>ENCRYPTED CLOUD VAULT</Text>
+        <View style={styles.scheduledCard}>
+          <View style={styles.scheduledHeader}>
+            <View style={[styles.scheduledIconBox, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+              <Ionicons name="lock-closed-outline" size={22} color={colors.accent.green} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.scheduledTitle}>AES-256 Vault Encryption</Text>
+              <Text style={styles.scheduledDesc}>
+                Password-protect all exports and auto-snapshots with PBKDF2 (100,000 rounds) + AES-256-GCM.
+              </Text>
+            </View>
+            <Switch
+              value={encryptedBackupsEnabled}
+              onValueChange={handleToggleEncryption}
+              trackColor={{ false: isDark ? 'rgba(255,255,255,0.1)' : '#E2E8F0', true: colors.accent.green }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <View style={[styles.statusBadge, { backgroundColor: encryptedBackupsEnabled ? 'rgba(16, 185, 129, 0.15)' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)') }]}>
+            <Ionicons
+              name={encryptedBackupsEnabled ? 'shield-checkmark' : 'shield-outline'}
+              size={13}
+              color={encryptedBackupsEnabled ? colors.accent.green : colors.text.muted}
+            />
+            <Text style={[styles.statusBadgeText, { color: encryptedBackupsEnabled ? colors.accent.green : colors.text.muted }]}>
+              {encryptedBackupsEnabled ? 'Vault Encryption Active' : 'Unencrypted Standard Backups'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.configPasswordBtn}
+            onPress={() => {
+              setPasswordModalMode('setup');
+              setPasswordModalError('');
+              setShowPasswordModal(true);
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="key-outline" size={15} color={colors.accent.blue} />
+            <Text style={styles.configPasswordBtnText}>
+              {hasMasterPassword ? 'Change Master Password' : 'Set Master Password'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.sectionLabel}>AUTOMATED VAULT SNAPSHOTS</Text>
         <View style={styles.scheduledCard}>
           <View style={styles.scheduledHeader}>
@@ -447,43 +665,6 @@ export default function DataVaultToolScreen() {
             </View>
           </View>
 
-          {/* Folder Selection for File Manager Visibility */}
-          <View style={styles.folderPickerCard}>
-            <View style={styles.folderPickerHeader}>
-              <Ionicons name="phone-portrait-outline" size={18} color={colors.accent.blue} />
-              <Text style={styles.folderPickerTitle}>File Manager Visibility (Android)</Text>
-            </View>
-            <Text style={styles.folderPickerDesc}>
-              {publicFolder.name
-                ? `Linked to "${publicFolder.name}". Backups are directly saved and visible in your phone's File Manager app.`
-                : `Android restricts private app folders from appearing in File Manager. Select a folder (like Documents or Downloads) so backups are directly visible in your phone's File Manager.`}
-            </Text>
-
-            <View style={styles.folderBtnRow}>
-              <TouchableOpacity
-                style={styles.folderPickerBtn}
-                onPress={handlePickFolder}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="folder-open-outline" size={16} color={colors.accent.blue} />
-                <Text style={styles.folderPickerBtnText}>
-                  {publicFolder.name ? 'Change Folder' : 'Choose File Manager Folder'}
-                </Text>
-              </TouchableOpacity>
-
-              {publicFolder.name && (
-                <TouchableOpacity
-                  style={styles.clearFolderBtn}
-                  onPress={handleClearFolder}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="close-circle-outline" size={16} color={colors.text.muted} />
-                  <Text style={styles.clearFolderBtnText}>Reset</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-
           <TouchableOpacity
             style={styles.snapshotNowBtn}
             onPress={handleCreateSnapshotNow}
@@ -495,7 +676,6 @@ export default function DataVaultToolScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Snapshots History & Management List */}
         <View style={styles.historyHeaderRow}>
           <Text style={styles.sectionLabel}>SAVED VAULT SNAPSHOTS ({snapshots.length})</Text>
           {snapshots.length > 0 && (
@@ -582,7 +762,6 @@ export default function DataVaultToolScreen() {
           </View>
         )}
 
-        {/* Manual Export / Import Actions */}
         <Text style={[styles.sectionLabel, { marginTop: 24 }]}>EXTERNAL ACTIONS</Text>
 
         <TouchableOpacity style={styles.actionCard} onPress={handleExportJSON} activeOpacity={0.8} disabled={loading}>
@@ -637,6 +816,20 @@ export default function DataVaultToolScreen() {
         isDestructive={popupConfig?.isDestructive || false}
         onConfirm={popupConfig?.onConfirm || closePopup}
         onCancel={popupConfig?.onCancel || closePopup}
+      />
+
+      <MasterPasswordModal
+        visible={showPasswordModal}
+        mode={passwordModalMode}
+        onClose={() => {
+          setShowPasswordModal(false);
+          setPendingDecryptTarget(null);
+          setPasswordModalError('');
+        }}
+        onSubmit={handlePasswordSubmit}
+        onDisable={handleDisableMasterPassword}
+        error={passwordModalError}
+        hasExistingPassword={hasMasterPassword}
       />
     </SafeAreaView>
   );
@@ -799,6 +992,53 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderColor: colors.accent.blue,
     },
     folderPickerBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.accent.blue,
+    },
+    cloudRestoreBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.12)',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      borderWidth: 0.5,
+      borderColor: colors.accent.green,
+    },
+    cloudRestoreBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.accent.green,
+    },
+    statusBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      alignSelf: 'flex-start',
+    },
+    statusBadgeText: {
+      fontSize: 11,
+      fontWeight: '700',
+    },
+    configPasswordBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : 'rgba(59, 130, 246, 0.12)',
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+      borderWidth: 0.5,
+      borderColor: colors.accent.blue,
+      alignSelf: 'flex-start',
+      marginTop: 4,
+    },
+    configPasswordBtnText: {
       fontSize: 12,
       fontWeight: '700',
       color: colors.accent.blue,

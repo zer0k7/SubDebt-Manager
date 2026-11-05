@@ -5,9 +5,11 @@ import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
 import { rescheduleDailyReminder, checkAndTriggerBudgetAlerts } from './notificationHelpers';
 import { ensureReceiptDirectoryExists } from './receiptHelper';
+import { isEncryptedVaultPayload, decryptVaultData } from './cryptoVault';
 
 export interface ImportResult {
   success: boolean;
+  cancelled?: boolean;
   subscriptionsCount: number;
   debtsCount: number;
   creditsCount: number;
@@ -17,6 +19,8 @@ export interface ImportResult {
   accountsCount?: number;
   accountTransactionsCount?: number;
   settingsRestored: boolean;
+  isEncrypted?: boolean;
+  encryptedContent?: string;
   error?: string;
 }
 
@@ -61,16 +65,20 @@ const mergeByIds = async (storageKey: string, incoming: any[]): Promise<number> 
   return validNewItems.length;
 };
 
-export const pickAndImportData = async (mode: 'merge' | 'replace' = 'merge'): Promise<ImportResult> => {
+export const pickAndImportData = async (
+  mode: 'merge' | 'replace' = 'merge',
+  password?: string
+): Promise<ImportResult> => {
   try {
     const result = await DocumentPicker.getDocumentAsync({
-      type: 'application/json',
+      type: ['application/json', '*/*'],
       copyToCacheDirectory: true,
     });
 
     if (result.canceled || !result.assets || result.assets.length === 0) {
       return {
         success: false,
+        cancelled: true,
         subscriptionsCount: 0,
         debtsCount: 0,
         creditsCount: 0,
@@ -86,7 +94,47 @@ export const pickAndImportData = async (mode: 'merge' | 'replace' = 'merge'): Pr
 
     const file = result.assets[0];
     const fileContent = await FileSystem.readAsStringAsync(file.uri);
-    const data = JSON.parse(fileContent);
+    let data: any;
+
+    try {
+      data = JSON.parse(fileContent);
+    } catch {
+      return {
+        success: false,
+        subscriptionsCount: 0,
+        debtsCount: 0,
+        creditsCount: 0,
+        spendingCount: 0,
+        categoriesCount: 0,
+        incomeCount: 0,
+        accountsCount: 0,
+        accountTransactionsCount: 0,
+        settingsRestored: false,
+        error: 'Selected file is not valid JSON data',
+      };
+    }
+
+    if (isEncryptedVaultPayload(data)) {
+      if (!password) {
+        return {
+          success: false,
+          subscriptionsCount: 0,
+          debtsCount: 0,
+          creditsCount: 0,
+          spendingCount: 0,
+          categoriesCount: 0,
+          incomeCount: 0,
+          accountsCount: 0,
+          accountTransactionsCount: 0,
+          settingsRestored: false,
+          isEncrypted: true,
+          encryptedContent: fileContent,
+          error: 'ENCRYPTED_VAULT_PASSWORD_REQUIRED',
+        };
+      }
+      const decryptedStr = await decryptVaultData(fileContent, password);
+      data = JSON.parse(decryptedStr);
+    }
 
     return await importDataObj(data, mode);
   } catch (error) {
@@ -102,6 +150,32 @@ export const pickAndImportData = async (mode: 'merge' | 'replace' = 'merge'): Pr
       accountTransactionsCount: 0,
       settingsRestored: false,
       error: error instanceof Error ? error.message : 'Import failed',
+    };
+  }
+};
+
+export const importEncryptedPayload = async (
+  encryptedJson: string,
+  password: string,
+  mode: 'merge' | 'replace' = 'merge'
+): Promise<ImportResult> => {
+  try {
+    const decryptedJson = await decryptVaultData(encryptedJson, password);
+    const data = JSON.parse(decryptedJson);
+    return await importDataObj(data, mode);
+  } catch (error) {
+    return {
+      success: false,
+      subscriptionsCount: 0,
+      debtsCount: 0,
+      creditsCount: 0,
+      spendingCount: 0,
+      categoriesCount: 0,
+      incomeCount: 0,
+      accountsCount: 0,
+      accountTransactionsCount: 0,
+      settingsRestored: false,
+      error: error instanceof Error ? error.message : 'Decryption failed',
     };
   }
 };

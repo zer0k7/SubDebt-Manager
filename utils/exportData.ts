@@ -3,6 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 import { storage } from '../storage/mmkv';
 import { STORAGE_KEYS } from '../storage/keys';
+import { encryptVaultData } from './cryptoVault';
 
 export interface ComprehensiveExportData {
   version: string;
@@ -201,19 +202,29 @@ export const buildComprehensiveExportData = async (
   };
 };
 
-export const exportAllData = async (): Promise<boolean> => {
+export const exportAllData = async (password?: string): Promise<boolean> => {
   try {
     const exportData = await buildComprehensiveExportData('manual');
 
     const now = new Date();
     const dateStr = now.toISOString().split('T')[0];
     const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '');
-    const fileName = `SubDebt_FullBackup_${dateStr}_${timeStr}.json`;
+
+    const encEnabled = (await storage.getString(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED)) === 'true';
+    const masterPassword = password || (encEnabled ? await storage.getString(STORAGE_KEYS.BACKUP_MASTER_PASSWORD) : null);
+
+    let content = JSON.stringify(exportData, null, 2);
+    let fileName = `SubDebt_FullBackup_${dateStr}_${timeStr}.json`;
+
+    if (masterPassword) {
+      content = await encryptVaultData(content, masterPassword);
+      fileName = `SubDebt_EncryptedBackup_${dateStr}_${timeStr}.json`;
+    }
 
     const filePath = `${FileSystem.cacheDirectory}${fileName}`;
     await FileSystem.writeAsStringAsync(
       filePath,
-      JSON.stringify(exportData, null, 2),
+      content,
       { encoding: FileSystem.EncodingType.UTF8 }
     );
 
@@ -221,7 +232,7 @@ export const exportAllData = async (): Promise<boolean> => {
     if (isAvailable) {
       await Sharing.shareAsync(filePath, {
         mimeType: 'application/json',
-        dialogTitle: 'Export SubDebt Complete Vault Backup',
+        dialogTitle: masterPassword ? 'Export SubDebt Encrypted Vault Backup' : 'Export SubDebt Complete Vault Backup',
         UTI: 'public.json',
       });
       return true;

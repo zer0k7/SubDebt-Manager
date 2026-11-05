@@ -27,6 +27,7 @@ import { useDailySpending } from '../../hooks/useDailySpending';
 import { storage } from '../../storage/mmkv';
 import { STORAGE_KEYS } from '../../storage/keys';
 import { useAuthLock } from '../../context/AuthLockContext';
+import { MasterPasswordModal } from '../../components/MasterPasswordModal';
 import { checkForUpdate, UpdateInfo } from '../../utils/updateChecker';
 import { UpdatePrompt } from '../../components/UpdatePrompt';
 import { checkAndTriggerPlayUpdate } from '../../utils/playUpdateManager';
@@ -88,6 +89,12 @@ export default function SettingsModal() {
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
 
+  const [privacyScreenEnabled, setPrivacyScreenEnabled] = useState(false);
+  const [hasMasterPassword, setHasMasterPassword] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordModalError, setPasswordModalError] = useState('');
+  const [publicFolderName, setPublicFolderName] = useState('');
+
   const [popupVisible, setPopupVisible] = useState(false);
   const [popupConfig, setPopupConfig] = useState<any>({});
 
@@ -136,6 +143,15 @@ export default function SettingsModal() {
 
         const dTime = await storage.getString('midday_reminder_time');
         if (dTime) setMiddayTime(dTime);
+
+        const privVal = await storage.getString(STORAGE_KEYS.PRIVACY_SCREEN_ENABLED);
+        setPrivacyScreenEnabled(privVal === 'true');
+
+        const masterPass = await storage.getString(STORAGE_KEYS.BACKUP_MASTER_PASSWORD);
+        setHasMasterPassword(!!masterPass);
+
+        const folderName = await storage.getString(STORAGE_KEYS.CUSTOM_BACKUP_FOLDER_NAME);
+        if (folderName) setPublicFolderName(folderName);
 
         if (budget.amount > 0) {
           setBudgetInput(budget.amount.toString());
@@ -210,6 +226,36 @@ export default function SettingsModal() {
       confirmText: 'Done',
       onConfirm: closePopup,
     });
+  };
+
+  const handleTogglePrivacyScreen = async (value: boolean) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPrivacyScreenEnabled(value);
+    await storage.set(STORAGE_KEYS.PRIVACY_SCREEN_ENABLED, value ? 'true' : 'false');
+  };
+
+  const handleSaveMasterPassword = async (password: string) => {
+    await storage.set(STORAGE_KEYS.BACKUP_MASTER_PASSWORD, password);
+    await storage.set(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED, 'true');
+    setHasMasterPassword(true);
+    setShowPasswordModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showPopup({
+      title: 'Master Password Active',
+      message: 'AES-256 Cloud Vault encryption is active. All future exports and snapshots will require this password.',
+      icon: 'shield-checkmark-outline',
+      iconColor: colors.accent.green,
+      confirmText: 'Done',
+      onConfirm: closePopup,
+    });
+  };
+
+  const handleDisableMasterPassword = async () => {
+    await storage.set(STORAGE_KEYS.ENCRYPTED_BACKUPS_ENABLED, 'false');
+    await storage.delete(STORAGE_KEYS.BACKUP_MASTER_PASSWORD);
+    setHasMasterPassword(false);
+    setShowPasswordModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   const handleToggleReminders = async () => {
@@ -578,7 +624,7 @@ export default function SettingsModal() {
 
           {/* 4-Digit PIN Configuration (Disabled in Beta) */}
           <TouchableOpacity
-            style={[styles.settingRow, styles.disabledSettingRow, { borderBottomWidth: 0 }]}
+            style={[styles.settingRow, styles.disabledSettingRow]}
             activeOpacity={0.7}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -604,6 +650,46 @@ export default function SettingsModal() {
             <View style={styles.disabledLockBadge}>
               <Ionicons name="lock-closed-outline" size={16} color={colors.text.muted} />
             </View>
+          </TouchableOpacity>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingMeta}>
+              <View style={styles.settingTitleRow}>
+                <Text style={styles.settingTitle}>Privacy Shield (App Switcher)</Text>
+              </View>
+              <Text style={styles.settingSub}>Obscure balances and ledger records in recent apps task view</Text>
+            </View>
+            <Switch
+              value={privacyScreenEnabled}
+              onValueChange={handleTogglePrivacyScreen}
+              trackColor={{ false: isDark ? '#2A2A3C' : '#E2E8F0', true: colors.accent.purple }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.settingRow, { borderBottomWidth: 0 }]}
+            activeOpacity={0.8}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setPasswordModalError('');
+              setShowPasswordModal(true);
+            }}
+          >
+            <View style={styles.settingMeta}>
+              <View style={styles.settingTitleRow}>
+                <Text style={styles.settingTitle}>Master Password (AES-256)</Text>
+                <View style={{ backgroundColor: hasMasterPassword ? 'rgba(16, 185, 129, 0.15)' : (isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'), paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: hasMasterPassword ? colors.accent.green : colors.text.muted, fontSize: 10, fontWeight: '800' }}>
+                    {hasMasterPassword ? 'Configured' : 'Not Set'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.settingSub}>
+                {hasMasterPassword ? 'Exported vault files and auto-snapshots encrypted with AES-256-GCM' : 'Set a master password to encrypt backups stored on cloud/Drive'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
           </TouchableOpacity>
         </View>
 
@@ -813,6 +899,30 @@ export default function SettingsModal() {
             style={styles.settingRow}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.push('/modals/tool-data-vault');
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={styles.settingMeta}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.settingTitle}>Google Drive & Cloud Sync</Text>
+                <View style={{ backgroundColor: publicFolderName ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 }}>
+                  <Text style={{ color: publicFolderName ? colors.accent.green : colors.accent.amber, fontSize: 10, fontWeight: '800' }}>
+                    {publicFolderName ? 'Linked' : 'Not Linked'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.settingSub}>
+                {publicFolderName ? `Auto-syncing snapshots to "${publicFolderName}"` : 'Link a Google Drive / device folder for cloud snapshots'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push('/modals/user-manual');
             }}
             activeOpacity={0.8}
@@ -968,6 +1078,19 @@ export default function SettingsModal() {
       <WhatsNewModal
         visible={showWhatsNew}
         onDismiss={() => setShowWhatsNew(false)}
+      />
+
+      <MasterPasswordModal
+        visible={showPasswordModal}
+        mode="setup"
+        onClose={() => {
+          setShowPasswordModal(false);
+          setPasswordModalError('');
+        }}
+        onSubmit={handleSaveMasterPassword}
+        onDisable={handleDisableMasterPassword}
+        error={passwordModalError}
+        hasExistingPassword={hasMasterPassword}
       />
     </SafeAreaView>
   );
