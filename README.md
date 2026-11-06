@@ -18,7 +18,9 @@ Track liquid bank reserves, recurring subscriptions, bilateral credit/debt ledge
 <br>
 
 <p align="center">
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/zer0k7/SubDebt-Manager"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="52"></a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://github.com/zer0k7/SubDebt-Manager/releases/latest"><img src="https://raw.githubusercontent.com/zer0k7/SubDebt-Manager/main/assets/badge_github_apk.svg" alt="Get it on GitHub Releases" height="52"></a>
+  <a href="https://play.google.com/store/apps/details?id=com.subdebt.app"><img src="assets/badge_playstore.svg" alt="Get it on Google Play" height="50"></a>&nbsp;&nbsp;
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/zer0k7/SubDebt-Manager"><img src="assets/badge_obtainium.svg" alt="Get it on Obtainium" height="50"></a>&nbsp;&nbsp;
+  <a href="https://github.com/zer0k7/SubDebt-Manager/releases/latest"><img src="assets/badge_github_apk.svg" alt="Get it on GitHub Releases" height="50"></a>
 </p>
 
 <sub>Official Portal: <a href="https://subdebt.zer0k7lab.tech">subdebt.zer0k7lab.tech</a></sub>
@@ -169,7 +171,15 @@ Track liquid bank reserves, recurring subscriptions, bilateral credit/debt ledge
 
 ## Installation & Distribution
 
-### Option 1: Obtainium (Automated Release Tracking)
+### Option 1: Google Play Store
+
+Install directly from Google Play for automatic updates and verified device security:
+
+<p align="left">
+  <a href="https://play.google.com/store/apps/details?id=com.subdebt.app"><img src="assets/badge_playstore.svg" alt="Get it on Google Play" height="48"></a>
+</p>
+
+### Option 2: Obtainium (Automated Release Tracking)
 
 [Obtainium](https://github.com/ImranR98/Obtainium) monitors this GitHub repository directly and delivers seamless updates as soon as releases are published.
 
@@ -177,19 +187,19 @@ Track liquid bank reserves, recurring subscriptions, bilateral credit/debt ledge
 2. Tap the button below to add this repository:
 
 <p align="left">
-  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/zer0k7/SubDebt-Manager"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="48"></a>
+  <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/zer0k7/SubDebt-Manager"><img src="assets/badge_obtainium.svg" alt="Get it on Obtainium" height="48"></a>
 </p>
 
 *Manual Entry:* If the link does not open directly, navigate to Obtainium, select **Add App**, and input `https://github.com/zer0k7/SubDebt-Manager`.
 
-### Option 2: Direct APK Installation
+### Option 3: Direct APK Installation
 
 1. Navigate to [GitHub Releases](https://github.com/zer0k7/SubDebt-Manager/releases/latest).
 2. Download `SubDebt-arm64-v8a.apk` from the Assets list.
 3. Open the package on your Android device to install or update.
 
 <p align="left">
-  <a href="https://github.com/zer0k7/SubDebt-Manager/releases/latest"><img src="https://raw.githubusercontent.com/zer0k7/SubDebt-Manager/main/assets/badge_github_apk.svg" alt="Download on GitHub" height="48"></a>
+  <a href="https://github.com/zer0k7/SubDebt-Manager/releases/latest"><img src="assets/badge_github_apk.svg" alt="Download on GitHub" height="48"></a>
 </p>
 
 ---
