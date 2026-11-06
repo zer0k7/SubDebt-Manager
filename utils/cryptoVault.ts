@@ -82,6 +82,9 @@ export const encryptVaultData = async (
   if (!password || password.trim().length === 0) {
     throw new Error('Encryption password cannot be empty');
   }
+  if (!globalThis.crypto || !globalThis.crypto.subtle) {
+    throw new Error('Web Crypto API is unavailable in this environment');
+  }
 
   const enc = new TextEncoder();
   const salt = globalThis.crypto.getRandomValues(new Uint8Array(SALT_BYTE_LENGTH));
@@ -134,6 +137,9 @@ export const decryptVaultData = async (
 ): Promise<string> => {
   if (!password || password.trim().length === 0) {
     throw new Error('Decryption password cannot be empty');
+  }
+  if (!globalThis.crypto || !globalThis.crypto.subtle) {
+    throw new Error('Web Crypto API is unavailable in this environment');
   }
 
   let envelope: EncryptedVaultEnvelope;

@@ -30,6 +30,12 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
     {
       icon: 'shield-checkmark-outline',
       color: '#10B981',
+      title: 'Startup & Build Hotfix',
+      desc: 'Resolved launch crash and restored optimized runtime stability across all Android devices.',
+    },
+    {
+      icon: 'lock-closed-outline',
+      color: '#0D9488',
       title: 'AES-256 Vault Encryption',
       desc: 'Password-protect your exports and snapshots with PBKDF2 (100,000 rounds) + AES-256-GCM authenticated encryption.',
     },
@@ -72,7 +78,7 @@ export const WhatsNewModal: React.FC<WhatsNewModalProps> = ({ visible, onDismiss
               />
             </View>
             <View style={styles.versionBadge}>
-              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.20.0</Text>
+              <Text style={styles.versionBadgeText}>WHAT IS NEW IN v2.20.1</Text>
             </View>
             <Text style={styles.heroTitle}>Cloud Vault & Privacy</Text>
             <Text style={styles.heroSubtitle}>

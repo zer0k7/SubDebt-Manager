@@ -21,18 +21,19 @@ export const PrivacyScreenShield: React.FC = () => {
     };
     checkEnabled();
 
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'active') {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      try {
+        if (nextAppState === 'active') {
+          setShieldActive(false);
+          await checkEnabled();
+        } else {
+          const val = await storage.getString(STORAGE_KEYS.PRIVACY_SCREEN_ENABLED);
+          if (val === 'true') {
+            setShieldActive(true);
+          }
+        }
+      } catch {
         setShieldActive(false);
-        checkEnabled();
-      } else {
-        checkEnabled().then(() => {
-          storage.getString(STORAGE_KEYS.PRIVACY_SCREEN_ENABLED).then((val) => {
-            if (val === 'true') {
-              setShieldActive(true);
-            }
-          });
-        });
       }
     };
 
